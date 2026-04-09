@@ -393,3 +393,69 @@
   --normal-border: oklch(0.85 0.03 155) !important;
   --normal-text: oklch(0.25 0.06 155) !important;
 }
+
+/* ============================================================
+   Homepage Animations
+   ============================================================ */
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.hero-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Save indicator pulse */
+@keyframes savePulse {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+
+.save-indicator {
+  animation: savePulse 1.5s ease-out forwards;
+}
+
+/* ============================================================
+   Enhanced Focus Styles — Accessible & Google-like
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid oklch(0.488 0.217 264);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.dark :focus-visible {
+  outline-color: oklch(0.623 0.214 259);
+}
+
+/* ============================================================
+   Smooth Selection Color
+   ============================================================ */
+::selection {
+  background: oklch(0.488 0.217 264 / 0.2);
+  color: inherit;
+}
+
+/* ============================================================
+   Better transition for theme switch
+   ============================================================ */
+* {
+  transition-property: background-color, border-color;
+  transition-duration: 0s;
+}
+
+.dark * {
+  transition-property: background-color, border-color;
+  transition-duration: 0s;
+}

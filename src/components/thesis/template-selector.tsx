@@ -119,13 +119,20 @@ export function TemplateSelector() {
                         <CardTitle className="text-base font-semibold">
                           {template.name}
                         </CardTitle>
-                        <Badge
-                          variant="secondary"
-                          className={cn("text-[10px] mt-1 font-medium", templateBadgeColors[template.type])}
-                        >
-                          {template.defaultStructure.chapterCount} chapters
-                          {template.defaultStructure.hasAppendix ? " + appendix" : ""}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Badge
+                            variant="secondary"
+                            className={cn("text-[10px] font-medium", templateBadgeColors[template.type])}
+                          >
+                            {template.defaultStructure.chapterCount} chapters
+                            {template.defaultStructure.hasAppendix ? " + appendix" : ""}
+                          </Badge>
+                          {template.type === "master" && (
+                            <Badge className="text-[9px] bg-primary/10 text-primary border-primary/20 font-semibold">
+                              Recommended
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     {isSelected && (

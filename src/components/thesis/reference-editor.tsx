@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -26,6 +27,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Sparkles,
   Plus,
   Trash2,
@@ -40,8 +47,10 @@ import {
   Library,
   HelpCircle,
   Upload,
+  ArrowDownAZ,
+  ArrowUpZA,
 } from "lucide-react";
-import type { ReferenceType } from "@/lib/thesis-types";
+import type { ReferenceType, ThesisReference } from "@/lib/thesis-types";
 
 const refTypeConfig: Record<
   ReferenceType,
@@ -55,6 +64,8 @@ const refTypeConfig: Record<
   online: { label: "Online Source", icon: Globe, color: "text-cyan-500" },
   misc: { label: "Other", icon: HelpCircle, color: "text-gray-500" },
 };
+
+type SortOrder = "default" | "year-asc" | "year-desc" | "author";
 
 export function ReferenceEditor() {
   const {
@@ -70,6 +81,8 @@ export function ReferenceEditor() {
   const [bulkImportText, setBulkImportText] = useState("");
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("default");
+  const [editMode, setEditMode] = useState(false);
 
   if (!thesis) return null;
 
@@ -78,22 +91,28 @@ export function ReferenceEditor() {
   const handleBulkImport = () => {
     if (!bulkImportText.trim()) return;
 
-    // Parse lines as references — each line is treated as a single reference entry
     const lines = bulkImportText
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
 
     const imported = lines.map((line, idx) => {
-      // Basic parsing: try to extract year from the text
       const yearMatch = line.match(/\b(19|20)\d{2}\b/);
+      const splitIdx = yearMatch
+        ? line.indexOf(yearMatch[0])
+        : line.indexOf(",");
+      const authorEnd = splitIdx !== -1 ? splitIdx : Math.min(50, line.length);
       const authors = line
-        .substring(0, line.indexOf(yearMatch ? yearMatch[0] : ",") !== -1 ? line.indexOf(yearMatch ? yearMatch[0] : ",") : 50)
+        .substring(0, authorEnd)
         .replace(/[.,;:]$/, "")
         .trim() || "Unknown Author";
-      
+
       const year = yearMatch ? yearMatch[0] : "2024";
-      const title = line.replace(authors, "").replace(year, "").replace(/^[\s,.;:]+|[\s,.;:]+$/g, "").trim() || "Untitled";
+      const title = line
+        .replace(authors, "")
+        .replace(year, "")
+        .replace(/^[\s,.;:]+|[\s,.;:]+$/g, "")
+        .trim() || "Untitled";
 
       return {
         id: `ref-bulk-${idx}-${Date.now()}`,
@@ -113,6 +132,22 @@ export function ReferenceEditor() {
     e.preventDefault();
     nextStep();
   };
+
+  const getSortedReferences = (): ThesisReference[] => {
+    const refs = [...references];
+    switch (sortOrder) {
+      case "year-asc":
+        return refs.sort((a, b) => parseInt(a.year || "0") - parseInt(b.year || "0"));
+      case "year-desc":
+        return refs.sort((a, b) => parseInt(b.year || "0") - parseInt(a.year || "0"));
+      case "author":
+        return refs.sort((a, b) => (a.authors || "").localeCompare(b.authors || ""));
+      default:
+        return refs;
+    }
+  };
+
+  const sortedRefs = getSortedReferences();
 
   return (
     <div className="space-y-6">
@@ -137,8 +172,8 @@ export function ReferenceEditor() {
       </motion.div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Add Reference Actions */}
-        <div className="flex items-center gap-2">
+        {/* Action bar */}
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             type="button"
             variant="default"
@@ -159,9 +194,71 @@ export function ReferenceEditor() {
             <Upload className="w-4 h-4" />
             Bulk Import
           </Button>
-          <span className="text-xs text-muted-foreground ml-auto">
+          <div className="flex-1" />
+          <Badge variant="secondary" className="text-[10px] font-medium">
             {references.length} reference{references.length !== 1 ? "s" : ""}
-          </span>
+          </Badge>
+          {references.length > 1 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => {
+                      if (sortOrder === "default") setSortOrder("year-asc");
+                      else if (sortOrder === "year-asc") setSortOrder("year-desc");
+                      else if (sortOrder === "year-desc") setSortOrder("author");
+                      else setSortOrder("default");
+                    }}
+                  >
+                    {sortOrder === "year-desc" ? (
+                      <ArrowUpZA className="w-3.5 h-3.5" />
+                    ) : (
+                      <ArrowDownAZ className="w-3.5 h-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>
+                    Sort:{" "}
+                    {sortOrder === "default"
+                      ? "Order added"
+                      : sortOrder === "year-asc"
+                        ? "Year (oldest first)"
+                        : sortOrder === "year-desc"
+                          ? "Year (newest first)"
+                          : "Author name"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Click to cycle sort order
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {references.length > 1 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-[10px] gap-1 text-muted-foreground"
+                    onClick={() => setEditMode(!editMode)}
+                  >
+                    {editMode ? "Expand All" : "Compact View"}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{editMode ? "Show full editor for each reference" : "Show compact list"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
 
         {/* Bulk Import Panel */}
@@ -185,6 +282,10 @@ export function ReferenceEditor() {
                     className="text-xs min-h-[100px] font-mono"
                     placeholder={`Paste references here (one per line):\nSmith, J. et al., "Machine Learning for Climate", Nature, 2024\nDoe, J., "Data Science Handbook", Springer, 2023`}
                   />
+                  <p className="text-[10px] text-muted-foreground">
+                    Import will attempt to extract authors, year, and title from each line.
+                    Review imported entries and edit as needed.
+                  </p>
                   <div className="flex justify-end gap-2">
                     <Button
                       type="button"
@@ -202,7 +303,7 @@ export function ReferenceEditor() {
                       disabled={!bulkImportText.trim()}
                       className="text-xs"
                     >
-                      Import
+                      Import {bulkImportText.trim().split("\n").filter(Boolean).length} references
                     </Button>
                   </div>
                 </CardContent>
@@ -231,7 +332,7 @@ export function ReferenceEditor() {
               </Card>
             ) : (
               <AnimatePresence mode="popLayout">
-                {references.map((ref, index) => {
+                {sortedRefs.map((ref, index) => {
                   const typeConfig = refTypeConfig[ref.type];
                   const TypeIcon = typeConfig.icon;
 
@@ -260,6 +361,10 @@ export function ReferenceEditor() {
                                 {ref.authors || "No author"} {ref.year ? `(${ref.year})` : ""}
                               </p>
                             </div>
+                            <Badge variant="outline" className="text-[9px] shrink-0 gap-1">
+                              <TypeIcon className={`w-3 h-3 ${typeConfig.color}`} />
+                              {typeConfig.label}
+                            </Badge>
                             <Dialog
                               open={deleteConfirm === ref.id}
                               onOpenChange={(open) =>
@@ -306,199 +411,276 @@ export function ReferenceEditor() {
                             </Dialog>
                           </div>
 
-                          <Separator />
+                          {/* Full editor (hidden in compact mode) */}
+                          {!editMode && (
+                            <>
+                              <Separator />
 
-                          {/* Reference Fields */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {/* Type */}
-                            <div className="space-y-1">
-                              <Label className="text-[10px] font-medium text-muted-foreground">
-                                Type
-                              </Label>
-                              <Select
-                                value={ref.type}
-                                onValueChange={(val) =>
-                                  updateReference(ref.id, {
-                                    type: val as ReferenceType,
-                                  })
-                                }
-                              >
-                                <SelectTrigger className="h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {Object.entries(refTypeConfig).map(
-                                    ([key, cfg]) => (
-                                      <SelectItem key={key} value={key}>
-                                        <div className="flex items-center gap-2">
-                                          <cfg.icon className="w-3 h-3" />
-                                          {cfg.label}
-                                        </div>
-                                      </SelectItem>
-                                    )
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* Authors */}
-                            <div className="space-y-1">
-                              <Label className="text-[10px] font-medium text-muted-foreground">
-                                Authors
-                              </Label>
-                              <Input
-                                value={ref.authors}
-                                onChange={(e) =>
-                                  updateReference(ref.id, {
-                                    authors: e.target.value,
-                                  })
-                                }
-                                placeholder="Author, A. B. and Author, C."
-                                className="h-8 text-xs"
-                              />
-                            </div>
-
-                            {/* Title */}
-                            <div className="sm:col-span-2 space-y-1">
-                              <Label className="text-[10px] font-medium text-muted-foreground">
-                                Title
-                              </Label>
-                              <Input
-                                value={ref.title}
-                                onChange={(e) =>
-                                  updateReference(ref.id, {
-                                    title: e.target.value,
-                                  })
-                                }
-                                placeholder="Title of the work"
-                                className="h-8 text-xs"
-                              />
-                            </div>
-
-                            {/* Conditional fields based on type */}
-                            {(ref.type === "article" ||
-                              ref.type === "inproceedings") && (
-                              <div className="space-y-1">
-                                <Label className="text-[10px] font-medium text-muted-foreground">
-                                  {ref.type === "article"
-                                    ? "Journal"
-                                    : "Conference / Book Title"}
-                                </Label>
-                                <Input
-                                  value={
-                                    ref.type === "article"
-                                      ? ref.journal || ""
-                                      : ref.bookTitle || ""
-                                  }
-                                  onChange={(e) =>
-                                    updateReference(ref.id, {
-                                      [ref.type === "article"
-                                        ? "journal"
-                                        : "bookTitle"]: e.target.value,
-                                    })
-                                  }
-                                  placeholder={
-                                    ref.type === "article"
-                                      ? "Journal Name"
-                                      : "Conference Proceedings"
-                                  }
-                                  className="h-8 text-xs"
-                                />
-                              </div>
-                            )}
-
-                            {ref.type === "book" && (
-                              <div className="space-y-1">
-                                <Label className="text-[10px] font-medium text-muted-foreground">
-                                  Publisher
-                                </Label>
-                                <Input
-                                  value={ref.publisher || ""}
-                                  onChange={(e) =>
-                                    updateReference(ref.id, {
-                                      publisher: e.target.value,
-                                    })
-                                  }
-                                  placeholder="Publisher Name"
-                                  className="h-8 text-xs"
-                                />
-                              </div>
-                            )}
-
-                            {/* Year */}
-                            <div className="space-y-1">
-                              <Label className="text-[10px] font-medium text-muted-foreground">
-                                Year
-                              </Label>
-                              <Input
-                                value={ref.year}
-                                onChange={(e) =>
-                                  updateReference(ref.id, {
-                                    year: e.target.value,
-                                  })
-                                }
-                                placeholder="2024"
-                                className="h-8 text-xs"
-                              />
-                            </div>
-
-                            {/* Volume/Number */}
-                            {(ref.type === "article" ||
-                              ref.type === "inproceedings") && (
-                              <>
+                              {/* Reference Fields */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {/* Type */}
                                 <div className="space-y-1">
                                   <Label className="text-[10px] font-medium text-muted-foreground">
-                                    Volume
+                                    Type
                                   </Label>
-                                  <Input
-                                    value={ref.volume || ""}
-                                    onChange={(e) =>
+                                  <Select
+                                    value={ref.type}
+                                    onValueChange={(val) =>
                                       updateReference(ref.id, {
-                                        volume: e.target.value,
+                                        type: val as ReferenceType,
                                       })
                                     }
-                                    placeholder="e.g., 42"
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {Object.entries(refTypeConfig).map(
+                                        ([key, cfg]) => (
+                                          <SelectItem key={key} value={key}>
+                                            <div className="flex items-center gap-2">
+                                              <cfg.icon className="w-3 h-3" />
+                                              {cfg.label}
+                                            </div>
+                                          </SelectItem>
+                                        )
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                {/* Authors */}
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] font-medium text-muted-foreground">
+                                    Authors
+                                  </Label>
+                                  <Input
+                                    value={ref.authors}
+                                    onChange={(e) =>
+                                      updateReference(ref.id, {
+                                        authors: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Author, A. B. and Author, C."
                                     className="h-8 text-xs"
                                   />
                                 </div>
-                                <div className="space-y-1">
+
+                                {/* Title */}
+                                <div className="sm:col-span-2 space-y-1">
                                   <Label className="text-[10px] font-medium text-muted-foreground">
-                                    Pages
+                                    Title
                                   </Label>
                                   <Input
-                                    value={ref.pages || ""}
+                                    value={ref.title}
                                     onChange={(e) =>
                                       updateReference(ref.id, {
-                                        pages: e.target.value,
+                                        title: e.target.value,
                                       })
                                     }
-                                    placeholder="e.g., 1--15"
+                                    placeholder="Title of the work"
                                     className="h-8 text-xs"
                                   />
                                 </div>
-                              </>
-                            )}
 
-                            {/* DOI */}
-                            <div className="space-y-1">
-                              <Label className="text-[10px] font-medium text-muted-foreground">
-                                DOI / URL
-                              </Label>
-                              <Input
-                                value={ref.doi || ref.url || ""}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  const isUrl = val.startsWith("http");
-                                  updateReference(ref.id, isUrl
-                                    ? { url: val, doi: undefined }
-                                    : { doi: val, url: undefined }
-                                  );
-                                }}
-                                placeholder="DOI or URL"
-                                className="h-8 text-xs"
-                              />
-                            </div>
-                          </div>
+                                {/* Conditional fields based on type */}
+                                {(ref.type === "article" ||
+                                  ref.type === "inproceedings") && (
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px] font-medium text-muted-foreground">
+                                      {ref.type === "article"
+                                        ? "Journal"
+                                        : "Conference / Book Title"}
+                                    </Label>
+                                    <Input
+                                      value={
+                                        ref.type === "article"
+                                          ? ref.journal || ""
+                                          : ref.bookTitle || ""
+                                      }
+                                      onChange={(e) =>
+                                        updateReference(ref.id, {
+                                          [ref.type === "article"
+                                            ? "journal"
+                                            : "bookTitle"]: e.target.value,
+                                        })
+                                      }
+                                      placeholder={
+                                        ref.type === "article"
+                                          ? "Journal Name"
+                                          : "Conference Proceedings"
+                                      }
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                )}
+
+                                {ref.type === "book" && (
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px] font-medium text-muted-foreground">
+                                      Publisher
+                                    </Label>
+                                    <Input
+                                      value={ref.publisher || ""}
+                                      onChange={(e) =>
+                                        updateReference(ref.id, {
+                                          publisher: e.target.value,
+                                        })
+                                      }
+                                      placeholder="Publisher Name"
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                )}
+
+                                {ref.type === "book" && (
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px] font-medium text-muted-foreground">
+                                      Edition
+                                    </Label>
+                                    <Input
+                                      value={ref.edition || ""}
+                                      onChange={(e) =>
+                                        updateReference(ref.id, {
+                                          edition: e.target.value,
+                                        })
+                                      }
+                                      placeholder="e.g., 3rd"
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                )}
+
+                                {ref.type === "thesis" && (
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px] font-medium text-muted-foreground">
+                                      Institution / School
+                                    </Label>
+                                    <Input
+                                      value={ref.school || ""}
+                                      onChange={(e) =>
+                                        updateReference(ref.id, {
+                                          school: e.target.value,
+                                        })
+                                      }
+                                      placeholder="University name"
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                )}
+
+                                {ref.type === "techreport" && (
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px] font-medium text-muted-foreground">
+                                      Institution
+                                    </Label>
+                                    <Input
+                                      value={ref.publisher || ""}
+                                      onChange={(e) =>
+                                        updateReference(ref.id, {
+                                          publisher: e.target.value,
+                                        })
+                                      }
+                                      placeholder="Organization name"
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                )}
+
+                                {/* Year */}
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] font-medium text-muted-foreground">
+                                    Year
+                                  </Label>
+                                  <Input
+                                    value={ref.year}
+                                    onChange={(e) =>
+                                      updateReference(ref.id, {
+                                        year: e.target.value,
+                                      })
+                                    }
+                                    placeholder="2024"
+                                    className="h-8 text-xs"
+                                    maxLength={4}
+                                  />
+                                </div>
+
+                                {/* Volume/Number */}
+                                {(ref.type === "article" ||
+                                  ref.type === "inproceedings") && (
+                                  <>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px] font-medium text-muted-foreground">
+                                        Volume
+                                      </Label>
+                                      <Input
+                                        value={ref.volume || ""}
+                                        onChange={(e) =>
+                                          updateReference(ref.id, {
+                                            volume: e.target.value,
+                                          })
+                                        }
+                                        placeholder="e.g., 42"
+                                        className="h-8 text-xs"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px] font-medium text-muted-foreground">
+                                        Pages
+                                      </Label>
+                                      <Input
+                                        value={ref.pages || ""}
+                                        onChange={(e) =>
+                                          updateReference(ref.id, {
+                                            pages: e.target.value,
+                                          })
+                                        }
+                                        placeholder="e.g., 1--15"
+                                        className="h-8 text-xs"
+                                      />
+                                    </div>
+                                  </>
+                                )}
+
+                                {/* DOI / URL */}
+                                <div className="sm:col-span-2 space-y-1">
+                                  <Label className="text-[10px] font-medium text-muted-foreground">
+                                    DOI / URL
+                                  </Label>
+                                  <Input
+                                    value={ref.doi || ref.url || ""}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      const isUrl = val.startsWith("http");
+                                      updateReference(ref.id, isUrl
+                                        ? { url: val, doi: undefined }
+                                        : { doi: val, url: undefined }
+                                      );
+                                    }}
+                                    placeholder="https://doi.org/10.1234/example or https://..."
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+
+                                {/* Note */}
+                                <div className="sm:col-span-2 space-y-1">
+                                  <Label className="text-[10px] font-medium text-muted-foreground">
+                                    Note (optional)
+                                  </Label>
+                                  <Input
+                                    value={ref.note || ""}
+                                    onChange={(e) =>
+                                      updateReference(ref.id, {
+                                        note: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Additional notes"
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </CardContent>
                       </Card>
                     </motion.div>

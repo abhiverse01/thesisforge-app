@@ -210,6 +210,13 @@ export function GeneratePreview() {
 
   const lineCount = generatedLatex ? generatedLatex.split("\n").length : 0;
 
+  const fileSizeBytes = generatedLatex ? new Blob([generatedLatex]).size : 0;
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   // Completion percentage
   const completion = useMemo(() => {
     if (!thesis || !stats) return 0;
@@ -381,48 +388,55 @@ export function GeneratePreview() {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="flex flex-wrap items-center justify-center gap-2"
+            className="flex flex-col items-center gap-3"
           >
-            <Button
-              onClick={generateThesis}
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Regenerate
-            </Button>
-            <Button
-              onClick={copyToClipboard}
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-            >
-              {copied ? (
-                <Check className="w-3.5 h-3.5 text-emerald-500" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-              {copied ? "Copied!" : "Copy Code"}
-            </Button>
-            <Button
-              onClick={downloadLatex}
-              size="sm"
-              className="gap-1.5"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Download .tex
-            </Button>
-            {stats && stats.references > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <Button
-                onClick={downloadBibtex}
+                onClick={generateThesis}
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
               >
-                <FileDown className="w-3.5 h-3.5" />
-                Download .bib
+                <RefreshCw className="w-3.5 h-3.5" />
+                Regenerate
               </Button>
+              <Button
+                onClick={copyToClipboard}
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+                {copied ? "Copied!" : "Copy Code"}
+              </Button>
+              <Button
+                onClick={downloadLatex}
+                size="sm"
+                className="gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download .tex
+              </Button>
+              {stats && stats.references > 0 && (
+                <Button
+                  onClick={downloadBibtex}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                >
+                  <FileDown className="w-3.5 h-3.5" />
+                  Download .bib
+                </Button>
+              )}
+            </div>
+            {fileSizeBytes > 0 && (
+              <span className="text-[10px] text-muted-foreground">
+                {lineCount} lines · {formatFileSize(fileSizeBytes)}
+              </span>
             )}
           </motion.div>
         )}

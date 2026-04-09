@@ -6,6 +6,11 @@ import { WIZARD_STEPS } from "@/lib/thesis-types";
 import { useThesisStore } from "@/lib/thesis-store";
 import { cn } from "@/lib/utils";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   FileText,
   UserRound,
   AlignLeft,
@@ -16,6 +21,16 @@ import {
 } from "lucide-react";
 
 const stepIcons = [FileText, UserRound, AlignLeft, BookOpen, Quote, Download];
+
+function canNavigation(
+  selectedTemplate: string | null,
+  stepId: number,
+  currentStep: number
+): boolean {
+  if (stepId === 1) return true;
+  if (!selectedTemplate) return false;
+  return stepId <= currentStep;
+}
 
 interface StepIndicatorProps {
   className?: string;
@@ -45,54 +60,71 @@ export function StepIndicator({ className }: StepIndicatorProps) {
           const Icon = stepIcons[index];
           const isCompleted = currentStep > step.id;
           const isCurrent = currentStep === step.id;
-          const canNavigate = isCompleted || step.id === currentStep;
+          const canNav = canNavigation(selectedTemplate, step.id, currentStep);
 
           return (
-            <button
-              key={step.id}
-              type="button"
-              onClick={() => {
-                if (canNavigation(selectedTemplate, step.id, currentStep)) {
-                  setStep(step.id as 1|2|3|4|5|6);
-                }
-              }}
-              disabled={!canNavigation(selectedTemplate, step.id, currentStep)}
-              className="flex flex-col items-center relative z-10 group outline-none"
-            >
-              <motion.div
-                initial={false}
-                animate={{
-                  scale: isCurrent ? 1.12 : 1,
-                }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300",
-                  isCompleted
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : isCurrent
-                      ? "border-primary bg-primary text-primary-foreground step-active"
-                      : "border-border bg-card text-muted-foreground group-hover:border-primary/40 group-hover:bg-primary/5"
-                )}
-              >
-                {isCompleted ? (
-                  <Check className="w-4 h-4" strokeWidth={3} />
-                ) : (
-                  <Icon className="w-4 h-4" />
-                )}
-              </motion.div>
-              <motion.span
-                initial={false}
-                animate={{
-                  opacity: isCurrent ? 1 : 0.5,
-                }}
-                className={cn(
-                  "text-[11px] font-medium mt-2 text-center max-w-[80px] leading-tight transition-colors",
-                  isCurrent ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                {step.name}
-              </motion.span>
-            </button>
+            <Tooltip key={step.id}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (canNav) {
+                      setStep(step.id as 1|2|3|4|5|6);
+                    }
+                  }}
+                  disabled={!canNav}
+                  className={cn(
+                    "flex flex-col items-center relative z-10 group outline-none",
+                    canNav && "cursor-pointer",
+                    !canNav && "cursor-default"
+                  )}
+                >
+                  <motion.div
+                    initial={false}
+                    animate={{
+                      scale: isCurrent ? 1.12 : 1,
+                    }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300",
+                      isCompleted
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : isCurrent
+                          ? "border-primary bg-primary text-primary-foreground step-active"
+                          : canNav
+                            ? "border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-primary/5"
+                            : "border-border bg-card text-muted-foreground/40"
+                    )}
+                  >
+                    {isCompleted ? (
+                      <Check className="w-4 h-4" strokeWidth={3} />
+                    ) : (
+                      <Icon className="w-4 h-4" />
+                    )}
+                  </motion.div>
+                  <motion.span
+                    initial={false}
+                    animate={{
+                      opacity: isCurrent ? 1 : 0.5,
+                    }}
+                    className={cn(
+                      "text-[11px] font-medium mt-2 text-center max-w-[80px] leading-tight transition-colors",
+                      isCurrent ? "text-primary" : "text-muted-foreground"
+                    )}
+                  >
+                    {step.name}
+                  </motion.span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p className="text-xs font-medium">
+                  {step.id}. {step.name}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {step.description}
+                </p>
+              </TooltipContent>
+            </Tooltip>
           );
         })}
       </div>
@@ -129,14 +161,4 @@ export function StepIndicator({ className }: StepIndicatorProps) {
       </div>
     </nav>
   );
-}
-
-function canNavigation(
-  selectedTemplate: string | null,
-  stepId: number,
-  currentStep: number
-): boolean {
-  if (stepId === 1) return true;
-  if (!selectedTemplate) return false;
-  return stepId <= currentStep;
 }

@@ -19,11 +19,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Sparkles,
   Plus,
   Trash2,
   ChevronDown,
-  ChevronRight,
   ChevronLeft,
   GripVertical,
   BookOpen,
@@ -31,8 +36,11 @@ import {
   FolderPlus,
   X,
   ListOrdered,
+  Minimize2,
+  Maximize2,
+  ChevronRight,
 } from "lucide-react";
-import type { ThesisChapter, ThesisSubSection } from "@/lib/thesis-types";
+import type { ThesisChapter } from "@/lib/thesis-types";
 
 export function ChapterEditor() {
   const {
@@ -74,6 +82,16 @@ export function ChapterEditor() {
     });
   };
 
+  const expandAll = () => {
+    setExpandedChapters(new Set(chapters.map((c) => c.id)));
+  };
+
+  const collapseAll = () => {
+    setExpandedChapters(new Set());
+  };
+
+  const allExpanded = expandedChapters.size === chapters.length && chapters.length > 0;
+
   const handleChapterReorder = (reordered: ThesisChapter[]) => {
     reorderChapters(reordered);
   };
@@ -95,6 +113,12 @@ export function ChapterEditor() {
     return acc + contentWords + subWords;
   }, 0);
 
+  const truncateContent = (content: string, maxLen: number) => {
+    if (!content || !content.trim()) return "No content yet";
+    const text = content.trim().replace(/\n/g, " ");
+    return text.length > maxLen ? text.slice(0, maxLen) + "..." : text;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -112,8 +136,7 @@ export function ChapterEditor() {
           Write Your Content
         </h2>
         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-          Organize and write each chapter of your thesis. You can add, remove,
-          and reorder chapters and sections as needed.
+          Organize and write each chapter of your thesis. Drag to reorder, click to expand.
         </p>
       </motion.div>
 
@@ -129,9 +152,50 @@ export function ChapterEditor() {
         <span>
           <strong className="text-foreground">{totalWords.toLocaleString()}</strong> words
         </span>
+        <Separator orientation="vertical" className="h-3" />
+        <span>
+          <strong className="text-foreground">
+            {chapters.reduce((acc, ch) => acc + ch.subSections.length, 0)}
+          </strong>{" "}
+          sections
+        </span>
       </div>
 
       <form onSubmit={handleSubmit}>
+        {/* Expand/Collapse controls */}
+        {chapters.length > 1 && (
+          <div className="flex items-center justify-end mb-3">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={allExpanded ? collapseAll : expandAll}
+                    className="h-7 text-xs gap-1.5 text-muted-foreground"
+                  >
+                    {allExpanded ? (
+                      <>
+                        <Minimize2 className="w-3.5 h-3.5" />
+                        Collapse All
+                      </>
+                    ) : (
+                      <>
+                        <Maximize2 className="w-3.5 h-3.5" />
+                        Expand All
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{allExpanded ? "Collapse all chapters" : "Expand all chapters"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        )}
+
         <Reorder.Group
           axis="y"
           values={chapters}
@@ -144,6 +208,11 @@ export function ChapterEditor() {
             const chapterWords = chapter.content
               ? chapter.content.trim().split(/\s+/).filter(Boolean).length
               : 0;
+            const totalChapterWords = chapterWords + chapter.subSections.reduce(
+              (acc, sub) =>
+                acc + (sub.content ? sub.content.trim().split(/\s+/).filter(Boolean).length : 0),
+              0
+            );
 
             return (
               <Reorder.Item
@@ -151,32 +220,39 @@ export function ChapterEditor() {
                 value={chapter}
                 className="list-none"
               >
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden transition-all duration-200">
                   {/* Chapter Header */}
                   <CardHeader
                     className="py-3 px-4 cursor-pointer hover:bg-secondary/30 transition-colors select-none"
                     onClick={() => toggleChapter(chapter.id)}
                   >
                     <div className="flex items-center gap-3">
-                      <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0 cursor-grab" />
+                      <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0 cursor-grab hidden sm:block" />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded shrink-0">
                             CH {chapter.number}
                           </span>
                           <CardTitle className="text-sm font-semibold truncate">
                             {chapter.title || `Chapter ${chapter.number}`}
                           </CardTitle>
-                          {chapterWords > 0 && (
+                          {totalChapterWords > 0 && (
                             <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                              {chapterWords} words
+                              {totalChapterWords} words
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {chapter.subSections.length} section
-                          {chapter.subSections.length !== 1 ? "s" : ""}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-[11px] text-muted-foreground">
+                            {chapter.subSections.length} section
+                            {chapter.subSections.length !== 1 ? "s" : ""}
+                          </p>
+                          {!isExpanded && totalChapterWords > 0 && (
+                            <p className="text-[10px] text-muted-foreground/60 truncate max-w-[250px]">
+                              — {truncateContent(chapter.content, 50)}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <Button
@@ -268,7 +344,11 @@ export function ChapterEditor() {
                         <CardContent className="pt-0 px-4 pb-4 space-y-4">
                           {/* Chapter Title Edit */}
                           {isEditing && (
-                            <div className="space-y-1.5">
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              className="space-y-1.5"
+                            >
                               <Label className="text-xs font-medium">
                                 Chapter Title
                               </Label>
@@ -282,6 +362,7 @@ export function ChapterEditor() {
                                   }
                                   className="text-sm"
                                   placeholder={`Chapter ${chapter.number}`}
+                                  autoFocus
                                 />
                                 <Button
                                   type="button"
@@ -293,7 +374,7 @@ export function ChapterEditor() {
                                   <X className="w-4 h-4" />
                                 </Button>
                               </div>
-                            </div>
+                            </motion.div>
                           )}
 
                           {/* Chapter Content */}
@@ -302,8 +383,7 @@ export function ChapterEditor() {
                               <BookOpen className="w-3 h-3" />
                               Chapter Introduction
                               <span className="text-muted-foreground font-normal">
-                                (optional — write introductory text for this
-                                chapter)
+                                (optional — introductory text for this chapter)
                               </span>
                             </Label>
                             <Textarea
@@ -357,6 +437,7 @@ export function ChapterEditor() {
                                     className="rounded-lg border bg-card p-3 space-y-2"
                                   >
                                     <div className="flex items-center gap-2">
+                                      <ChevronRight className="w-3 h-3 text-muted-foreground/50 shrink-0" />
                                       <span className="text-[10px] font-mono text-muted-foreground">
                                         §{chapter.number}.{subIdx + 1}
                                       </span>
@@ -377,6 +458,7 @@ export function ChapterEditor() {
                                               setEditingSubSection(null);
                                             }
                                           }}
+                                          autoFocus
                                         />
                                       ) : (
                                         <span className="text-sm font-medium flex-1">

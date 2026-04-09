@@ -11,12 +11,14 @@ import { AbstractEditor } from "@/components/thesis/abstract-editor";
 import { ChapterEditor } from "@/components/thesis/chapter-editor";
 import { ReferenceEditor } from "@/components/thesis/reference-editor";
 import { GeneratePreview } from "@/components/thesis/generate-preview";
+import { Homepage } from "@/components/thesis/homepage";
 import { Button } from "@/components/ui/button";
 import {
   FileText,
   Moon,
   Sun,
   RotateCcw,
+  Home as HomeIcon,
   Mail,
   ExternalLink,
   Keyboard,
@@ -33,12 +35,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 const pageVariants = {
-  initial: { opacity: 0, x: 30 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -30 },
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
 };
 
 // Konami Code: ↑↑↓↓←→←→BA
@@ -49,11 +54,21 @@ const KONAMI_CODE = [
 ];
 
 export default function Home() {
-  const { currentStep, selectedTemplate, reset, thesis, nextStep, prevStep } =
-    useThesisStore();
+  const {
+    wizardStarted,
+    currentStep,
+    selectedTemplate,
+    thesis,
+    reset,
+    nextStep,
+    prevStep,
+    setStep,
+  } = useThesisStore();
   const { theme, setTheme } = useTheme();
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showGoHomeConfirm, setShowGoHomeConfirm] = useState(false);
   const konamiBuffer = useRef<string[]>([]);
   const isFirstRender = useRef(true);
 
@@ -65,11 +80,12 @@ export default function Home() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (parsed.thesis && parsed.selectedTemplate && parsed.currentStep) {
+          if (parsed.thesis && parsed.selectedTemplate) {
             useThesisStore.setState({
               thesis: parsed.thesis,
               selectedTemplate: parsed.selectedTemplate,
               currentStep: parsed.currentStep,
+              wizardStarted: parsed.wizardStarted ?? true,
             });
           }
         } catch {
@@ -81,6 +97,7 @@ export default function Home() {
 
   // Auto-save on every state change (debounced)
   useEffect(() => {
+    if (!wizardStarted) return;
     if (!thesis) return;
     const timeout = setTimeout(() => {
       const state = useThesisStore.getState();
@@ -91,12 +108,13 @@ export default function Home() {
             thesis: state.thesis,
             selectedTemplate: state.selectedTemplate,
             currentStep: state.currentStep,
+            wizardStarted: state.wizardStarted,
           })
         );
       }
     }, 800);
     return () => clearTimeout(timeout);
-  }, [thesis, currentStep]);
+  }, [thesis, currentStep, wizardStarted]);
 
   // ---- Keyboard Shortcuts ----
   useEffect(() => {
@@ -118,6 +136,8 @@ export default function Home() {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
+      if (!wizardStarted) return;
+
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
           case "ArrowRight":
@@ -128,7 +148,10 @@ export default function Home() {
           case "ArrowLeft":
           case "ArrowUp":
             e.preventDefault();
-            prevStep();
+            if (currentStep > 1) prevStep();
+            else if (currentStep === 1) {
+              setShowGoHomeConfirm(true);
+            }
             break;
           case "/":
             e.preventDefault();
@@ -140,16 +163,26 @@ export default function Home() {
       if (e.key === "?" && !e.ctrlKey && !e.metaKey) {
         setShowShortcuts(true);
       }
+
+      if (e.key === "Escape" && currentStep === 1) {
+        setShowGoHomeConfirm(true);
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedTemplate, nextStep, prevStep]);
+  }, [selectedTemplate, nextStep, prevStep, wizardStarted, currentStep]);
 
   // Clear saved state on reset
   const handleReset = useCallback(() => {
     localStorage.removeItem("thesisforge_state");
     reset();
+    setShowResetConfirm(false);
+  }, [reset]);
+
+  const handleGoHome = useCallback(() => {
+    reset();
+    setShowGoHomeConfirm(false);
   }, [reset]);
 
   const renderStep = () => {
@@ -177,6 +210,7 @@ export default function Home() {
         {/* Header */}
         <header className="sticky top-0 z-50 border-b bg-background/85 backdrop-blur-xl surface-1">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+            {/* Left: Logo + optional Home button */}
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                 <FileText className="w-4 h-4 text-primary-foreground" />
@@ -186,32 +220,66 @@ export default function Home() {
                   ThesisForge
                 </span>
                 <span className="text-[10px] text-muted-foreground leading-none mt-0.5 hidden sm:block">
-                  Instant LaTeX Thesis Creator
+                  {wizardStarted
+                    ? "Instant LaTeX Thesis Creator"
+                    : "Create LaTeX theses effortlessly"}
                 </span>
               </div>
             </div>
 
+            {/* Right: Action buttons */}
             <div className="flex items-center gap-1.5">
-              {selectedTemplate && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleReset}
-                      className="text-xs gap-1.5 text-muted-foreground h-8"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">New Thesis</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>Start a new thesis</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      <span className="kbd">Ctrl</span> + <span className="kbd">←</span> goes back
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
+              {/* Home button — visible only when wizard is active */}
+              {wizardStarted && (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (currentStep === 1) {
+                            setShowGoHomeConfirm(true);
+                          } else {
+                            setStep(1);
+                          }
+                        }}
+                        className={cn(
+                          "text-xs gap-1.5 h-8",
+                          currentStep === 1
+                            ? "text-muted-foreground"
+                            : "text-primary"
+                        )}
+                      >
+                        <HomeIcon className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Templates</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>{currentStep === 1 ? "Back to homepage" : "Return to template selection"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowResetConfirm(true)}
+                        className="text-xs gap-1.5 text-muted-foreground h-8"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">New Thesis</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Start over from the beginning</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Clears all current data
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </>
               )}
 
               <Tooltip>
@@ -256,34 +324,48 @@ export default function Home() {
 
         {/* Main Content */}
         <main className="flex-1">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-            {/* Step Indicator */}
-            <AnimatePresence mode="wait">
-              {selectedTemplate && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                >
-                  <StepIndicator />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Step Content */}
-            <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait">
+            {!wizardStarted ? (
               <motion.div
-                key={currentStep}
-                variants={pageVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={{ duration: 0.3, ease: "easeInOut" }}
+                key="homepage"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
               >
-                {renderStep()}
+                <Homepage />
               </motion.div>
-            </AnimatePresence>
-          </div>
+            ) : (
+              <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+                {/* Step Indicator */}
+                <AnimatePresence mode="wait">
+                  {selectedTemplate && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                    >
+                      <StepIndicator />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Step Content */}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentStep}
+                    variants={pageVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                  >
+                    {renderStep()}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            )}
+          </AnimatePresence>
         </main>
 
         {/* Footer */}
@@ -383,6 +465,12 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex items-center justify-between py-1.5">
+                <span className="text-xs text-muted-foreground">Return to templates</span>
+                <div className="flex gap-1">
+                  <span className="kbd">Esc</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-1.5">
                 <span className="text-xs text-muted-foreground">Show this help</span>
                 <div className="flex gap-1">
                   <span className="kbd">Ctrl</span>
@@ -391,10 +479,78 @@ export default function Home() {
               </div>
               <div className="border-t pt-3 mt-3">
                 <p className="text-[10px] text-muted-foreground/60 italic">
-                  💡 Pro tip: Your progress is auto-saved to local storage. Come back anytime.
+                  Your progress is auto-saved to local storage. Come back anytime.
                 </p>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Go Home Confirmation Dialog */}
+        <Dialog open={showGoHomeConfirm} onOpenChange={setShowGoHomeConfirm}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <HomeIcon className="w-4 h-4 text-primary" />
+                Return to Homepage?
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                {thesis && (thesis.metadata.title || thesis.abstract || thesis.chapters.some(c => c.content))
+                  ? "You have unsaved content. Going back to the homepage will clear your current progress."
+                  : "This will take you back to the homepage and clear your current session."}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowGoHomeConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleGoHome}
+                className="gap-1.5"
+              >
+                <HomeIcon className="w-3.5 h-3.5" />
+                Go to Homepage
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Reset Confirmation Dialog */}
+        <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <RotateCcw className="w-4 h-4 text-primary" />
+                Start New Thesis?
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                This will permanently clear all your current thesis data and take
+                you back to the homepage. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowResetConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleReset}
+                className="gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset Everything
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
@@ -409,7 +565,7 @@ export default function Home() {
             </DialogHeader>
             <div className="space-y-3 pt-1">
               <p className="text-sm text-muted-foreground leading-relaxed">
-                👋 Hey there! You discovered the hidden Konami Code easter egg.
+                Hey there! You discovered the hidden Konami Code easter egg.
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 <strong className="text-foreground">ThesisForge</strong> was crafted with obsessive attention to detail by{" "}
@@ -436,3 +592,4 @@ export default function Home() {
     </TooltipProvider>
   );
 }
+

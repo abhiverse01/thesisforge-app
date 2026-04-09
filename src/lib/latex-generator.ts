@@ -124,7 +124,7 @@ function generatePreamble(data: ThesisData): string {
     narrow: '0.75in',
     wide: '1.25in',
   };
-  preamble += `\\usepackage[${options.marginSize === 'normal' ? '' : ''}${marginMap[options.marginSize]}]{geometry}\n\n`;
+  preamble += `\\usepackage[${marginMap[options.marginSize]}]{geometry}\n\n`;
 
   // ---- Line Spacing ----
   if (options.lineSpacing === 'onehalf') {
@@ -152,12 +152,13 @@ function generatePreamble(data: ThesisData): string {
 
   // ---- Captions ----
   preamble += `\\usepackage[font=small, labelfont=bf]{caption}\n`;
-  if (options.figureNumbering === 'per-chapter') {
+  if (options.figureNumbering === 'per-chapter' || options.tableNumbering === 'per-chapter') {
     preamble += `\\usepackage{chngcntr}\n`;
+  }
+  if (options.figureNumbering === 'per-chapter') {
     preamble += `\\counterwithin{figure}{chapter}\n`;
   }
   if (options.tableNumbering === 'per-chapter') {
-    preamble += `\\usepackage{chngcntr}\n`;
     preamble += `\\counterwithin{table}{chapter}\n`;
   }
   preamble += '\n';

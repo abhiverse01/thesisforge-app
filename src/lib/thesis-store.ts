@@ -28,6 +28,10 @@ interface ThesisStore {
   generatedLatex: string;
   showLatexPreview: boolean;
 
+  // Wizard lifecycle
+  wizardStarted: boolean;
+  startWizard: () => void;
+
   // Wizard navigation
   setStep: (step: WizardStep) => void;
   nextStep: () => void;
@@ -86,6 +90,10 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   isGenerating: false,
   generatedLatex: '',
   showLatexPreview: false,
+  wizardStarted: false,
+
+  // ---- Wizard Lifecycle ----
+  startWizard: () => set({ wizardStarted: true, currentStep: 1 }),
 
   // ---- Wizard Navigation ----
   setStep: (step) => set({ currentStep: step }),
@@ -338,5 +346,6 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
       isGenerating: false,
       generatedLatex: '',
       showLatexPreview: false,
+      wizardStarted: false,
     }),
 }));
