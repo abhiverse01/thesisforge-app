@@ -20,6 +20,7 @@ import {
   FileText,
   ChevronRight,
   Sparkles,
+  Zap,
 } from "lucide-react";
 
 const templateIcons: Record<string, React.ElementType> = {
@@ -29,18 +30,25 @@ const templateIcons: Record<string, React.ElementType> = {
   report: FileText,
 };
 
-const templateColors: Record<string, string> = {
-  bachelor: "from-emerald-500/10 to-emerald-600/5 border-emerald-500/20",
-  master: "from-violet-500/10 to-violet-600/5 border-violet-500/20",
-  phd: "from-amber-500/10 to-amber-600/5 border-amber-500/20",
-  report: "from-sky-500/10 to-sky-600/5 border-sky-500/20",
+const templateGradients: Record<string, string> = {
+  bachelor: "from-blue-500/8 to-sky-500/5 border-blue-500/20 hover:border-blue-500/40",
+  master: "from-indigo-500/8 to-violet-500/5 border-indigo-500/20 hover:border-indigo-500/40",
+  phd: "from-amber-500/8 to-orange-500/5 border-amber-500/20 hover:border-amber-500/40",
+  report: "from-emerald-500/8 to-teal-500/5 border-emerald-500/20 hover:border-emerald-500/40",
+};
+
+const templateIconBg: Record<string, string> = {
+  bachelor: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
+  master: "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400",
+  phd: "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400",
+  report: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400",
 };
 
 const templateBadgeColors: Record<string, string> = {
-  bachelor: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  master: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
-  phd: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  report: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
+  bachelor: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  master: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
+  phd: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  report: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
 };
 
 export function TemplateSelector() {
@@ -62,10 +70,16 @@ export function TemplateSelector() {
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
           Choose Your Thesis Template
         </h2>
-        <p className="text-muted-foreground text-base max-w-xl mx-auto leading-relaxed">
+        <p className="text-muted-foreground text-sm max-w-xl mx-auto leading-relaxed">
           Select a thesis type that matches your academic requirements.
           Each template comes with a pre-configured structure optimized for its purpose.
         </p>
+        <div className="flex items-center justify-center gap-1.5 pt-1">
+          <Zap className="w-3 h-3 text-muted-foreground" />
+          <span className="text-[10px] text-muted-foreground">
+            Your progress auto-saves locally — come back anytime
+          </span>
+        </div>
       </motion.div>
 
       {/* Template Grid */}
@@ -79,38 +93,35 @@ export function TemplateSelector() {
               key={template.type}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
+              transition={{ duration: 0.4, delay: index * 0.08 }}
             >
               <Card
                 onClick={() => selectTemplate(template.type)}
                 className={cn(
-                  "cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden",
+                  "cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 group relative overflow-hidden surface-1",
                   isSelected
-                    ? "ring-2 ring-primary shadow-lg shadow-primary/10"
-                    : "hover:ring-1 hover:ring-primary/30"
+                    ? "ring-2 ring-primary shadow-lg shadow-primary/5 surface-2"
+                    : cn("border", templateGradients[template.type])
                 )}
               >
-                {/* Gradient background */}
-                <div
-                  className={cn(
-                    "absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-                    templateColors[template.type]
-                  )}
-                />
-
                 <CardHeader className="pb-3 relative">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                        <Icon className="w-5 h-5 text-primary" />
+                      <div
+                        className={cn(
+                          "w-11 h-11 rounded-xl flex items-center justify-center transition-colors",
+                          templateIconBg[template.type]
+                        )}
+                      >
+                        <Icon className="w-5 h-5" />
                       </div>
                       <div>
-                        <CardTitle className="text-lg font-semibold">
+                        <CardTitle className="text-base font-semibold">
                           {template.name}
                         </CardTitle>
                         <Badge
                           variant="secondary"
-                          className={cn("text-[10px] mt-1", templateBadgeColors[template.type])}
+                          className={cn("text-[10px] mt-1 font-medium", templateBadgeColors[template.type])}
                         >
                           {template.defaultStructure.chapterCount} chapters
                           {template.defaultStructure.hasAppendix ? " + appendix" : ""}

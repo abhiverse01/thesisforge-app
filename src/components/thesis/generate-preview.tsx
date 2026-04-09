@@ -23,29 +23,25 @@ import {
   AlertCircle,
   Lightbulb,
   RotateCcw,
+  Trophy,
+  FileDown,
 } from "lucide-react";
 
-// Simple LaTeX syntax highlighter (no external deps needed)
+// Simple LaTeX syntax highlighter
 function highlightLatex(code: string): string {
   let highlighted = code
-    // Escape HTML
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-  // Comments (% ... newline)
   highlighted = highlighted.replace(
     /(%[^\n]*)/g,
     '<span class="latex-comment">$1</span>'
   );
-
-  // Commands (\command)
   highlighted = highlighted.replace(
     /(\\[a-zA-Z]+)/g,
     '<span class="latex-command">$1</span>'
   );
-
-  // Braces
   highlighted = highlighted.replace(
     /(\{)/g,
     '<span class="latex-brace">$1</span>'
@@ -54,8 +50,6 @@ function highlightLatex(code: string): string {
     /(\})/g,
     '<span class="latex-brace">$1</span>'
   );
-
-  // Brackets
   highlighted = highlighted.replace(
     /(\[)/g,
     '<span class="latex-bracket">$1</span>'
@@ -126,7 +120,6 @@ export function GeneratePreview() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for older browsers
       const textarea = document.createElement("textarea");
       textarea.value = generatedLatex;
       document.body.appendChild(textarea);
@@ -138,23 +131,47 @@ export function GeneratePreview() {
     }
   }, [generatedLatex]);
 
+  const downloadFile = useCallback(
+    (content: string, extension: string, mimeType: string) => {
+      if (!thesis) return;
+      const filename = thesis.metadata.title
+        ? `${thesis.metadata.title.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase()}.${extension}`
+        : `thesis.${extension}`;
+
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    },
+    [thesis]
+  );
+
   const downloadLatex = useCallback(() => {
-    if (!generatedLatex || !thesis) return;
+    if (!generatedLatex) return;
+    downloadFile(generatedLatex, "tex", "text/x-tex");
+  }, [generatedLatex, downloadFile]);
 
-    const filename = thesis.metadata.title
-      ? `${thesis.metadata.title.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase()}.tex`
-      : "thesis.tex";
-
-    const blob = new Blob([generatedLatex], { type: "text/x-tex" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [generatedLatex, thesis]);
+  const downloadBibtex = useCallback(async () => {
+    if (!thesis) return;
+    try {
+      const response = await fetch("/api/generate-latex", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ thesis, format: "bib" }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        downloadFile(data.latex, "bib", "text/plain");
+      }
+    } catch {
+      // Silently fail if no references
+    }
+  }, [thesis, downloadFile]);
 
   // Thesis summary stats
   const stats = useMemo(() => {
@@ -169,19 +186,20 @@ export function GeneratePreview() {
       return acc + cw + sw;
     }, 0);
 
+    const abstractWords = thesis.abstract
+      ? thesis.abstract.trim().split(/\s+/).filter(Boolean).length
+      : 0;
+
     return {
       chapters: thesis.chapters.length,
-      sections: thesis.chapters.reduce(
-        (acc, ch) => acc + ch.subSections.length,
-        0
-      ),
+      sections: thesis.chapters.reduce((acc, ch) => acc + ch.subSections.length, 0),
       references: thesis.references.length,
       words: totalWords,
-      abstractWords: thesis.abstract
-        ? thesis.abstract.trim().split(/\s+/).filter(Boolean).length
-        : 0,
+      abstractWords,
       keywords: thesis.keywords.length,
       appendices: thesis.appendices.length,
+      readTime: Math.max(1, Math.ceil(totalWords / 200)),
+      totalWordsWithAbstract: totalWords + abstractWords,
     };
   }, [thesis]);
 
@@ -190,9 +208,23 @@ export function GeneratePreview() {
     [generatedLatex]
   );
 
-  const lineCount = generatedLatex
-    ? generatedLatex.split("\n").length
-    : 0;
+  const lineCount = generatedLatex ? generatedLatex.split("\n").length : 0;
+
+  // Completion percentage
+  const completion = useMemo(() => {
+    if (!thesis || !stats) return 0;
+    let score = 0;
+    const total = 8;
+    if (thesis.metadata.title) score++;
+    if (thesis.metadata.author) score++;
+    if (thesis.metadata.university) score++;
+    if (thesis.metadata.supervisor) score++;
+    if (thesis.abstract && thesis.abstract.trim().length > 50) score++;
+    if (stats.words > 0) score++;
+    if (thesis.references.length > 0) score++;
+    if (stats.keywords > 0) score++;
+    return Math.round((score / total) * 100);
+  }, [thesis, stats]);
 
   return (
     <div className="space-y-6">
@@ -212,13 +244,49 @@ export function GeneratePreview() {
         </h2>
         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
           Review your thesis summary and generate the LaTeX code. Download the
-          file and compile it in any LaTeX editor like Overleaf, TeXStudio, or
-          VS Code.
+          file and compile it in any LaTeX editor.
         </p>
       </motion.div>
 
+      {/* Completion Badge */}
+      {completion === 100 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex items-center justify-center"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+            <Trophy className="w-4 h-4 text-emerald-500" />
+            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+              100% Complete — Ready to generate!
+            </span>
+          </div>
+        </motion.div>
+      )}
+      {completion < 100 && completion > 0 && (
+        <div className="max-w-md mx-auto">
+          <div className="flex items-center justify-between text-xs mb-1.5">
+            <span className="text-muted-foreground">Completion</span>
+            <span className="font-semibold">{completion}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-primary"
+              initial={{ width: 0 }}
+              animate={{ width: `${completion}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+          {completion < 50 && (
+            <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+              Tip: Fill in at least title, author, university, and supervisor for a valid title page.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Thesis Summary */}
-      <Card>
+      <Card className="surface-1">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Eye className="w-4 h-4 text-primary" />
@@ -226,34 +294,28 @@ export function GeneratePreview() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {stats && (
               <>
                 <div className="text-center p-3 rounded-lg bg-secondary/50">
                   <p className="text-xl font-bold">{stats.chapters}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    Chapters
-                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Chapters</p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-secondary/50">
                   <p className="text-xl font-bold">{stats.sections}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    Sections
-                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Sections</p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-secondary/50">
-                  <p className="text-xl font-bold">
-                    {stats.words.toLocaleString()}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    Words
-                  </p>
+                  <p className="text-xl font-bold">{stats.words.toLocaleString()}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Words</p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-secondary/50">
                   <p className="text-xl font-bold">{stats.references}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    References
-                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">References</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xl font-bold">~{stats.readTime}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Min read</p>
                 </div>
               </>
             )}
@@ -300,7 +362,7 @@ export function GeneratePreview() {
           <Button
             onClick={generateThesis}
             disabled={isGenerating}
-            className="gap-2 px-8 py-6 text-base font-semibold"
+            className="gap-2 px-8 py-6 text-base font-semibold rounded-xl surface-2 hover:surface-3 transition-shadow"
             size="lg"
           >
             {isGenerating ? (
@@ -319,7 +381,7 @@ export function GeneratePreview() {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="flex flex-wrap items-center justify-center gap-3"
+            className="flex flex-wrap items-center justify-center gap-2"
           >
             <Button
               onClick={generateThesis}
@@ -337,7 +399,7 @@ export function GeneratePreview() {
               className="gap-1.5"
             >
               {copied ? (
-                <Check className="w-3.5 h-3.5 text-green-500" />
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
               ) : (
                 <Copy className="w-3.5 h-3.5" />
               )}
@@ -351,6 +413,17 @@ export function GeneratePreview() {
               <Download className="w-3.5 h-3.5" />
               Download .tex
             </Button>
+            {stats && stats.references > 0 && (
+              <Button
+                onClick={downloadBibtex}
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                Download .bib
+              </Button>
+            )}
           </motion.div>
         )}
 
@@ -390,7 +463,7 @@ export function GeneratePreview() {
               </TabsList>
 
               <TabsContent value="code" className="mt-3">
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden surface-1">
                   <CardContent className="p-0">
                     <ScrollArea className="max-h-[500px]">
                       <pre className="latex-code-block p-4 text-xs leading-relaxed overflow-x-auto">
@@ -406,7 +479,7 @@ export function GeneratePreview() {
               </TabsContent>
 
               <TabsContent value="instructions" className="mt-3">
-                <Card>
+                <Card className="surface-1">
                   <CardContent className="p-5 space-y-4">
                     <div className="space-y-2">
                       <h3 className="text-sm font-semibold">
@@ -414,10 +487,10 @@ export function GeneratePreview() {
                       </h3>
                       <ol className="space-y-3 text-xs text-muted-foreground list-decimal list-inside">
                         <li>
-                          <strong className="text-foreground">Download the .tex file</strong> — Click the &quot;Download .tex&quot; button above to save the file to your computer.
+                          <strong className="text-foreground">Download the .tex file</strong> — Click the &quot;Download .tex&quot; button above to save the file.
                         </li>
                         <li>
-                          <strong className="text-foreground">Choose a LaTeX Editor</strong> — Upload the file to an online editor like{" "}
+                          <strong className="text-foreground">Choose a LaTeX Editor</strong> — Upload to{" "}
                           <a
                             href="https://www.overleaf.com"
                             target="_blank"
@@ -426,16 +499,16 @@ export function GeneratePreview() {
                           >
                             Overleaf
                           </a>{" "}
-                          or use a local editor like TeXStudio, TeXShop, or VS Code with the LaTeX Workshop extension.
+                          or use TeXStudio, TeXShop, or VS Code with the LaTeX Workshop extension.
                         </li>
                         <li>
-                          <strong className="text-foreground">Compile the document</strong> — If you have references, you may need to compile twice (first pass resolves citations, second pass updates references in the document).
+                          <strong className="text-foreground">Compile the document</strong> — If you have references, compile twice (first pass resolves citations, second pass updates references).
                         </li>
                         <li>
-                          <strong className="text-foreground">Customize further</strong> — The generated code is fully editable. You can add figures, tables, equations, or any LaTeX commands you need.
+                          <strong className="text-foreground">Customize further</strong> — Add figures, tables, equations, or any LaTeX commands you need.
                         </li>
                         <li>
-                          <strong className="text-foreground">Add images</strong> — Place your images in an &quot;images/&quot; folder in the same directory as your .tex file and reference them with{" "}
+                          <strong className="text-foreground">Add images</strong> — Place images in an &quot;images/&quot; folder and reference with{" "}
                           <code className="text-xs bg-secondary px-1 py-0.5 rounded">
                             \includegraphics
                           </code>

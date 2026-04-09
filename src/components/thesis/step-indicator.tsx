@@ -22,7 +22,7 @@ interface StepIndicatorProps {
 }
 
 export function StepIndicator({ className }: StepIndicatorProps) {
-  const { currentStep, selectedTemplate } = useThesisStore();
+  const { currentStep, selectedTemplate, setStep } = useThesisStore();
 
   return (
     <nav
@@ -31,12 +31,13 @@ export function StepIndicator({ className }: StepIndicatorProps) {
     >
       {/* Desktop view */}
       <div className="hidden md:flex items-center justify-between relative">
-        {/* Background line */}
-        <div className="absolute top-5 left-0 right-0 h-0.5 bg-border mx-16" />
+        {/* Background line — spans from first to last circle center */}
+        <div className="absolute top-5 left-[calc(10%-20px)] right-[calc(10%-20px)] h-[2px] bg-border" />
+        {/* Progress line — width based on current step progress */}
         <div
-          className="absolute top-5 left-16 h-0.5 bg-primary transition-all duration-500 ease-out mx-16"
+          className="absolute top-5 left-[calc(10%-20px)] h-[2px] bg-primary transition-all duration-500 ease-out"
           style={{
-            width: `${((currentStep - 1) / (WIZARD_STEPS.length - 1)) * (100 - 12.5)}%`,
+            width: `${(currentStep - 1) / (WIZARD_STEPS.length - 1) * 80}%`,
           }}
         />
 
@@ -44,27 +45,24 @@ export function StepIndicator({ className }: StepIndicatorProps) {
           const Icon = stepIcons[index];
           const isCompleted = currentStep > step.id;
           const isCurrent = currentStep === step.id;
-          const isDisabled = step.id > 1 && !selectedTemplate;
+          const canNavigate = isCompleted || step.id === currentStep;
 
           return (
-            <div
+            <button
               key={step.id}
-              className="flex flex-col items-center relative z-10 group"
+              type="button"
+              onClick={() => {
+                if (canNavigation(selectedTemplate, step.id, currentStep)) {
+                  setStep(step.id as 1|2|3|4|5|6);
+                }
+              }}
+              disabled={!canNavigation(selectedTemplate, step.id, currentStep)}
+              className="flex flex-col items-center relative z-10 group outline-none"
             >
               <motion.div
                 initial={false}
                 animate={{
-                  scale: isCurrent ? 1.1 : 1,
-                  backgroundColor: isCompleted
-                    ? "oklch(0.35 0.12 265)"
-                    : isCurrent
-                      ? "oklch(0.35 0.12 265)"
-                      : isDisabled
-                        ? "oklch(0.92 0.01 265)"
-                        : "oklch(0.97 0.008 265)",
-                  boxShadow: isCurrent
-                    ? "0 4px 14px oklch(0.35 0.12 265 / 0.3)"
-                    : "none",
+                  scale: isCurrent ? 1.12 : 1,
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 className={cn(
@@ -73,9 +71,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                     ? "border-primary bg-primary text-primary-foreground"
                     : isCurrent
                       ? "border-primary bg-primary text-primary-foreground step-active"
-                      : isDisabled
-                        ? "border-muted bg-muted text-muted-foreground cursor-not-allowed"
-                        : "border-border bg-card text-muted-foreground group-hover:border-primary/50"
+                      : "border-border bg-card text-muted-foreground group-hover:border-primary/40 group-hover:bg-primary/5"
                 )}
               >
                 {isCompleted ? (
@@ -87,14 +83,16 @@ export function StepIndicator({ className }: StepIndicatorProps) {
               <motion.span
                 initial={false}
                 animate={{
-                  opacity: isCurrent ? 1 : isDisabled ? 0.4 : 0.6,
-                  y: isCurrent ? 0 : 2,
+                  opacity: isCurrent ? 1 : 0.5,
                 }}
-                className="text-[11px] font-medium mt-2 text-center max-w-[80px] leading-tight"
+                className={cn(
+                  "text-[11px] font-medium mt-2 text-center max-w-[80px] leading-tight transition-colors",
+                  isCurrent ? "text-primary" : "text-muted-foreground"
+                )}
               >
                 {step.name}
               </motion.span>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -106,19 +104,19 @@ export function StepIndicator({ className }: StepIndicatorProps) {
             <React.Fragment key={step.id}>
               <div
                 className={cn(
-                  "w-2 h-2 rounded-full transition-all duration-300",
+                  "h-1.5 rounded-full transition-all duration-300",
                   currentStep === step.id
                     ? "w-6 bg-primary"
                     : currentStep > step.id
-                      ? "bg-primary/60"
-                      : "bg-border"
+                      ? "w-1.5 bg-primary/50"
+                      : "w-1.5 bg-border"
                 )}
               />
               {index < WIZARD_STEPS.length - 1 && (
                 <div
                   className={cn(
                     "h-0.5 w-3 transition-all duration-300",
-                    currentStep > step.id ? "bg-primary/60" : "bg-border"
+                    currentStep > step.id ? "bg-primary/50" : "bg-border"
                   )}
                 />
               )}
@@ -131,4 +129,14 @@ export function StepIndicator({ className }: StepIndicatorProps) {
       </div>
     </nav>
   );
+}
+
+function canNavigation(
+  selectedTemplate: string | null,
+  stepId: number,
+  currentStep: number
+): boolean {
+  if (stepId === 1) return true;
+  if (!selectedTemplate) return false;
+  return stepId <= currentStep;
 }
