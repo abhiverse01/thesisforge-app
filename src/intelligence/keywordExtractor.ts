@@ -1,0 +1,148 @@
+// ============================================================
+// ThesisForge Intelligence — Algorithm 4: TF-IDF Keyword Extractor
+// Extracts 5-8 most significant terms from thesis chapter bodies.
+// TF-IDF over combined chapters with academic stop-word list.
+// Pure function. No side effects. No DOM access.
+// ============================================================
+
+import type { ThesisChapter } from '@/lib/thesis-types';
+
+/**
+ * Custom stop-word list tuned for academic writing.
+ * Includes common English stopwords + academic boilerplate terms.
+ */
+const ACADEMIC_STOPWORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of',
+  'with', 'this', 'that', 'these', 'those', 'is', 'are', 'was', 'were', 'be',
+  'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+  'could', 'should', 'may', 'might', 'shall', 'can', 'also', 'however',
+  'therefore', 'thus', 'hence', 'moreover', 'furthermore', 'although',
+  'though', 'while', 'since', 'because', 'when', 'where', 'which', 'who',
+  'whom', 'whose', 'what', 'how', 'study', 'paper', 'research', 'work',
+  'result', 'results', 'show', 'shows', 'shown', 'use', 'used', 'using',
+  'based', 'method', 'methods', 'approach', 'proposed', 'present', 'chapter',
+  'section', 'figure', 'table', 'equation', 'model', 'data', 'analysis',
+  'system', 'process', 'framework', 'from', 'into', 'about', 'between',
+  'through', 'during', 'before', 'after', 'above', 'below', 'each', 'every',
+  'both', 'same', 'other', 'such', 'only', 'than', 'then', 'over', 'some',
+  'most', 'very', 'even', 'well', 'much', 'many', 'just', 'like', 'its',
+  'their', 'our', 'your', 'his', 'her', 'they', 'them', 'these', 'those',
+  'been', 'being', 'have', 'having', 'does', 'doing', 'would', 'should',
+]);
+
+/**
+ * Tokenize text: lowercase, strip punctuation, filter short words and stopwords.
+ */
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(
+      (w) => w.length > 3 && !ACADEMIC_STOPWORDS.has(w) && !/^\d+$/.test(w)
+    );
+}
+
+/**
+ * Compute term frequency (TF) normalized by max frequency.
+ */
+function computeTF(tokens: string[]): Record<string, number> {
+  const freq: Record<string, number> = {};
+  for (const t of tokens) freq[t] = (freq[t] || 0) + 1;
+  const max = Math.max(...Object.values(freq), 1);
+  const tf: Record<string, number> = {};
+  for (const [term, count] of Object.entries(freq)) {
+    tf[term] = count / max;
+  }
+  return tf;
+}
+
+/**
+ * Extract significant bigrams (2-word phrases) that appear 3+ times.
+ * Bigrams are boosted by 1.4x as they tend to be more specific.
+ */
+function extractBigrams(tokens: string[]): Record<string, number> {
+  const freq: Record<string, number> = {};
+  for (let i = 0; i < tokens.length - 1; i++) {
+    // Skip if either word is a stop word (bigrams with stopwords are less meaningful)
+    if (ACADEMIC_STOPWORDS.has(tokens[i]) || ACADEMIC_STOPWORDS.has(tokens[i + 1])) continue;
+    const bg = `${tokens[i]} ${tokens[i + 1]}`;
+    freq[bg] = (freq[bg] || 0) + 1;
+  }
+  // Only keep bigrams that appear 3+ times
+  const scores: Record<string, number> = {};
+  for (const [bg, count] of Object.entries(freq)) {
+    if (count >= 3) {
+      scores[bg] = (count / tokens.length) * 10;
+    }
+  }
+  return scores;
+}
+
+/**
+ * Extract the top N keywords from thesis chapter bodies using TF-IDF.
+ *
+ * Each chapter is treated as a "document" for IDF calculation.
+ * Combined TF across all chapters represents the thesis-level frequency.
+ * Bigrams are boosted 1.4x since multi-word phrases are more specific.
+ *
+ * Edge cases:
+ * - No chapters → returns []
+ * - All chapters empty → returns []
+ * - Single short chapter → returns top terms from that chapter
+ *
+ * Performance budget: < 12ms for up to 20,000 words
+ */
+export function extractKeywords(
+  chapters: ThesisChapter[],
+  topN: number = 8
+): string[] {
+  if (!chapters || chapters.length === 0) return [];
+
+  // Treat each chapter as a "document" for IDF calculation
+  const docs = chapters.map((ch) => {
+    const chapterText = [
+      ch.content || '',
+      ...(ch.subSections || []).map((ss) => ss.content || ''),
+    ].join(' ');
+    return tokenize(chapterText);
+  });
+
+  const totalDocs = docs.length;
+
+  // Filter out empty docs
+  const nonEmptyDocs = docs.filter((d) => d.length > 0);
+  if (nonEmptyDocs.length === 0) return [];
+
+  // IDF: log(N / df) where df = number of docs containing the term
+  const df: Record<string, number> = {};
+  for (const doc of nonEmptyDocs) {
+    const unique = new Set(doc);
+    for (const term of unique) df[term] = (df[term] || 0) + 1;
+  }
+
+  // Combined TF across all chapters (thesis-level TF)
+  const allTokens = nonEmptyDocs.flat();
+  if (allTokens.length === 0) return [];
+
+  const globalTF = computeTF(allTokens);
+
+  // TF-IDF score per term
+  const scores: Record<string, number> = {};
+  for (const [term, tf] of Object.entries(globalTF)) {
+    const idf =
+      Math.log((totalDocs + 1) / ((df[term] || 0) + 1)) + 1;
+    scores[term] = tf * idf;
+  }
+
+  // Boost bigrams
+  const bigrams = extractBigrams(allTokens);
+  for (const [bigram, score] of Object.entries(bigrams)) {
+    scores[bigram] = score * 1.4;
+  }
+
+  return Object.entries(scores)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, topN)
+    .map(([term]) => term);
+}

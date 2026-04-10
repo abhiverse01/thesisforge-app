@@ -13,7 +13,8 @@ import { ReferenceEditor } from "@/components/thesis/reference-editor";
 import { FormatEditor } from "@/components/thesis/format-editor";
 import { GeneratePreview } from "@/components/thesis/generate-preview";
 import { Homepage } from "@/components/thesis/homepage";
-import { SaveIndicator } from "@/components/thesis/save-indicator";
+import IntelligencePanel from "@/components/thesis/intelligence-panel";
+import { intelligenceScheduler } from "@/intelligence/scheduler";
 import { saveDraft, loadDraft, clearDraft, createSnapshot } from "@/core/persistence";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,7 @@ import {
   FileDown,
   FileUp,
   Menu,
+  BrainCircuit,
 } from "lucide-react";
 import {
   Tooltip,
@@ -107,7 +109,7 @@ const KONAMI_CODE = [
 // ============================================================
 
 export default function Home() {
-  const { currentStep, selectedTemplate, thesis, saveStatus, lastErrors,
+  const { currentStep, selectedTemplate, thesis, saveStatus, lastErrors, wizardStarted,
           setStep, nextStep, prevStep, canGoNext,
           lastDeletedChapter, lastDeletedReference,
           undoDeleteChapter, undoDeleteReference,
@@ -121,6 +123,7 @@ export default function Home() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showGoHomeConfirm, setShowGoHomeConfirm] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showIntelligencePanel, setShowIntelligencePanel] = useState(false);
 
   // ---- Refs ----
   const konamiBuffer = useRef<string[]>([]);
@@ -305,6 +308,16 @@ export default function Home() {
   }, [selectedTemplate, nextStep, prevStep, wizardStarted, currentStep]);
 
   // ================================================================
+  // Intelligence Panel — Feed data to scheduler on step/data change
+  // ================================================================
+  useEffect(() => {
+    if (thesis && selectedTemplate) {
+      intelligenceScheduler.updateData(thesis, selectedTemplate);
+      intelligenceScheduler.scheduleRun(currentStep);
+    }
+  }, [thesis, selectedTemplate, currentStep]);
+
+  // ================================================================
   // Handlers
   // ================================================================
   const handleReset = useCallback(() => {
@@ -388,14 +401,12 @@ export default function Home() {
       case 2:
         return <MetadataForm />;
       case 3:
-        return <AbstractEditor />;
-      case 4:
         return <ChapterEditor />;
-      case 5:
+      case 4:
         return <ReferenceEditor />;
-      case 6:
+      case 5:
         return <FormatEditor />;
-      case 7:
+      case 6:
         return <GeneratePreview />;
       default:
         return <TemplateSelector />;
@@ -614,6 +625,29 @@ export default function Home() {
                     </TooltipContent>
                   </Tooltip>
                 </>
+              )}
+
+              {wizardStarted && selectedTemplate && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowIntelligencePanel(!showIntelligencePanel)}
+                      className={cn(
+                        "h-8 w-8 p-0 transition-colors",
+                        showIntelligencePanel
+                          ? "text-purple-500 bg-purple-500/10"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      <BrainCircuit className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Intelligence Panel</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
 
               <Tooltip>
@@ -1010,6 +1044,15 @@ export default function Home() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* ---- Intelligence Panel ---- */}
+        {wizardStarted && selectedTemplate && (
+          <IntelligencePanel
+            isOpen={showIntelligencePanel}
+            onClose={() => setShowIntelligencePanel(false)}
+            currentStep={currentStep}
+          />
+        )}
       </div>
     </TooltipProvider>
   );
