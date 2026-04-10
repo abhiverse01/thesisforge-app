@@ -60,6 +60,7 @@ export default function RootLayout({
         <link rel="me" href="mailto:abhishek.aimarine@gmail.com" />
       </head>
       <body
+        suppressHydrationWarning
         className={`${poppins.variable} font-poppins antialiased bg-background text-foreground`}
         style={{ fontFamily: "'Google Sans', 'Poppins', system-ui, sans-serif" }}
       >
