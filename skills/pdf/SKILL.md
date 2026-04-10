@@ -18,9 +18,9 @@ license: Proprietary. LICENSE.txt has complete terms
 ## Quick Setup
 
 ```bash
-bash "$SKILL_DIR/scripts/setup.sh"          # Interactive environment check + install
-python3 "$SKILL_DIR/scripts/pdf.py" env.check  # Detailed dependency status (JSON: add -j)
-python3 "$SKILL_DIR/scripts/pdf.py" env.fix     # Auto-install missing Python packages
+bash "$PDF_SKILL_DIR/scripts/setup.sh"          # Interactive environment check + install
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" env.check  # Detailed dependency status (JSON: add -j)
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" env.fix     # Auto-install missing Python packages
 ```
 
 ## Triage
@@ -281,7 +281,7 @@ cat > diagram.html << 'EOF'
 EOF
 
 # 2. Screenshot at 2× for print quality (300dpi equivalent)
-python3 "$PDF_SCRIPTS/pdf.py" convert.blueprint diagram.html --device-scale-factor 2 --output diagram.png
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" convert.blueprint diagram.html --device-scale-factor 2 --output diagram.png
 # Or via Playwright directly:
 # page.screenshot(path='diagram.png', scale='device', device_scale_factor=2)
 
@@ -333,13 +333,14 @@ There are **two dedicated scripts** for HTML→PDF. Choose based on document typ
 | Document type | Script | Reason |
 |---------------|--------|--------|
 | **Posters, infographics, long-image single-page designs** | `html2poster.js` | Auto overflow:hidden, auto height measurement, zero margin, single-page output |
+| **Cover pages (Report/Academic route)** | `html2poster.js` | Covers are single-page fixed layouts with absolute positioning — same nature as posters. `html2pdf-next.js` would convert absolute→static and destroy the layout |
 | **Multi-page documents, reports, academic papers, resumes** | `html2pdf-next.js` | A4/custom pagination, 20mm margin fallback, cover adaptation, pdf-lib metadata |
 | **Creative pipeline (Blueprint → HTML → PDF)** | `html2pdf-next.js` via `convert.blueprint` | Called internally by design_engine pipeline |
 
 #### Poster / Single-Page Long-Image → `html2poster.js`
 
 ```bash
-node "$PDF_SCRIPTS/html2poster.js" poster.html --output poster.pdf --width 720px
+node "$PDF_SKILL_DIR/scripts/html2poster.js" poster.html --output poster.pdf --width 720px
 ```
 
 `html2poster.js` automatically:
@@ -354,9 +355,9 @@ node "$PDF_SCRIPTS/html2poster.js" poster.html --output poster.pdf --width 720px
 #### Documents / Multi-Page → `html2pdf-next.js`
 
 ```bash
-node "$PDF_SCRIPTS/html2pdf-next.js" input.html --output output.pdf --width 210mm --height 297mm
+node "$PDF_SKILL_DIR/scripts/html2pdf-next.js" input.html --output output.pdf --width 210mm --height 297mm
 # Or via pdf.py wrapper:
-python3 "$PDF_SCRIPTS/pdf.py" convert.html input.html --output output.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" convert.html input.html --output output.pdf
 ```
 
 Pre-render hooks auto-handle @page injection, overflow detection, cover adaptation, font loading, and pdf-lib metadata.
@@ -370,7 +371,9 @@ Common issues with hand-written Python `page.pdf()` (the dedicated scripts handl
 4. **No overflow detection** → content exceeds page boundary without awareness
 5. **No metadata** → PDF title, author, and other info missing
 
-**Iron rule: Posters use `html2poster.js`, documents use `html2pdf-next.js`. Do not write hand-written Python Playwright scripts.**
+**Iron rule: Posters and cover pages use `html2poster.js`, multi-page documents use `html2pdf-next.js`. Do not write hand-written Python Playwright scripts.**
+
+> **⚠️ Cover page gotcha:** Cover HTML uses `position: absolute` for layout. `html2pdf-next.js` pre-render hooks convert absolute-positioned elements to `static` flow (to prevent multi-page overlap), which **destroys** cover layouts. Always use `html2poster.js` for cover pages.
 
 ### No overflow:hidden on Fixed-Size Pages (html2pdf-next.js only)
 
@@ -484,7 +487,7 @@ Every PDF must pass preflight checks before delivery. Each brief specifies the e
 **Before** calling `html2pdf-next.js`, `html2poster.js`, `convert.blueprint`, or any Playwright `page.pdf()`, run:
 
 ```bash
-python3 "$PDF_SCRIPTS/poster_validate.py" check-html <your_file>.html
+python3 "$PDF_SKILL_DIR/scripts/poster_validate.py" check-html <your_file>.html
 ```
 
 | Result | Action |
@@ -566,7 +569,7 @@ All file paths must be reported to the user. **Never deliver only the PDF withou
 
 ## Tooling Reference
 
-### CLI: `python3 "$PDF_SCRIPTS/pdf.py" <command>`
+### CLI: `python3 "$PDF_SKILL_DIR/scripts/pdf.py" <command>`
 
 ```bash
 # Environment
@@ -600,7 +603,7 @@ meta.get <pdf>
 meta.set <pdf> -o out.pdf -d '{"Title": "..."}'
 ```
 
-### Poster/HTML/LaTeX Validator: `python3 "$PDF_SCRIPTS/poster_validate.py"`
+### Poster/HTML/LaTeX Validator: `python3 "$PDF_SKILL_DIR/scripts/poster_validate.py"`
 ```bash
 check-html <html>                              # Pre-render validation (overflow:hidden, @media screen, fonts, contrast, etc.)
 check-html <html> --fix --output <fixed.html>  # Auto-fix errors (remove overflow:hidden, add font fallback)
@@ -636,7 +639,7 @@ check-tex <tex>                                # LaTeX source validation (table 
 - `ALGORITHM_LONG_IO` (warning): Algorithm Input/Output line >120 chars. Will overflow narrow column
 - `CJK_ASCII_QUOTES` (error): ASCII `"` found adjacent to CJK characters. LaTeX interprets `"` as right double quote, so `"北漂"` renders incorrectly. Skips verbatim/lstlisting/minted environments and `\texttt{}`/`\url{}`/`\href{}{}`/`\verb||` inline commands.
 
-### Design Engine: `python3 "$PDF_SCRIPTS/design_engine.py"`
+### Design Engine: `python3 "$PDF_SKILL_DIR/scripts/design_engine.py"`
 ```bash
 compile --blueprint <json_file> --output poster.html  # CRITICAL: Compile JSON blueprint to HTML
 derive "document title or description"         # Auto-derive intent from content
@@ -647,7 +650,7 @@ full --intent energy --mode dark --dimensions 720x960 --output-dir ./assets/
 audit --palette-json palette.json              # Check palette constraints
 ```
 
-### Palette Generator (for Report route): `python3 "$PDF_SCRIPTS/pdf.py" palette.generate`
+### Palette Generator (for Report route): `python3 "$PDF_SKILL_DIR/scripts/pdf.py" palette.generate`
 ```bash
 palette.generate --title "document title" --mode minimal   # Output: ready-to-paste ReportLab Python code
 palette.generate --title "..." --format json               # Output: raw JSON
@@ -655,7 +658,7 @@ palette.generate --title "..." --format css                # Output: CSS custom 
 palette.generate --title "..." --mode dark --harmony complementary --seed 42
 ```
 
-### Cascade Palette (V2 - Preferred): `python3 "$PDF_SCRIPTS/pdf.py" palette.cascade`
+### Cascade Palette (V2 - Preferred): `python3 "$PDF_SKILL_DIR/scripts/pdf.py" palette.cascade`
 ```bash
 palette.cascade --title "document title" --mode minimal    # Output: summary table with all 12 roles
 palette.cascade --title "..." --format json                # Full structured JSON (roles + cover + body + charts + semantic)
@@ -731,42 +734,33 @@ references/
 
 ### Script Path Setup (MANDATORY before any script call)
 
-All CLI tools live in `scripts/` relative to this skill's directory. Before calling any script (`pdf.py`, `pdf_qa.py`, `toc_validate.py`, `poster_validate.py`, `design_engine.py`), resolve the absolute path once:
-
-```bash
-# Resolve skill scripts directory (run this ONCE at the start of any PDF task)
-PDF_SCRIPTS="$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")"
-# If running interactively or from agent, set it explicitly:
-PDF_SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/../skills/pdf/scripts" 2>/dev/null && pwd)"
-```
-
-**In practice (for agents):** The skill directory is known from the SKILL.md location. Use the absolute path:
+All paths are relative to `$PDF_SKILL_DIR` — the single root variable for this skill. Resolve it once before calling any script:
 
 ```bash
 PDF_SKILL_DIR="<skill_directory>"   # ← parent directory of this SKILL.md
-PDF_SCRIPTS="${PDF_SKILL_DIR}/scripts"
 
-# Then all commands use $PDF_SCRIPTS:
-python3 "$PDF_SCRIPTS/pdf.py" code.sanitize generate_pdf.py
-python3 "$PDF_SCRIPTS/pdf.py" meta.brand output.pdf
-python3 "$PDF_SCRIPTS/pdf.py" font.check output.pdf
-python3 "$PDF_SCRIPTS/pdf.py" toc.check output.pdf
-python3 "$PDF_SCRIPTS/pdf.py" pages.clean output.pdf -o output_clean.pdf
-python3 "$PDF_SCRIPTS/pdf_qa.py" output.pdf
-python3 "$PDF_SCRIPTS/poster_validate.py" check-html page.html
-python3 "$PDF_SCRIPTS/poster_validate.py" check-pdf output.pdf
+# Then all commands use $PDF_SKILL_DIR:
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" code.sanitize generate_pdf.py
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" meta.brand output.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" font.check output.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" toc.check output.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" pages.clean output.pdf -o output_clean.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf_qa.py" output.pdf
+python3 "$PDF_SKILL_DIR/scripts/poster_validate.py" check-html page.html
+python3 "$PDF_SKILL_DIR/scripts/poster_validate.py" check-pdf output.pdf
 ```
 
 **For Python imports** (when generation code needs to import skill modules):
 
 ```python
 import sys, os
-PDF_SCRIPTS = os.path.join("<skill_directory>", "scripts")
-if PDF_SCRIPTS not in sys.path:
-    sys.path.insert(0, PDF_SCRIPTS)
+PDF_SKILL_DIR = "<skill_directory>"
+_scripts = os.path.join(PDF_SKILL_DIR, "scripts")
+if _scripts not in sys.path:
+    sys.path.insert(0, _scripts)
 ```
 
-**⚠️ NEVER use bare `python3 scripts/pdf.py ...`** - it only works if cwd happens to be the skill directory. Always use the absolute `$PDF_SCRIPTS` path.
+**⚠️ NEVER use bare `python3 scripts/pdf.py ...`** - it only works if cwd happens to be the skill directory. Always use `$PDF_SKILL_DIR/scripts/` as the absolute prefix.
 
 ---
 
@@ -777,10 +771,10 @@ if PDF_SCRIPTS not in sys.path:
 ### Automated Detection (Must Run)
 
 ```bash
-python3 "$PDF_SCRIPTS/pdf_qa.py" <output.pdf>
-python3 "$PDF_SCRIPTS/pdf_qa.py" --poster <output.pdf>   # poster mode: skip content fill ratio, check all pages for full-bleed
-python3 "$PDF_SCRIPTS/pdf_qa.py" --skip-cover --formulas <output.pdf>   # academic mode: skip cover for margin check, enable formula overflow
-python3 "$PDF_SCRIPTS/pdf_qa.py" --no-tables <output.pdf>   # creative mode: skip table centering check
+python3 "$PDF_SKILL_DIR/scripts/pdf_qa.py" <output.pdf>
+python3 "$PDF_SKILL_DIR/scripts/pdf_qa.py" --poster <output.pdf>   # poster mode: skip content fill ratio, check all pages for full-bleed
+python3 "$PDF_SKILL_DIR/scripts/pdf_qa.py" --skip-cover --formulas <output.pdf>   # academic mode: skip cover for margin check, enable formula overflow
+python3 "$PDF_SKILL_DIR/scripts/pdf_qa.py" --no-tables <output.pdf>   # creative mode: skip table centering check
 ```
 
 > **Dependency**: Requires `pymupdf` (`pip install pymupdf`). If not installed, skip automated detection and use the manual checklist below.

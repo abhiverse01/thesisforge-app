@@ -32,26 +32,35 @@ def copy_slide(src_prs: Presentation, dst_prs: Presentation, index: int, dst_lay
         sp = shape.element
         sp.getparent().remove(sp)
 
-    # Collect image/media relationships from source
-    image_rels = {
-        rel_id: rel
-        for rel_id, rel in src_slide.part.rels.items()
-        if "image" in rel.reltype or "media" in rel.reltype
-    }
+    # Copy ALL non-layout relationships from source and build old→new rId mapping.
+    # This covers images, media, charts, hyperlinks, videos, and any other embedded content.
+    # Without this, relationship attributes (r:embed, r:id, r:link) in copied shapes would
+    # reference rIds that don't exist in the new slide, causing PowerPoint repair dialogs.
+    R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    SKIP_TYPES = {"slideLayout", "notesSlide", "slide"}  # handled by python-pptx infrastructure
+    rId_mapping: dict = {}
+    for rel_id, rel in src_slide.part.rels.items():
+        rel_short = rel.reltype.split("/")[-1]
+        if rel_short in SKIP_TYPES:
+            continue
+        new_rId = new_slide.part.rels.get_or_add(rel.reltype, rel._target)
+        rId_mapping[rel_id] = new_rId
 
     # Copy all shape elements
+    r_embed = f"{{{R_NS}}}embed"
+    r_id = f"{{{R_NS}}}id"
+    r_link = f"{{{R_NS}}}link"
+
     for shape in src_slide.shapes:
         new_el = deepcopy(shape.element)
         new_slide.shapes._spTree.insert_element_before(new_el, "p:extLst")
 
-        # Remap blip embed references to new slide's relationships
-        r_embed = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"
-        for blip in new_el.xpath(".//a:blip[@r:embed]"):
-            old_rId = blip.get(r_embed)
-            if old_rId in image_rels:
-                rel = image_rels[old_rId]
-                new_rId = new_slide.part.rels.get_or_add(rel.reltype, rel._target)
-                blip.set(r_embed, new_rId)
+        # Remap ALL relationship references (images, charts, hyperlinks, video, etc.)
+        for el in new_el.iter():
+            for attr in (r_embed, r_id, r_link):
+                old_rId = el.get(attr)
+                if old_rId and old_rId in rId_mapping:
+                    el.set(attr, rId_mapping[old_rId])
 
     # Copy slide-level background if defined.
     # p:bg lives inside p:cSld, not directly under p:sld.

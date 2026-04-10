@@ -24,12 +24,12 @@ User request
 ## Environment Check
 
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" env.check
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" env.check
 ```
 
 Reports availability but does **not** auto-install. Required: Python 3, pikepdf, pdfplumber.
 
-Entry point: `python3 "$PDF_SCRIPTS/pdf.py" <group>.<action> [options]`
+Entry point: `python3 "$PDF_SKILL_DIR/scripts/pdf.py" <group>.<action> [options]`
 
 All commands return JSON on stdout (`{"status": "success", "data": {...}}`) or stderr (`{"status": "error", ...}`).
 Exit codes: 0 = success, 1 = bad args, 2 = file not found, 3 = parse error, 4 = operation failed.
@@ -40,15 +40,15 @@ Exit codes: 0 = success, 1 = bad args, 2 = file not found, 3 = parse error, 4 = 
 
 ```bash
 # Text (full or page range)
-python3 "$PDF_SCRIPTS/pdf.py" extract.text report.pdf
-python3 "$PDF_SCRIPTS/pdf.py" extract.text report.pdf -p 1-3
-python3 "$PDF_SCRIPTS/pdf.py" extract.text report.pdf -p 1,4,7
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" extract.text report.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" extract.text report.pdf -p 1-3
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" extract.text report.pdf -p 1,4,7
 
 # Tables — returns structured JSON with page/rows/cols/data
-python3 "$PDF_SCRIPTS/pdf.py" extract.table report.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" extract.table report.pdf
 
 # Images — dumps embedded rasters to directory
-python3 "$PDF_SCRIPTS/pdf.py" extract.image report.pdf -o ./images/
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" extract.image report.pdf -o ./images/
 ```
 
 ---
@@ -56,12 +56,12 @@ python3 "$PDF_SCRIPTS/pdf.py" extract.image report.pdf -o ./images/
 ## §Pages
 
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" pages.merge a.pdf b.pdf -o combined.pdf
-python3 "$PDF_SCRIPTS/pdf.py" pages.split book.pdf -o ./chapters/
-python3 "$PDF_SCRIPTS/pdf.py" pages.rotate doc.pdf 90 -o rotated.pdf
-python3 "$PDF_SCRIPTS/pdf.py" pages.rotate doc.pdf 180 -o rotated.pdf -p 1-3
-python3 "$PDF_SCRIPTS/pdf.py" pages.crop doc.pdf 50,50,550,750 -o trimmed.pdf
-python3 "$PDF_SCRIPTS/pdf.py" pages.clean doc.pdf -o cleaned.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" pages.merge a.pdf b.pdf -o combined.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" pages.split book.pdf -o ./chapters/
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" pages.rotate doc.pdf 90 -o rotated.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" pages.rotate doc.pdf 180 -o rotated.pdf -p 1-3
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" pages.crop doc.pdf 50,50,550,750 -o trimmed.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" pages.clean doc.pdf -o cleaned.pdf
 ```
 
 ---
@@ -69,9 +69,9 @@ python3 "$PDF_SCRIPTS/pdf.py" pages.clean doc.pdf -o cleaned.pdf
 ## §Metadata
 
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" meta.get doc.pdf
-python3 "$PDF_SCRIPTS/pdf.py" meta.set doc.pdf -o out.pdf -d '{"Title": "Report", "Author": "Jane"}'
-python3 "$PDF_SCRIPTS/pdf.py" meta.brand doc.pdf -o branded.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" meta.get doc.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" meta.set doc.pdf -o out.pdf -d '{"Title": "Report", "Author": "Jane"}'
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" meta.brand doc.pdf -o branded.pdf
 ```
 
 Recognised keys: `Title`, `Author`, `Subject`, `Keywords`, `Creator`, `Producer`.
@@ -85,7 +85,7 @@ Recognised keys: `Title`, `Author`, `Subject`, `Keywords`, `Creator`, `Producer`
 ### Step 1 — Check if fillable
 
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" form.info input.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" form.info input.pdf
 ```
 
 If `has_fields: true` → **Fillable workflow**. If `false` → **Non-fillable workflow**.
@@ -94,10 +94,10 @@ If `has_fields: true` → **Fillable workflow**. If `false` → **Non-fillable w
 
 ```bash
 # Inspect fields
-python3 "$PDF_SCRIPTS/pdf.py" form.info input.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" form.info input.pdf
 
 # Fill (auto-maps "true"/"false" for checkboxes)
-python3 "$PDF_SCRIPTS/pdf.py" form.fill input.pdf -o filled.pdf \
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" form.fill input.pdf -o filled.pdf \
   -d '{"name": "John", "agree": "true", "country": "US"}'
 ```
 
@@ -113,8 +113,8 @@ python3 "$PDF_SCRIPTS/pdf.py" form.fill input.pdf -o filled.pdf \
 For complex forms, use `form.detail` and `form.render` for deeper inspection:
 
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" form.detail input.pdf -o fields.json   # full field info (types, options, defaults)
-python3 "$PDF_SCRIPTS/pdf.py" form.render input.pdf -o ./pages/       # render pages as PNG for visual check
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" form.detail input.pdf -o fields.json   # full field info (types, options, defaults)
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" form.render input.pdf -o ./pages/       # render pages as PNG for visual check
 ```
 
 ### Non-Fillable Workflow (Annotation-Based)
@@ -123,7 +123,7 @@ For PDFs without interactive fields (scanned forms, image-based). All four steps
 
 **Step 1 — Render pages as PNG** (required):
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" form.render input.pdf -o ./pages/
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" form.render input.pdf -o ./pages/
 ```
 
 **Step 2 — Create `fields.json`** with annotation regions.
@@ -155,17 +155,17 @@ Schema: `pg` = 1-based page, `dims` = [w,h] in pixels, `label.bbox` / `target.bb
 **Step 3 — Validate bounding boxes** (required):
 ```bash
 # Auto-check for intersections
-python3 "$PDF_SCRIPTS/pdf.py" form.check-bbox fields.json
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" form.check-bbox fields.json
 
 # Visual validation (red=target, blue=label)
-python3 "$PDF_SCRIPTS/pdf.py" form.validate 1 fields.json page1.png validation.png
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" form.validate 1 fields.json page1.png validation.png
 ```
 
 Fix any issues, regenerate, re-check. Red rectangles must only cover input areas.
 
 **Step 4 — Fill via annotations**:
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" form.annotate input.pdf fields.json -o filled.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" form.annotate input.pdf fields.json -o filled.pdf
 ```
 
 ---
@@ -190,9 +190,9 @@ When user provides a reference PDF to match:
 
 ```
 1. ANALYZE  → Extract design DNA from template:
-               - python3 "$PDF_SCRIPTS/pdf.py" meta.get template.pdf       (page size)
-               - python3 "$PDF_SCRIPTS/pdf.py" extract.image template.pdf   (color samples)
-               - python3 "$PDF_SCRIPTS/pdf.py" extract.text template.pdf    (text structure)
+               - python3 "$PDF_SKILL_DIR/scripts/pdf.py" meta.get template.pdf       (page size)
+               - python3 "$PDF_SKILL_DIR/scripts/pdf.py" extract.image template.pdf   (color samples)
+               - python3 "$PDF_SKILL_DIR/scripts/pdf.py" extract.text template.pdf    (text structure)
                - pdftoppm -png -r 150 template.pdf preview           (visual reference)
 2. DOCUMENT → Record: page size, margins, colors, fonts, layout grid,
                header/footer pattern, decorative elements
@@ -215,10 +215,10 @@ When user provides a reference PDF to match:
 
 **Simple conversion** (no TOC needed):
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" convert.office input.docx -o output.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" convert.office input.docx -o output.pdf
 ```
 
-**When to use the 5-step DOCX Pipeline instead**: If the DOCX has (or should have) a Table of Contents, always use §DOCX Pipeline below. Signs: the document has 3+ headings, or the user mentions "table of contents" / "TOC", or the document already contains a TOC section. When in doubt, run `python3 "$PDF_SCRIPTS/toc_validate.py" fix-docx input.docx -o fixed.docx` — if it returns `no_toc_needed`, a simple conversion is fine.
+**When to use the 5-step DOCX Pipeline instead**: If the DOCX has (or should have) a Table of Contents, always use §DOCX Pipeline below. Signs: the document has 3+ headings, or the user mentions "table of contents" / "TOC", or the document already contains a TOC section. When in doubt, run `python3 "$PDF_SKILL_DIR/scripts/toc_validate.py" fix-docx input.docx -o fixed.docx` — if it returns `no_toc_needed`, a simple conversion is fine.
 
 Or directly:
 ```bash
@@ -262,18 +262,18 @@ Step 5: soffice     → Convert final DOCX to PDF + pages.clean
 
 **Step 1 — Pass 1 Convert**:
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" convert.office input.docx -o pass1.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" convert.office input.docx -o pass1.pdf
 ```
 
 **Step 2 — Clean Blank Pages**:
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" pages.clean pass1.pdf -o pass1_clean.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" pages.clean pass1.pdf -o pass1_clean.pdf
 ```
 If `blank_pages_removed == 0`, use pass1.pdf directly.
 
 **Step 3 — Fix TOC**:
 ```bash
-python3 "$PDF_SCRIPTS/toc_validate.py" fix-docx input.docx -o fixed.docx
+python3 "$PDF_SKILL_DIR/scripts/toc_validate.py" fix-docx input.docx -o fixed.docx
 ```
 
 Auto-detects and fixes: placeholder TOC, stale TOC (>50% drift), empty TOC, missing TOC (≥3 headings). Each entry gets `<w:hyperlink>` + `PAGEREF` + bookmarks for clickable PDF navigation.
@@ -282,21 +282,21 @@ Check output `action` field: `fixed` → use fixed.docx, `skipped` → use origi
 
 **Step 4 — Fix Page Numbers**:
 ```bash
-python3 "$PDF_SCRIPTS/toc_validate.py" fix-pages fixed.docx pass1_clean.pdf -o final.docx
+python3 "$PDF_SKILL_DIR/scripts/toc_validate.py" fix-pages fixed.docx pass1_clean.pdf -o final.docx
 ```
 
 Corrects PAGEREF display text using actual page positions from pass1 + TOC page offset.
 
 **Step 5 — Final Convert + Clean**:
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" convert.office final.docx -o output.pdf
-python3 "$PDF_SCRIPTS/pdf.py" pages.clean output.pdf -o output_clean.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" convert.office final.docx -o output.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" pages.clean output.pdf -o output_clean.pdf
 ```
 
 ### Post-Conversion Validation (Optional)
 
 ```bash
-python3 "$PDF_SCRIPTS/toc_validate.py" check-conversion final.docx output_clean.pdf
+python3 "$PDF_SKILL_DIR/scripts/toc_validate.py" check-conversion final.docx output_clean.pdf
 ```
 
 Issues caught: `CONV_TOC_LOST` (TOC disappeared), `CONV_HINT_LEAKED` (placeholder text in PDF), `CONV_HEADING_DRIFT` (heading count mismatch).

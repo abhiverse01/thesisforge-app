@@ -107,7 +107,7 @@ import os
 _font_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'fonts', 'truetype', 'chinese', 'SimHei.ttf')
 if not os.path.exists(_font_path):
     # Fallback: try workspace fonts
-    _font_path = os.path.expanduser('~/.openclaw/workspace/fonts/truetype/chinese/SimHei.ttf')
+    _font_path = os.path.expanduser('/usr/share/fonts/truetype/chinese/SimHei.ttf')
 if os.path.exists(_font_path):
     matplotlib.font_manager.fontManager.addfont(_font_path)
 plt.rcParams['font.sans-serif'] = ['SimHei']

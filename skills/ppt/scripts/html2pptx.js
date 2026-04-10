@@ -424,7 +424,7 @@ function addElements(slideData, targetSlide, pres, tmpDir) {
       if (el.style.margin) textOptions.margin = el.style.margin;
       if (el.style.rotate !== undefined) textOptions.rotate = el.style.rotate;
       if (el.style.transparency !== null && el.style.transparency !== undefined) textOptions.transparency = el.style.transparency;
-      if (el.noWrap) textOptions.shrinkText = true;
+      if (el.noWrap) textOptions.wrap = false;
 
       targetSlide.addText(el.text, textOptions);
     }
@@ -522,7 +522,14 @@ async function extractSlideData(page) {
           if (isCJKFont && !hasCJKChars(textContent)) return _fc.latin || 'Century Gothic';
           return font;
         }
-        if (FONT_FALLBACK_MAP[lower]) return FONT_FALLBACK_MAP[lower];
+        if (FONT_FALLBACK_MAP[lower]) {
+          const mapped = FONT_FALLBACK_MAP[lower];
+          const mappedIsCJK = CJK_FONT_FRAGMENTS.some(f => mapped.toLowerCase().includes(f));
+          // If the mapped font is a non-CJK font but the text has CJK chars, keep looking
+          // (e.g. font-family:'Inter','Microsoft YaHei' with Chinese text should use YaHei, not Century Gothic)
+          if (!mappedIsCJK && hasCJKChars(textContent)) continue;
+          return mapped;
+        }
         if (['sans-serif', 'serif', 'monospace', 'cursive', 'fantasy'].includes(lower)) continue;
         if (isCJKFont || hasCJKChars(textContent)) return _fc.cjk || 'Microsoft YaHei';
         return font; // unknown non-CJK font: pass through
@@ -1077,8 +1084,9 @@ async function extractSlideData(page) {
             fontFace: mapFontFace(computed.fontFamily, el.textContent),
             color: rgbToHex(computed.color),
             transparency: extractAlpha(computed.color),
-            align: computed.textAlign === 'start' ? 'left' : computed.textAlign,
+            align: computed.textAlign === 'start' ? 'left' : computed.textAlign === 'end' ? 'right' : computed.textAlign,
             lineSpacing: computed.lineHeight && computed.lineHeight !== 'normal' ? pxToPoints(computed.lineHeight) : null,
+            charSpacing: computed.letterSpacing && computed.letterSpacing !== 'normal' ? pxToPoints(computed.letterSpacing) : undefined,
             paraSpaceBefore: 0,
             paraSpaceAfter: pxToPoints(computed.marginBottom),
             // PptxGenJS margin array is [left, right, bottom, top]
@@ -1131,9 +1139,9 @@ async function extractSlideData(page) {
         fontSize: pxToPoints(computed.fontSize),
         fontFace: mapFontFace(computed.fontFamily, text),
         color: rgbToHex(computed.color),
-        align: computed.textAlign === 'start' ? 'left' : computed.textAlign,
+        align: computed.textAlign === 'start' ? 'left' : computed.textAlign === 'end' ? 'right' : computed.textAlign,
         charSpacing: computed.letterSpacing && computed.letterSpacing !== 'normal' ? pxToPoints(computed.letterSpacing) : undefined,
-        lineSpacing: pxToPoints(computed.lineHeight),
+        lineSpacing: computed.lineHeight && computed.lineHeight !== 'normal' ? pxToPoints(computed.lineHeight) : null,
         paraSpaceBefore: pxToPoints(computed.marginTop),
         paraSpaceAfter: pxToPoints(computed.marginBottom),
         // PptxGenJS margin array is [left, right, bottom, top] (not [top, right, bottom, left] as documented)

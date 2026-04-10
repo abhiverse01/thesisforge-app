@@ -63,14 +63,16 @@ Confirm with the user:
 4. Write cover HTML using Template 08/09/10/11 from typesetting/cover.md (Template 11 for thesis proposals/dissertations)
 5. Run poster_validate.py check-html on cover HTML - fix any ERRORs
 6. Run cover_validate.js on cover HTML - fix any text-line overlaps
-7. Render cover HTML → PDF via Playwright (html2pdf-next.js)
+7. Render cover HTML → PDF via Playwright (`html2poster.js`) — **NOT `html2pdf-next.js`** (which converts absolute→static and destroys cover layout)
 8. Merge: insert cover as page 0 of body PDF via pypdf
 ```
 
 **Cover HTML → PDF rendering:**
 ```bash
-# ALWAYS use html2pdf-next.js (NOT raw Playwright page.pdf())
-node "$PDF_SCRIPTS/html2pdf-next.js" cover.html -o cover.pdf --width 794 --height 1123
+# ALWAYS use html2poster.js for cover rendering (NOT html2pdf-next.js)
+# Cover pages use position:absolute layout — html2pdf-next.js pre-render hooks
+# convert absolute→static and destroy the layout. html2poster.js preserves it.
+node "$PDF_SKILL_DIR/scripts/html2poster.js" cover.html --output cover.pdf --width 794px
 ```
 
 Or from Python:
@@ -78,12 +80,19 @@ Or from Python:
 import subprocess, os
 
 def render_cover(html_path, pdf_path):
-    """Render HTML cover to PDF via html2pdf-next.js."""
-    scripts_dir = os.path.expanduser('~/.openclaw/workspace/skills/pdf/scripts')
+    """
+    Render HTML cover to PDF via html2poster.js.
+    
+    ⚠️ ALWAYS use html2poster.js for covers (NOT html2pdf-next.js).
+    Cover HTML uses position:absolute for layout. html2pdf-next.js pre-render
+    hooks convert absolute→static to prevent multi-page overlap, which
+    destroys cover layouts. html2poster.js preserves absolute positioning.
+    """
+    scripts_dir = os.path.join(PDF_SKILL_DIR, 'scripts')  # PDF_SKILL_DIR from SKILL.md § Script Path Setup
     subprocess.run([
-        'node', os.path.join(scripts_dir, 'html2pdf-next.js'),
-        html_path, '-o', pdf_path,
-        '--width', '794', '--height', '1123',
+        'node', os.path.join(scripts_dir, 'html2poster.js'),
+        html_path, '--output', pdf_path,
+        '--width', '794px',
     ], check=True)
 ```
 
@@ -475,7 +484,7 @@ This has been studied\cite{smith2023}.     % → studied^[1]
 ### Phase 4 - COMPILE
 
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" convert.latex main.tex --runs 2
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" convert.latex main.tex --runs 2
 ```
 
 Default: 2 passes (resolves cross-references). Use `--runs 3` when bibliography back-references are needed. Add `--keep-logs` for debugging.
@@ -622,7 +631,7 @@ Rules:
 
 ```bash
 # 1. Compile TikZ standalone to PDF
-python3 "$PDF_SCRIPTS/pdf.py" convert.latex diagram.tex    # → diagram.pdf (tight-cropped)
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" convert.latex diagram.tex    # → diagram.pdf (tight-cropped)
 
 # 2. Embed as vector in LaTeX
 # \begin{figure}[t]
@@ -641,7 +650,7 @@ For >6 node diagrams with branching, annotations, or multi-path flows:
 ```bash
 # 1. LLM generates diagram.html (CSS grid/flexbox nodes + SVG/CSS arrows)
 # 2. Screenshot at 2× device scale factor for 300dpi print quality
-python3 "$PDF_SCRIPTS/pdf.py" convert.blueprint diagram.html --device-scale-factor 2 --output diagram.png
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" convert.blueprint diagram.html --device-scale-factor 2 --output diagram.png
 
 # 3. Embed in LaTeX
 # \begin{figure}[t]
@@ -898,7 +907,7 @@ Two templates available as separate files. Load the one you need:
 
 1. Read the template file: `references/resume-altacv.tex` or `references/resume-academic.tex`
 2. Replace placeholder content with user's information
-3. Compile: `python3 "$PDF_SCRIPTS/pdf.py" convert.latex resume.tex --runs 2`
+3. Compile: `python3 "$PDF_SKILL_DIR/scripts/pdf.py" convert.latex resume.tex --runs 2`
 
 **🔴 Resume Text Overlap Prevention:**
 
@@ -1011,19 +1020,19 @@ After generating the cover HTML and before converting to PDF, run `poster_valida
 
 ```bash
 # Step 1: HTML check
-python3 "$PDF_SCRIPTS/poster_validate.py" check-html cover.html
+python3 "$PDF_SKILL_DIR/scripts/poster_validate.py" check-html cover.html
 # Step 2: Cover overlap check
-node "$PDF_SCRIPTS/cover_validate.js" cover.html
+node "$PDF_SKILL_DIR/scripts/cover_validate.js" cover.html
 # Step 3: Convert to PDF
-node "$PDF_SCRIPTS/html2pdf-next.js" cover.html cover.pdf --width 794 --height 1123
+node "$PDF_SKILL_DIR/scripts/html2poster.js" cover.html --output cover.pdf --width 794px
 # Step 4: PDF check
-python3 "$PDF_SCRIPTS/pdf_qa.py" final.pdf --skip-cover --formulas
+python3 "$PDF_SKILL_DIR/scripts/pdf_qa.py" final.pdf --skip-cover --formulas
 
 # MANDATORY: Post-generation pipeline
-python3 "$PDF_SCRIPTS/pdf.py" meta.brand final.pdf
-python3 "$PDF_SCRIPTS/pdf.py" pages.clean final.pdf -o final_clean.pdf
-python3 "$PDF_SCRIPTS/pdf.py" font.check final.pdf
-python3 "$PDF_SCRIPTS/pdf.py" toc.check final.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" meta.brand final.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" pages.clean final.pdf -o final_clean.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" font.check final.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" toc.check final.pdf
 ```
 - `poster_validate.py` checks: font fallback, overflow:hidden, @media screen, background color consistency, etc.
 - `pdf_qa.py` checks: cover full-bleed, blank pages, CJK punctuation, overflow, margin symmetry, font embedding, metadata, formula overflow

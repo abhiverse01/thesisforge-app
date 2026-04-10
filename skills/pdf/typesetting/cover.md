@@ -571,7 +571,7 @@ These checks run BEFORE final rendering. They are **mandatory** - not optional o
 **After generating the cover HTML and before rendering to PDF, run:**
 
 ```bash
-node "$PDF_SCRIPTS/cover_validate.js" cover.html
+node "$PDF_SKILL_DIR/scripts/cover_validate.js" cover.html
 ```
 
 This detects text-vs-decorative-line overlaps by rendering the HTML and measuring actual bounding boxes. Exit code 1 = overlap found, must fix before generating the PDF.

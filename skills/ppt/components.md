@@ -64,7 +64,7 @@ Use these dark variants for **rhythm-breaking slides** (recommended every 3-4 pa
 > `list | medium | dark | outline-light`
 
 ```html
-<body style="margin:0;padding:0;width:720pt;height:405pt;overflow:hidden;background-color:${primary-90};font-family:'Microsoft YaHei',sans-serif;">
+<body style="margin:0;padding:0;width:720pt;height:405pt;overflow:hidden;background-color:${primary-90};font-family:'Inter','Microsoft YaHei',sans-serif;">
   <div style="height:4pt;background:${accent};"></div>
   <div style="padding:32pt 48pt 0 48pt;">
     <span style="font-size:28pt;font-weight:bold;color:${on-dark};white-space:nowrap;">Page Title</span>
@@ -90,7 +90,7 @@ Use these dark variants for **rhythm-breaking slides** (recommended every 3-4 pa
 > `grid | low | dark | solid-dark`
 
 ```html
-<body style="margin:0;padding:0;width:720pt;height:405pt;overflow:hidden;background-color:${primary-100};font-family:'Microsoft YaHei',sans-serif;">
+<body style="margin:0;padding:0;width:720pt;height:405pt;overflow:hidden;background-color:${primary-100};font-family:'Inter','Microsoft YaHei',sans-serif;">
   <div style="padding:36pt 48pt 0 48pt;text-align:center;">
     <span style="font-size:26pt;font-weight:bold;color:${on-dark};">Dashboard Title</span>
   </div>
@@ -116,7 +116,7 @@ Use these dark variants for **rhythm-breaking slides** (recommended every 3-4 pa
 > `split | medium | dark | none`
 
 ```html
-<body style="margin:0;padding:0;width:720pt;height:405pt;overflow:hidden;background-color:${primary-90};font-family:'Microsoft YaHei',sans-serif;">
+<body style="margin:0;padding:0;width:720pt;height:405pt;overflow:hidden;background-color:${primary-90};font-family:'Inter','Microsoft YaHei',sans-serif;">
   <div style="display:flex;height:405pt;">
     <div style="width:260pt;background:${accent};padding:48pt 32pt;display:flex;flex-direction:column;justify-content:center;">
       <span style="font-size:42pt;font-weight:bold;color:#FFFFFF;line-height:1.15;">Key<br/>Insight</span>
@@ -236,7 +236,7 @@ Centered symmetrical layout. Flex vertical centering.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column; justify-content:center; align-items:center;">
   <h1 style="font-size:34pt; font-weight:bold; color:${primary-80}; margin:0 0 12pt 0; line-height:1.15; text-align:center; max-width:580pt;">
     Presentation Title Here
@@ -258,7 +258,7 @@ Left dark block (40%) + right text (60%).
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:row;">
   <div style="width:288pt; height:405pt; background:${primary-90};
               display:flex; flex-direction:column; justify-content:flex-end; padding:0 0 48pt 36pt;">
@@ -282,7 +282,7 @@ Full-width centered title + bottom dark info bar.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:0 48pt;">
     <h1 style="font-size:34pt; font-weight:bold; color:${primary-80}; margin:0 0 12pt 0; line-height:1.15; text-align:center; max-width:580pt;">Presentation Main Title</h1>
@@ -305,7 +305,7 @@ Full-screen image + dark mask + centered title. **Download image first**: `curl 
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-image:url('cover-bg.jpg'); background-size:cover; background-position:center;
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="position:absolute; top:0; left:0; width:720pt; height:405pt;
               background-color:rgba(26,51,64,0.75);"></div>
@@ -326,7 +326,7 @@ Full-screen image + dark mask + centered title. **Download image first**: `curl 
 > `centered | low | dark | none` — ideal fallback when Unsplash fails, strong minimalist opening.
 
 ```html
-<body style="margin:0;padding:0;width:720pt;height:405pt;overflow:hidden;background-color:${primary-100};font-family:'Microsoft YaHei',sans-serif;">
+<body style="margin:0;padding:0;width:720pt;height:405pt;overflow:hidden;background-color:${primary-100};font-family:'Inter','Microsoft YaHei',sans-serif;">
   <div style="height:4pt;background:${accent};"></div>
   <div style="height:401pt;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 80pt;">
     <div style="width:10pt;height:10pt;border-radius:50%;background:${accent};margin-bottom:24pt;"></div>
@@ -350,7 +350,7 @@ Left dark sidebar (30%) + right numbered chapter list.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:row;">
   <div style="width:216pt; height:405pt; background:${primary-90};
               display:flex; flex-direction:column; justify-content:center; padding:0 32pt;">
@@ -380,7 +380,7 @@ One numbered card per chapter, 3-4 columns.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${surface};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="padding:40pt 48pt 24pt 48pt;">
     <h2 style="font-size:28pt; font-weight:bold; color:${primary-80}; margin:0; line-height:1.2;">Contents</h2>
@@ -412,7 +412,7 @@ Horizontal nodes + connecting lines + chapter titles. For sequential content.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="padding:40pt 48pt 32pt 48pt;">
     <h2 style="font-size:28pt; font-weight:bold; color:${primary-80}; margin:0; line-height:1.2;">Contents</h2>
@@ -449,7 +449,7 @@ Extra-large semi-transparent numbers as background, chapter titles float on top.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="padding:40pt 48pt 16pt 48pt;">
     <h2 style="font-size:28pt; font-weight:bold; color:${primary-80}; margin:0; line-height:1.2;">Contents</h2>
@@ -485,7 +485,7 @@ Dark header bar + bullet point list with left accent bars.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -517,7 +517,7 @@ Dark header bar + bullet point list with left accent bars.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -550,7 +550,7 @@ Mirror of content-split-text-visual. Image/chart on left, text on right.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -582,7 +582,7 @@ Two equal columns with a vertical divider.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -612,7 +612,7 @@ Left narrow sidebar with KPIs, right side with detailed content.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:row;">
   <div style="width:200pt; height:405pt; background:${primary-90};
               display:flex; flex-direction:column; justify-content:center; align-items:center; padding:0 24pt;">
@@ -646,7 +646,7 @@ Left narrow sidebar with KPIs, right side with detailed content.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${surface};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -681,7 +681,7 @@ Left dark sidebar title + right KPI stack with outline cards.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:row;">
   <div style="width:240pt; height:405pt; background:${primary-90};
               display:flex; flex-direction:column; justify-content:center; padding:0 32pt;">
@@ -719,7 +719,7 @@ Dual-column comparison cards with different top border colors.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -754,7 +754,7 @@ Dual-column comparison cards with different top border colors.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${surface};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -798,7 +798,7 @@ Horizontal step nodes + descriptions. 3-5 steps.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;">
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
     <h2 style="font-size:22pt; font-weight:bold; color:${on-dark}; margin:0; line-height:1.25;">Implementation Roadmap</h2>
@@ -834,7 +834,7 @@ Horizontal step nodes + descriptions. 3-5 steps.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="padding:32pt 48pt 16pt 48pt;">
     <h2 style="font-size:28pt; font-weight:bold; color:${primary-80}; margin:0 0 4pt 0; line-height:1.2;">Timeline</h2>
@@ -878,7 +878,7 @@ Grid display of 6 features. **Two independent flex rows, no flex-wrap**. Icon po
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -921,7 +921,7 @@ Large quotation mark decoration + centered quote + attribution. Generous whitesp
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${surface};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column; justify-content:center; align-items:center;">
   <p style="font-size:44pt; color:${accent}; margin:0 0 8pt 0; line-height:1; opacity:0.3;">"</p>
   <p style="font-size:22pt; color:${primary-80}; margin:0 0 24pt 0; line-height:1.5; text-align:center; max-width:520pt; font-style:italic;">
@@ -942,7 +942,7 @@ Four equal-sized cards. **Two independent flex rows, no flex-wrap**.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -990,7 +990,7 @@ Full dark background + decorative element + key insight. For visual rhythm varia
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${primary-90};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column; justify-content:center; align-items:center;">
   <div style="width:48pt; height:48pt; border-radius:50%; background:${accent};
               display:flex; align-items:center; justify-content:center; margin:0 0 24pt 0;">
@@ -1010,7 +1010,7 @@ Left thick accent bar + left color block + right content with numbered points.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:row;">
   <div style="width:8pt; height:405pt; background:${accent};"></div>
   <div style="width:200pt; height:405pt; background:${primary-5};
@@ -1047,7 +1047,7 @@ Each item has a differently colored number block. For processes, rankings, prior
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${surface};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="padding:32pt 48pt 16pt 48pt;">
     <h2 style="font-size:28pt; font-weight:bold; color:${primary-80}; margin:0 0 4pt 0; line-height:1.2;">List Title</h2>
@@ -1085,7 +1085,7 @@ Oversized number + explanatory text. For data highlights, milestones.
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${primary-5};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:row;">
   <div style="width:360pt; height:405pt; background:${primary-90};
               display:flex; flex-direction:column; justify-content:center; align-items:center;">
@@ -1118,7 +1118,7 @@ Three columns with circular icons + dividers. For "three advantages", "three pha
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="padding:32pt 48pt 0 48pt;">
     <h2 style="font-size:28pt; font-weight:bold; color:${primary-80}; margin:0 0 4pt 0; line-height:1.2;">Three-Column Title</h2>
@@ -1160,7 +1160,7 @@ Three columns with circular icons + dividers. For "three advantages", "three pha
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${surface};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -1194,7 +1194,7 @@ Left: title + text with accent bar. Right: photograph with rounded corners. **Re
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -1226,7 +1226,7 @@ Three cards, each with photo header, title, and description. **Requires 3 downlo
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${primary-5};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -1262,7 +1262,7 @@ Full-screen photo + dark mask + large centered statistic. **Requires downloaded 
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-image:url('stat-bg.jpg'); background-size:cover; background-position:center;
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="position:absolute; top:0; left:0; width:720pt; height:405pt;
               background-color:rgba(26,51,64,0.80);"></div>
@@ -1286,7 +1286,7 @@ Full-screen photo + dark mask + large centered statistic. **Requires downloaded 
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-image:url('content-bg.jpg'); background-size:cover; background-position:center;
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="position:absolute; top:0; left:0; width:720pt; height:405pt;
               background-color:rgba(0,0,0,0.3);"></div>
@@ -1309,7 +1309,7 @@ Full-screen photo + dark mask + large centered statistic. **Requires downloaded 
 ```html
 <body style="width:720pt; height:405pt; margin:0; padding:0; overflow:hidden;
              background-color:${background};
-             font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+             font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;
              display:flex; flex-direction:column;">
   <div style="width:720pt; height:56pt; background:${primary-90};
               display:flex; align-items:center; padding:0 48pt;">
@@ -1336,7 +1336,7 @@ Full-screen photo + dark mask + large centered statistic. **Requires downloaded 
 > `split | medium | light | none` — Chart placeholder takes left ~67%, right sidebar shows 3 KPI cards. Column widths: chart 420pt + gap 20pt + sidebar 184pt = 624pt.
 
 ```html
-<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'PingFang SC','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
+<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
   <div style="width:720pt;height:56pt;background:${primary-90};display:flex;align-items:center;padding:0 48pt;">
     <h2 style="font-size:22pt;font-weight:bold;color:${on-dark};margin:0;line-height:1.25;">Revenue by Quarter</h2>
   </div>
@@ -1368,7 +1368,7 @@ Full-screen photo + dark mask + large centered statistic. **Requires downloaded 
 > `split | medium | light | none` — Square chart placeholder on left (260×260pt), legend + insight on right (332pt). Legend items use colored dot + label + percentage.
 
 ```html
-<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'PingFang SC','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
+<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
   <div style="width:720pt;height:56pt;background:${primary-90};display:flex;align-items:center;padding:0 48pt;">
     <h2 style="font-size:22pt;font-weight:bold;color:${on-dark};margin:0;line-height:1.25;">Market Share Distribution</h2>
   </div>
@@ -1410,7 +1410,7 @@ Full-screen photo + dark mask + large centered statistic. **Requires downloaded 
 > `list | medium | light | none` — Accent stripe header (no dark bar). Wide chart placeholder stretches to fill vertical space, 4 stat cards pinned to the bottom. Chart area: 624pt wide × ~220pt tall.
 
 ```html
-<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'PingFang SC','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
+<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
   <div style="width:720pt;height:8pt;background:${accent};flex-shrink:0;"></div>
   <div style="padding:16pt 48pt 8pt 48pt;display:flex;align-items:baseline;justify-content:space-between;flex-shrink:0;">
     <h2 style="font-size:24pt;font-weight:bold;color:${primary-80};margin:0;line-height:1.25;">Growth Trend</h2>
@@ -1446,7 +1446,7 @@ Full-screen photo + dark mask + large centered statistic. **Requires downloaded 
 > `list | medium | light | none`
 
 ```html
-<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'PingFang SC','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
+<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
   <div style="width:720pt;height:8pt;background:${accent};"></div>
   <div style="padding:24pt 48pt 16pt 48pt;">
     <h2 style="font-size:28pt;font-weight:bold;color:${primary-80};margin:0 0 4pt 0;line-height:1.2;">Page Title</h2>
@@ -1472,7 +1472,7 @@ Full-screen photo + dark mask + large centered statistic. **Requires downloaded 
 > `data | medium | light | none` — **No `<table>` tags — rows are flex divs.** Column widths sum to 624pt.
 
 ```html
-<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
+<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'Inter','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
   <div style="height:56pt;background:${primary-90};display:flex;align-items:center;padding:0 48pt;"><h2 style="font-size:22pt;font-weight:bold;color:${on-dark};margin:0;line-height:1.25;">Table Title</h2></div>
   <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 48pt;">
     <div style="display:flex;background:${primary-80};border-radius:8pt 8pt 0 0;padding:10pt 16pt;">
@@ -1505,7 +1505,7 @@ Full-screen photo + dark mask + large centered statistic. **Requires downloaded 
 > `data | medium | light | tag` — Rows = options, columns = criteria, last column = tag. Tag colors: `${accent}` bg = recommended, `${primary-10}` bg = neutral/pass.
 
 ```html
-<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
+<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'Inter','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
   <div style="height:56pt;background:${primary-90};display:flex;align-items:center;padding:0 48pt;"><h2 style="font-size:22pt;font-weight:bold;color:${on-dark};margin:0;line-height:1.25;">方案对比</h2></div>
   <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 48pt;">
     <div style="display:flex;background:${primary-80};border-radius:8pt 8pt 0 0;padding:10pt 16pt;">
@@ -1535,7 +1535,7 @@ Full-screen photo + dark mask + large centered statistic. **Requires downloaded 
 ### divider-bold-center — Centered Bold Text Transition
 
 ```html
-<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'PingFang SC','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;">
   <div style="width:40pt;height:3pt;background:${accent};margin:0 0 24pt 0;"></div>
   <p style="font-size:44pt;font-weight:bold;color:${primary-20};margin:0 0 8pt 0;line-height:1;">02</p>
   <h2 style="font-size:28pt;font-weight:bold;color:${primary-80};margin:0 0 12pt 0;line-height:1.2;text-align:center;">Chapter Title</h2>
@@ -1547,7 +1547,7 @@ Full-screen photo + dark mask + large centered statistic. **Requires downloaded 
 ### divider-split — Split Background Transition
 
 ```html
-<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'PingFang SC','Microsoft YaHei',sans-serif;display:flex;flex-direction:row;">
+<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${background};font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;display:flex;flex-direction:row;">
   <div style="width:324pt;height:405pt;background:${primary-90};display:flex;flex-direction:column;justify-content:center;align-items:center;"><p style="font-size:80pt;font-weight:bold;color:rgba(255,255,255,0.08);margin:0;line-height:1;">02</p></div>
   <div style="width:396pt;height:405pt;display:flex;flex-direction:column;justify-content:center;padding:0 48pt;">
     <div style="width:32pt;height:3pt;background:${accent};margin:0 0 16pt 0;"></div>
@@ -1561,7 +1561,7 @@ Full-screen photo + dark mask + large centered statistic. **Requires downloaded 
 ### divider-photo-mask — Background Image + Mask Transition
 
 ```html
-<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-image:url('section-bg.jpg');background-size:cover;background-position:center;font-family:'PingFang SC','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
+<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-image:url('section-bg.jpg');background-size:cover;background-position:center;font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
   <div style="position:absolute;top:0;left:0;width:720pt;height:405pt;background-color:rgba(26,51,64,0.7);"></div>
   <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">
     <div style="width:40pt;height:3pt;background:${accent};margin:0 0 24pt 0;"></div>
@@ -1583,7 +1583,7 @@ await sharp(Buffer.from(svg)).png().toFile('gradient-bg.png');
 ```
 
 ```html
-<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-image:url('gradient-bg.png');background-size:cover;font-family:'PingFang SC','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-image:url('gradient-bg.png');background-size:cover;font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;">
   <div style="width:40pt;height:3pt;background:${accent};margin:0 0 24pt 0;"></div>
   <p style="font-size:44pt;font-weight:bold;color:${accent};margin:0 0 8pt 0;line-height:1;">03</p>
   <h2 style="font-size:28pt;font-weight:bold;color:${on-dark};margin:0 0 12pt 0;line-height:1.2;text-align:center;">Chapter Title</h2>
@@ -1601,7 +1601,7 @@ await sharp(Buffer.from(svg)).png().toFile('gradient-bg.png');
 Header bar + 3 key takeaway cards with top accent borders.
 
 ```html
-<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${surface};font-family:'PingFang SC','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
+<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${surface};font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;">
   <div style="width:720pt;height:56pt;background:${primary-90};display:flex;align-items:center;padding:0 48pt;"><h2 style="font-size:22pt;font-weight:bold;color:${on-dark};margin:0;line-height:1.25;">Key Conclusions</h2></div>
   <div style="flex:1;display:flex;justify-content:center;align-items:center;padding:0 48pt;gap:16pt;">
     <div style="width:192pt;flex-shrink:0;background:${surface-card};border-radius:10pt;padding:24pt 16pt;box-shadow:0 3pt 10pt rgba(0,0,0,0.08);border-top:3pt solid ${accent};">
@@ -1625,7 +1625,7 @@ Header bar + 3 key takeaway cards with top accent borders.
 Dark background + large thank-you + contact info. Echoes cover.
 
 ```html
-<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${primary-90};font-family:'PingFang SC','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+<body style="width:720pt;height:405pt;margin:0;padding:0;overflow:hidden;background-color:${primary-90};font-family:'Inter','PingFang SC','Inter','Microsoft YaHei',sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;">
   <h1 style="font-size:34pt;font-weight:bold;color:${on-dark};margin:0 0 8pt 0;line-height:1.15;text-align:center;">Thank You</h1>
   <div style="width:40pt;height:3pt;background:${accent};margin:0 0 24pt 0;"></div>
   <p style="font-size:15pt;color:${on-dark-secondary};margin:0 0 4pt 0;line-height:1.5;text-align:center;">John Smith | Product Department</p>

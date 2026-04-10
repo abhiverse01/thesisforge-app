@@ -485,7 +485,7 @@ Write HTML directly, convert to PDF via `html2poster.js`. The poster is a **sing
 `html2poster.js` automatically handles all of this — you just need to write the HTML correctly and call one command:
 
 ```bash
-node "$PDF_SCRIPTS/html2poster.js" poster.html --output poster.pdf --width 720px
+node "$PDF_SKILL_DIR/scripts/html2poster.js" poster.html --output poster.pdf --width 720px
 ```
 
 It will automatically:
@@ -579,7 +579,7 @@ html, body { margin: 0; padding: 0; background: var(--c-bg); }
 **Convert to PDF and PNG:**
 ```bash
 # PDF (vector, single-page, zero margins, auto-height):
-node "$PDF_SCRIPTS/html2poster.js" poster.html --output poster.pdf --width 720px
+node "$PDF_SKILL_DIR/scripts/html2poster.js" poster.html --output poster.pdf --width 720px
 
 # PNG preview (screenshot):
 # Use Playwright screenshot with measured height

@@ -45,7 +45,7 @@ Structured documents via ReportLab: reports, proposals, contracts, white papers,
 **Run this command FIRST. Copy-paste its output directly into your Python script:**
 
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" palette.generate --title "<document title>" --mode minimal
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" palette.generate --title "<document title>" --mode minimal
 ```
 
 The command auto-derives the design intent from the document title, computes a mathematically harmonious palette, and outputs ready-to-paste ReportLab Python code:
@@ -213,7 +213,7 @@ Paragraph('When ∠ A = 90°, AB ⊥ AC and ΔABC ≅ ΔDEF', body_style)
 | `SarasaMonoSC` | Chinese code blocks | `/usr/share/fonts/truetype/chinese/SarasaMonoSC-Regular.ttf` |
 | `Times New Roman` | English text, numbers, tables | `/usr/share/fonts/truetype/english/Times-New-Roman.ttf` |
 | `Calibri` | English alternative | `/usr/share/fonts/truetype/english/calibri-regular.ttf` |
-| `DejaVuSans` | Formulas, symbols, code | `/usr/share/fonts/truetype/DejaVuSansMono.ttf` |
+| `DejaVuSans` | Formulas, symbols, code | `/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf` |
 
 **FORBIDDEN fonts (DO NOT USE):**
 - ❌ Arial, Arial-Bold, Arial-Italic
@@ -237,7 +237,7 @@ pdfmetrics.registerFont(TTFont('Times New Roman', '/usr/share/fonts/truetype/eng
 pdfmetrics.registerFont(TTFont('Calibri', '/usr/share/fonts/truetype/english/calibri-regular.ttf'))
 
 # Symbol/Formula font
-pdfmetrics.registerFont(TTFont("DejaVuSans", '/usr/share/fonts/truetype/DejaVuSansMono.ttf'))
+pdfmetrics.registerFont(TTFont("DejaVuSans", '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'))
 
 # CRITICAL: Register font families to enable <b>, <super>, <sub> tags
 registerFontFamily('Microsoft YaHei', normal='Microsoft YaHei', bold='Microsoft YaHei')
@@ -393,9 +393,9 @@ ReportLab pushes the **entire block** to the next page, leaving the current page
 3. **Run `poster_validate.py check-html` on cover HTML** — fix any ERRORs before rendering (overflow:hidden, font fallback, etc.)  
 4. **Run `cover_validate.js` on cover HTML** — detects text-vs-decorative-line overlaps. Non-zero exit = must fix before proceeding.
    ```bash
-   node "$PDF_SCRIPTS/cover_validate.js" cover.html
+   node "$PDF_SKILL_DIR/scripts/cover_validate.js" cover.html
    ```
-5. Render cover HTML → single-page PDF via Playwright (`html2pdf-next.js`)  
+5. Render cover HTML → single-page PDF via Playwright (`html2poster.js`) — **NOT `html2pdf-next.js`** (which converts absolute→static and destroys cover layout)  
 6. **Merge: insert cover as page 0** of body PDF using pypdf → output single final PDF
 
 > **Why not ReportLab covers?** ReportLab is excellent for structured content (tables, paragraphs, flowables) but painful for visual design (geometric accents, precise absolute positioning, web fonts). HTML/CSS handles these natively. One cover system, one visual standard, zero inconsistency.
@@ -437,12 +437,13 @@ doc.build(story)
 # Output: body.pdf (no cover)
 ```
 
-#### Step 2: Generate Cover PDF via html2pdf-next.js
+#### Step 2: Generate Cover PDF via html2poster.js
 
 ```bash
-# ALWAYS use html2pdf-next.js for cover rendering (NOT raw Playwright page.pdf())
-# It handles: @page size detection, font loading, KaTeX math, overflow fixes, PDF metadata
-node "$PDF_SCRIPTS/html2pdf-next.js" cover.html -o cover.pdf --width 794 --height 1123
+# ALWAYS use html2poster.js for cover rendering (NOT html2pdf-next.js)
+# Cover pages use position:absolute layout — html2pdf-next.js pre-render hooks
+# convert absolute→static and destroy the layout. html2poster.js preserves it.
+node "$PDF_SKILL_DIR/scripts/html2poster.js" cover.html --output cover.pdf --width 794px
 ```
 
 Or from Python:
@@ -450,17 +451,18 @@ Or from Python:
 import subprocess, os
 
 def render_cover(html_path, pdf_path):
-    """Render HTML cover to PDF via html2pdf-next.js.
+    """Render HTML cover to PDF via html2poster.js.
     
-    ⚠️ ALWAYS use html2pdf-next.js instead of raw Playwright page.pdf().
-    It handles pre-render hooks (font loading, KaTeX, overflow detection),
-    @page size parsing, and PDF post-processing automatically.
+    ⚠️ ALWAYS use html2poster.js for covers (NOT html2pdf-next.js).
+    Cover HTML uses position:absolute for layout. html2pdf-next.js pre-render
+    hooks convert absolute→static to prevent multi-page overlap, which
+    destroys cover layouts. html2poster.js preserves absolute positioning.
     """
     scripts_dir = os.path.expanduser('~/.openclaw/workspace/skills/pdf/scripts')
     subprocess.run([
-        'node', os.path.join(scripts_dir, 'html2pdf-next.js'),
-        html_path, '-o', pdf_path,
-        '--width', '794', '--height', '1123',
+        'node', os.path.join(scripts_dir, 'html2poster.js'),
+        html_path, '--output', pdf_path,
+        '--width', '794px',
     ], check=True)
 ```
 
@@ -953,7 +955,7 @@ doc.build(story)
 After generating any PDF with a Table of Contents, run:
 
 ```bash
-python3 "$PDF_SCRIPTS/toc_validate.py" check-pdf output.pdf
+python3 "$PDF_SKILL_DIR/scripts/toc_validate.py" check-pdf output.pdf
 ```
 
 If any errors are returned, fix the code and regenerate. Common issues:
@@ -1087,14 +1089,14 @@ doc = SimpleDocTemplate(
 
 After `doc.build(story)` completes:
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" meta.brand output.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" meta.brand output.pdf
 ```
 
 ### ⚠️ MANDATORY: Post-Generation Blank Page Cleanup
 
 After metadata branding, remove any accidental blank pages:
 ```bash
-python3 "$PDF_SCRIPTS/pdf.py" pages.clean output.pdf -o output_clean.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" pages.clean output.pdf -o output_clean.pdf
 ```
 If blank pages were found, rename `output_clean.pdf` → `output.pdf`.
 
@@ -1105,8 +1107,8 @@ If blank pages were found, rename `output_clean.pdf` → `output.pdf`.
 **After writing PDF generation code and BEFORE executing it**, sanitize using:
 
 ```bash
-# Step 0: Set script path (see SKILL.md § Script Path Setup)
-PDF_SCRIPTS="<skill_directory>/scripts"
+# Step 0: Set skill root path (see SKILL.md § Script Path Setup)
+PDF_SKILL_DIR="<skill_directory>"
 
 # Step 1: Write code to .py file
 cat > generate_pdf.py << 'PYEOF'
@@ -1114,22 +1116,22 @@ cat > generate_pdf.py << 'PYEOF'
 PYEOF
 
 # Step 2: Sanitize (MUST run before execution)
-python3 "$PDF_SCRIPTS/pdf.py" code.sanitize generate_pdf.py
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" code.sanitize generate_pdf.py
 
 # Step 3: Execute
 python3 generate_pdf.py
 
 # Step 4: Add metadata (MUST run after PDF creation)
-python3 "$PDF_SCRIPTS/pdf.py" meta.brand output.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" meta.brand output.pdf
 
 # Step 5: Check for missing glyphs (RECOMMENDED)
-python3 "$PDF_SCRIPTS/pdf.py" font.check output.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" font.check output.pdf
 
 # Step 6: Check TOC quality (if document has TOC)
-python3 "$PDF_SCRIPTS/pdf.py" toc.check output.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf.py" toc.check output.pdf
 
 # Step 7: PDF quality assurance scan (MUST run after all other checks)
-python3 "$PDF_SCRIPTS/pdf_qa.py" output.pdf
+python3 "$PDF_SKILL_DIR/scripts/pdf_qa.py" output.pdf
 ```
 
 **FORBIDDEN patterns:**
@@ -1233,7 +1235,7 @@ registerFontFamily('TimesNewRoman', normal='TimesNewRoman', bold='TimesNewRoman'
 
 # ── Styles ──
 # ACCENT must come from palette.generate (Step 2)
-# Run: python3 "$PDF_SCRIPTS/pdf.py" palette.generate --title "Resume" --mode minimal
+# Run: python3 "$PDF_SKILL_DIR/scripts/pdf.py" palette.generate --title "Resume" --mode minimal
 ACCENT = colors.HexColor('<accent from palette>')  # Replace with palette output
 
 name_style = ParagraphStyle(
@@ -1428,10 +1430,10 @@ doc.build(story)
 | Task | Best Tool | Command/Code |
 |------|-----------|--------------|
 | Create PDF (ReportLab) | reportlab | Canvas or Platypus |
-| Fill PDF forms | Process brief | `python3 "$PDF_SCRIPTS/pdf.py" form.fill` or annotation workflow |
-| Merge PDFs | Process brief | `python3 "$PDF_SCRIPTS/pdf.py" pages.merge` |
-| Extract text | Process brief | `python3 "$PDF_SCRIPTS/pdf.py" extract.text` |
-| Extract tables | Process brief | `python3 "$PDF_SCRIPTS/pdf.py" extract.table` |
+| Fill PDF forms | Process brief | `python3 "$PDF_SKILL_DIR/scripts/pdf.py" form.fill` or annotation workflow |
+| Merge PDFs | Process brief | `python3 "$PDF_SKILL_DIR/scripts/pdf.py" pages.merge` |
+| Extract text | Process brief | `python3 "$PDF_SKILL_DIR/scripts/pdf.py" extract.text` |
+| Extract tables | Process brief | `python3 "$PDF_SKILL_DIR/scripts/pdf.py" extract.table` |
 
 ---
 
@@ -1478,7 +1480,7 @@ For documents with 10+ pages:
 1. Generate TOC with `TableOfContents()` from reportlab.platypus
 2. Use `CondPageBreak(H1_ORPHAN_THRESHOLD)` before H1 headings (NOT `PageBreak()` — never force page breaks between chapters)
 3. Add running headers/footers with chapter title + page number
-4. Run `python3 "$PDF_SCRIPTS/toc_validate.py" output.pdf` to verify TOC links
+4. Run `python3 "$PDF_SKILL_DIR/scripts/toc_validate.py" output.pdf` to verify TOC links
 5. Consider using `bookmarks=True` for PDF outline navigation
 
 ---

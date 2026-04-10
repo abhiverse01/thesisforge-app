@@ -12,7 +12,7 @@ license: Proprietary. LICENSE.txt has complete terms
 ## Quick Setup
 
 ```bash
-bash "$SKILL_DIR/setup.sh"    # Interactive environment check + install
+bash "$XLSX_SKILL_DIR/setup.sh"    # Interactive environment check + install
 ```
 ## Pre-Flight: Intent Gate
 
