@@ -122,12 +122,14 @@ function buildPreamble(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string]
   if (!classOptions.includes(sideOption)) {
     classOptions.push(sideOption);
   }
-  // Use user's format options
-  if (!classOptions.includes(data.options.fontSize)) {
-    classOptions[0] = data.options.fontSize;
+  // Use user's format options — safely find and replace indices
+  const fontSizeIdx = classOptions.findIndex((o) => ['10pt', '11pt', '12pt'].includes(o));
+  if (fontSizeIdx >= 0 && !classOptions.includes(data.options.fontSize)) {
+    classOptions[fontSizeIdx] = data.options.fontSize;
   }
-  if (!classOptions.includes(data.options.paperSize)) {
-    classOptions[1] = data.options.paperSize;
+  const paperSizeIdx = classOptions.findIndex((o) => ['a4paper', 'letterpaper'].includes(o));
+  if (paperSizeIdx >= 0 && !classOptions.includes(data.options.paperSize)) {
+    classOptions[paperSizeIdx] = data.options.paperSize;
   }
 
   nodes.push(docClass(schema.documentClass, classOptions));
@@ -140,9 +142,9 @@ function buildPreamble(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string]
   }
   nodes.push(blankLine());
 
-  // Page geometry
+  // Page geometry — use \geometry{margin=...} for proper margin control
   const marginMap: Record<string, string> = { normal: '1in', narrow: '0.75in', wide: '1.25in' };
-  nodes.push(command('usepackage', [marginMap[data.options.marginSize]]));
+  nodes.push(command('geometry', [`margin=${marginMap[data.options.marginSize]}`]));
   nodes.push(blankLine());
 
   // Line spacing

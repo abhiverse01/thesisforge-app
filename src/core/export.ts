@@ -199,8 +199,8 @@ export async function exportThesis(
     folder.file('references.bib', bib);
     folder.file('README.md', readme);
 
-    // Add figures folder placeholder if needed
-    if (data.options.includeListings || data.options.includeFiguresFolder !== false) {
+    // Add figures folder placeholder if listings are enabled
+    if (data.options.includeListings) {
       folder.folder('figures').file('.gitkeep', '');
     }
 

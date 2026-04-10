@@ -306,8 +306,14 @@ export function FormatEditor() {
                           ].map(({ val, label }) => (
                             <SelectItem key={val} value={val} className="text-xs">{label}</SelectItem>
                           ))}
-                          {opt.key === 'citationStyle' && ['plainnat', 'apalike', 'ieeetr', 'alpha'].map((v) => (
-                            <SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>
+                          {opt.key === 'citationStyle' && [
+                            { val: 'apa', label: 'APA' },
+                            { val: 'ieee', label: 'IEEE' },
+                            { val: 'vancouver', label: 'Vancouver' },
+                            { val: 'chicago', label: 'Chicago' },
+                            { val: 'harvard', label: 'Harvard' },
+                          ].map(({ val, label }) => (
+                            <SelectItem key={val} value={val} className="text-xs">{label}</SelectItem>
                           ))}
                           {opt.key === 'figureNumbering' && ['continuous', 'per-chapter'].map((v) => (
                             <SelectItem key={v} value={v} className="text-xs">{v === 'continuous' ? 'Continuous (Fig. 5)' : 'Per Chapter (Fig. 2.3)'}</SelectItem>

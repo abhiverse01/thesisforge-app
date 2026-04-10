@@ -337,18 +337,9 @@ export function ChapterEditor() {
         content: ss.content,
       })),
     };
-    addChapter();
-    setTimeout(() => {
-      const currentChapters = useThesisStore.getState().thesis?.chapters;
-      if (currentChapters) {
-        const lastIdx = currentChapters.length - 1;
-        if (lastIdx >= 0 && currentChapters[lastIdx]) {
-          const updated = [...currentChapters];
-          updated[lastIdx] = { ...newChapter, number: lastIdx + 1 };
-          reorderChapters(updated);
-        }
-      }
-    }, 0);
+    // Directly append the duplicated chapter via reorder — no race condition
+    const updated = [...chapters, newChapter];
+    reorderChapters(updated);
   };
 
   const handleDeleteChapter = (chapter: ThesisChapter) => {

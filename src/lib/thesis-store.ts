@@ -132,6 +132,9 @@ interface ThesisStore {
   setErrors: (errors: Record<string, string>) => void;
   clearErrors: () => void;
 
+  // FIX(ZONE-4A): Clear a specific field error when the user fixes it
+  clearFieldError: (fieldPath: string) => void;
+
   // Sanitized field updates (Zone 6A/6C)
   updateChapterTitle: (id: string, rawTitle: string) => void;
   updateMetadataSanitized: (metadata: Partial<ThesisMetadata>) => void;
