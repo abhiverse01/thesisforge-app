@@ -17,20 +17,29 @@ export function generateLatex(data: ThesisData): string {
 
 /**
  * Generate BibTeX cite key from reference.
+ *
+ * FIX(ZONE-3B): Strip non-alphanumeric chars (apostrophes, accents) that
+ * caused BibTeX compilation errors.
  */
 export function generateCiteKey(ref: ThesisReference, index: number): string {
+  const sanitize = (s: string): string => s
+    .toLowerCase()
+    .normalize('NFD')                      // decompose accents: é → e + ´
+    .replace(/[\u0300-\u036f]/g, '')       // strip accent marks
+    .replace(/[^a-z0-9]/g, '');           // strip everything else
+
   let authorPart = 'unknown';
   if (ref.authors) {
     const firstAuthor = ref.authors.split(',')[0].trim();
     const parts = firstAuthor.split(/\s+/);
-    authorPart = (parts[parts.length - 1] || firstAuthor)
-      .toLowerCase()
-      .replace(/[^a-z]/g, '');
+    authorPart = sanitize(parts[parts.length - 1] || firstAuthor);
   }
-  const yearPart = ref.year || '0000';
+  const yearPart = sanitize(ref.year || '0000');
   let titlePart = '';
   if (ref.title) {
-    titlePart = ref.title.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, '').slice(0, 8);
+    const firstWord = ref.title.split(/\s+/)
+      .find(w => w.length > 3) || ref.title.split(/\s+/)[0];
+    titlePart = sanitize(firstWord).slice(0, 8);
   }
   return `${authorPart}${yearPart}${titlePart}${index}`;
 }

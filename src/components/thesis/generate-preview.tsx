@@ -64,7 +64,6 @@ export function GeneratePreview() {
   useEffect(() => {
     if (!thesis || isGenerating) return;
     handleGenerate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleGenerate = useCallback(async () => {
@@ -85,7 +84,6 @@ export function GeneratePreview() {
       setLintResult(lint);
       setValidationResult(validation);
       setHasGenerated(true);
-      setGenerating(false);
 
       // Show confetti on first generation
       if (!confettiShown.current) {
@@ -116,17 +114,29 @@ export function GeneratePreview() {
           err instanceof Error ? err.message : "An unknown error occurred.",
         duration: 4000,
       });
+    } finally {
+      // FIX(ZONE-4B): ALWAYS runs — spinner always clears
       setGenerating(false);
     }
   }, [thesis, setGenerating]);
 
+  // FIX(ZONE-4B): finally block ensures export state is always reset
   const handleExportZip = useCallback(async () => {
     if (!thesis || !selectedTemplate) {
       toast.error("No thesis to export");
       return;
     }
+    setGenerating(true);
     try {
-      await exportThesis(thesis, selectedTemplate);
+      const result = await exportThesis(thesis, selectedTemplate);
+      if (result.errors && result.errors.length > 0) {
+        // FIX(ZONE-3A): Surface LaTeX contract errors to user
+        toast.error("Export blocked — LaTeX errors detected", {
+          description: result.errors.map(e => e.message).slice(0, 3).join("\n"),
+          duration: 5000,
+        });
+        return;
+      }
       toast.success("ZIP downloaded", {
         description: "Includes main.tex, references.bib, and README.md",
         duration: 3000,
@@ -137,8 +147,10 @@ export function GeneratePreview() {
           err instanceof Error ? err.message : "Failed to create ZIP file.",
         duration: 4000,
       });
+    } finally {
+      setGenerating(false);
     }
-  }, [thesis, selectedTemplate]);
+  }, [thesis, selectedTemplate, setGenerating]);
 
   const handleExportTex = useCallback(async () => {
     if (!thesis) return;

@@ -1,30 +1,39 @@
 ---
 Task ID: 1
 Agent: Main Agent
-Task: Implement ThesisForge Intelligence Module — 8 algorithms + unified sidebar panel
+Task: BUG HUNT · FIX · REGRESSION GUARD — ThesisForge surgical bug fix across 6 failure zones
 
 Work Log:
-- Assessed current project state: TypeScript (.ts) codebase, 6-step FSM, Zustand store, React UI
-- Created src/intelligence/types.ts — shared types for all 8 algorithm results
-- Created src/intelligence/citationParser.ts — Algorithm 1: Citation Text Parser with confidence scoring, APA/Vancouver author normalization, type inference
-- Created src/intelligence/deduplicator.ts — Algorithm 2: Jaro-Winkler fuzzy duplicate detection with 0.88 threshold, DOI-exact override
-- Created src/intelligence/structureAnalyzer.ts — Algorithm 3: Structural Balance Analyzer with ideal distribution profiles per thesis type, chapter key inference, balance scoring
-- Created src/intelligence/keywordExtractor.ts — Algorithm 4: TF-IDF keyword extraction with academic stop-word list, bigram boosting (1.4x), per-chapter IDF
-- Created src/intelligence/citationGraph.ts — Algorithm 5: Citation Graph Analyzer with \cite{} extraction from chapters+subsections, undefined/uncited detection, cite key deduplication
-- Created src/intelligence/completenessScorer.ts — Algorithm 6: Weighted completeness rubric per template (bachelor/master/phd/report), score 0-100 with level labels
-- Created src/intelligence/latexHeuristics.ts — Algorithm 7: 10 heuristic rules (markdown-bold/italic, smart quotes, %, &, #, $, em-dash, bare URLs, double spaces), code block stripping, autofix support
-- Created src/intelligence/readingStats.ts — Algorithm 8: Reading time (238 WPM), word counts, sentence complexity flags (>35 words avg)
-- Created src/intelligence/scheduler.ts — Debounced requestIdleCallback scheduler, step-aware algorithm routing, singleton instance
-- Created src/intelligence/index.ts — Barrel exports for all algorithms and types
-- Created src/components/thesis/intelligence-panel.tsx — Unified sidebar with CompletenessRing, IssueCards, CollapsibleSections, WordStats, StructureBalance bars, CitationGraph, Keywords, Heuristics
-- Fixed page.tsx: removed AbstractEditor (v1), corrected 6-step mapping, added wizardStarted to destructuring, integrated intelligence scheduler effect, added BrainCircuit button in header, added IntelligencePanel component
-- Fixed TypeScript errors: ParsedCitation _parseScore initialization, scheduler null safety (captured thesis in closure before runIdle)
-- All 8 algorithms adapted to actual ThesisType/ThesisReference/ThesisChapter TypeScript interfaces
+- Read all core source files (fsm.ts, persistence.ts, serializer.ts, export.ts, validators.ts, ast.ts, ast-builder.ts, templates.ts, bib.ts, linter.ts, latex-escape.ts, thesis-types.ts, thesis-store.ts)
+- Read all component files (generate-preview.tsx, chapter-editor.tsx, save-indicator.tsx)
+- Read main page.tsx
+
+- Created src/core/fsmGuard.ts (Zone 1A — FSM State Validator)
+- Fixed cite key generation in ast-builder.ts, bib.ts, latex-generator.ts (Zone 3B)
+- Fixed empty chapter body handling in ast-builder.ts (Zone 3C)
+- Created src/core/latexAssertions.ts (Zone 3A — LaTeX Contract Assertions)
+- Created src/utils/inputSanitizer.ts (Zone 6A — Input Sanitizer)
+- Added sanitizeChapterBody to latex-escape.ts (Zone 6B — LaTeX injection)
+- Rewrote src/core/persistence.ts (Zones 2A/2B/2C/5A/5B):
+  - QuotaExceededError handling + emergency JSON backup
+  - Additive-only DB migration (v2→v3)
+  - Version stamps + cross-tab conflict detection
+  - Defensive draft loader with sanitizeDraft()
+  - In-memory fallback for private mode
+- Updated thesis-store.ts (Zones 1C/4A/4B):
+  - Template switch resets chapters, preserves metadata
+  - Stale error clearing on field change
+  - Added isGenerating/setGenerating for export spinner
+  - Added clearFieldError utility
+- Fixed export.ts (Zone 3A — LaTeX assertions before export)
+- Fixed generate-preview.tsx (Zone 4B — finally blocks for spinner)
+- Fixed chapter-editor.tsx (Zone 6D — debounced word count)
+- Created src/tests/guards.ts (Regression Guard System — 35 tests)
 
 Stage Summary:
-- 12 new files created in src/intelligence/ (10 algorithms + types + barrel)
-- 1 new component: src/components/thesis/intelligence-panel.tsx
-- 1 modified file: src/app/page.tsx (fixed step mapping + intelligence integration)
-- Zero new lint errors, zero new TypeScript errors
-- All algorithms are pure functions with no side effects, no DOM access, no network calls
-- Performance budgets respected: all algorithms < 16ms, debounced execution via requestIdleCallback
+- 6 Failure Zones addressed with detection/fix/guard triad
+- 35 regression guard tests created covering FSM, LaTeX, persistence, and input safety
+- All new code annotated with FIX(ZONE-X) comments
+- Lint passes (only pre-existing format-editor.tsx conditional hook error remains)
+- New files: fsmGuard.ts, latexAssertions.ts, inputSanitizer.ts, tests/guards.ts
+- Modified files: latex-escape.ts, ast-builder.ts, bib.ts, latex-generator.ts, persistence.ts, thesis-store.ts, export.ts, generate-preview.tsx, chapter-editor.tsx

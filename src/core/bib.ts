@@ -241,22 +241,29 @@ export function validateReference(
 // Cite Key Generation
 // ============================================================
 
+// FIX(ZONE-3B): Strip everything except a-z and 0-9 from cite keys.
+// Apostrophes, accents, and Unicode chars in author names caused BibTeX crashes.
 export function generateCiteKey(ref: Record<string, string>): string {
+  const sanitize = (s: string): string => s
+    .toLowerCase()
+    .normalize('NFD')                      // decompose accents: é → e + ´
+    .replace(/[\u0300-\u036f]/g, '')       // strip accent marks
+    .replace(/[^a-z0-9]/g, '');           // strip everything else
+
   let authorPart = 'unknown';
   if (ref.authors) {
     const firstAuthor = ref.authors.split(',')[0].trim();
     const parts = firstAuthor.split(/\s+/);
-    authorPart = (parts[parts.length - 1] || firstAuthor)
-      .toLowerCase()
-      .replace(/[^a-z]/g, '');
+    authorPart = sanitize(parts[parts.length - 1] || firstAuthor);
   }
 
-  const yearPart = ref.year || 'xxxx';
+  const yearPart = sanitize(ref.year || 'xxxx');
 
   let titlePart = '';
   if (ref.title) {
-    const firstWord = ref.title.split(/\s+/)[0];
-    titlePart = firstWord.toLowerCase().replace(/[^a-z]/g, '').slice(0, 8);
+    const firstWord = ref.title.split(/\s+/)
+      .find(w => w.length > 3) || ref.title.split(/\s+/)[0];
+    titlePart = sanitize(firstWord).slice(0, 8);
   }
 
   return `${authorPart}${yearPart}${titlePart}`;

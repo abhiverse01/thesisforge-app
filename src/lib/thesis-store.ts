@@ -44,7 +44,7 @@ const STATE_TO_STEP: Record<WizardStateName, WizardStep> = {
 // Save status for the indicator
 // ============================================================
 
-export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'quota-exceeded';
 
 interface ThesisStore {
   // Core state
@@ -100,6 +100,10 @@ interface ThesisStore {
   // Save status
   setSaveStatus: (status: SaveStatus) => void;
 
+  // Export generation state
+  isGenerating: boolean;
+  setGenerating: (generating: boolean) => void;
+
   // Undo support
   lastDeletedChapter: ThesisChapter | null;
   lastDeletedReference: ThesisReference | null;
@@ -135,6 +139,7 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   currentStep: 1,
   selectedTemplate: null,
   saveStatus: 'idle',
+  isGenerating: false,
   wizardStarted: false,
   lastDeletedChapter: null,
   lastDeletedReference: null,
@@ -228,16 +233,51 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   },
 
   // ---- Template Selection ----
+  // FIX(ZONE-1C): Template switch resets template-specific fields (chapters, references)
+  // and preserves only metadata (title/author are template-agnostic).
   selectTemplate: (type) => {
-    const thesis = createDefaultThesisData(type);
-    set({ selectedTemplate: type, thesis, currentStep: 2, lastErrors: {} });
+    const currentThesis = get().thesis;
+    const newThesis = createDefaultThesisData(type);
+
+    // Preserve metadata if switching templates mid-wizard
+    if (currentThesis) {
+      newThesis.metadata = {
+        ...newThesis.metadata,
+        title: currentThesis.metadata.title || newThesis.metadata.title,
+        author: currentThesis.metadata.author || newThesis.metadata.author,
+      };
+    }
+
+    set({ selectedTemplate: type, thesis: newThesis, currentStep: 2, lastErrors: {} });
   },
 
   // ---- Metadata ----
+  // FIX(ZONE-4A): Re-validate immediately on change, clear resolved errors.
+  // Errors are only cleared for fields that are NOW valid; untouched fields
+  // wait for NEXT to show errors (no surprise errors on first visit).
   updateMetadata: (metadata) =>
-    set((s) => ({
-      thesis: s.thesis ? { ...s.thesis, metadata: { ...s.thesis.metadata, ...metadata } } : null,
-    })),
+    set((s) => {
+      if (!s.thesis) return {};
+      const newThesis = {
+        ...s.thesis,
+        metadata: { ...s.thesis.metadata, ...metadata },
+      };
+
+      // Re-validate only previously-errored fields
+      const filteredErrors: Record<string, string> = {};
+      for (const [key, msg] of Object.entries(s.lastErrors)) {
+        if (key === 'title' && !metadata.title?.trim()) {
+          filteredErrors[key] = msg;
+        } else if (key === 'author' && !metadata.author?.trim()) {
+          filteredErrors[key] = msg;
+        } else if (key === '_step' || key === 'templateId') {
+          // Keep non-field errors until NEXT
+        }
+        // Otherwise the error is resolved — don't include it
+      }
+
+      return { thesis: newThesis, lastErrors: filteredErrors };
+    }),
 
   // ---- Abstract (merged into metadata step) ----
   setAbstract: (abstract) =>
@@ -467,6 +507,10 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   // ---- Save Status ----
   setSaveStatus: (status) => set({ saveStatus: status }),
 
+  // ---- Export Generation State ----
+  // FIX(ZONE-4B): isGenerating flag ensures spinner can always be reset
+  setGenerating: (generating) => set({ isGenerating: generating }),
+
   // ---- Undo Support ----
   undoDeleteChapter: () =>
     set((s) => {
@@ -570,4 +614,12 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   // ---- Validation ----
   setErrors: (errors) => set({ lastErrors: errors }),
   clearErrors: () => set({ lastErrors: {} }),
+
+  // FIX(ZONE-4A): Clear a specific field error when the user fixes it
+  clearFieldError: (fieldPath: string) =>
+    set((s) => {
+      if (!(fieldPath in s.lastErrors)) return {};
+      const { [fieldPath]: _, ...rest } = s.lastErrors;
+      return { lastErrors: rest };
+    }),
 }));

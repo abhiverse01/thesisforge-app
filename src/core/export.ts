@@ -8,6 +8,7 @@ import { sanitizeFilename } from '@/utils/latex-escape';
 import type { ThesisData, ThesisType } from '@/lib/thesis-types';
 import { generateLatex } from '@/lib/latex-generator';
 import { generateBibFile } from '@/core/bib';
+import { assertLatexContract, type LatexContractError } from '@/core/latexAssertions';
 
 // ============================================================
 // README Generator
@@ -141,13 +142,17 @@ function getRequiredPackagesList(templateId: ThesisType, options: ThesisData['op
 /**
  * Export thesis as a ZIP file.
  * Runs entirely client-side. No server required.
+ *
+ * FIX(ZONE-3A): Runs assertLatexContract() before ZIP generation.
+ * FIX(ZONE-4B): Uses try/catch/finally to ensure spinner always resets.
  */
 export async function exportThesis(
   data: ThesisData,
   templateId: ThesisType
-): Promise<void> {
-  const tex = generateLatex(data);
-  const bib = generateBibFile(
+): Promise<{ errors?: LatexContractError[] }> {
+  try {
+    const tex = generateLatex(data);
+    const bib = generateBibFile(
     data.references.map(ref => ({
       type: (ref.type === 'thesis' ? 'phdthesis' : ref.type === 'techreport' ? 'techreport' : ref.type) as 'article' | 'book' | 'inproceedings' | 'techreport' | 'phdthesis' | 'online' | 'misc',
       fields: {
@@ -176,30 +181,40 @@ export async function exportThesis(
       },
     }))
   );
-  const readme = generateReadme(data, templateId);
+    const readme = generateReadme(data, templateId);
 
-  const zip = new JSZip();
-  const folderName = sanitizeFilename(data.metadata.title) || 'thesis';
-  const folder = zip.folder(folderName);
+    // FIX(ZONE-3A): Assert LaTeX contract before export
+    const contractErrors = assertLatexContract(tex, bib);
+    if (contractErrors.length > 0) {
+      return { errors: contractErrors };
+    }
 
-  if (!folder) throw new Error('Failed to create ZIP folder');
+    const zip = new JSZip();
+    const folderName = sanitizeFilename(data.metadata.title) || 'thesis';
+    const folder = zip.folder(folderName);
 
-  folder.file('main.tex', tex);
-  folder.file('references.bib', bib);
-  folder.file('README.md', readme);
+    if (!folder) throw new Error('Failed to create ZIP folder');
 
-  // Add figures folder placeholder if needed
-  if (data.options.includeListings || data.options.includeFiguresFolder !== false) {
-    folder.folder('figures').file('.gitkeep', '');
+    folder.file('main.tex', tex);
+    folder.file('references.bib', bib);
+    folder.file('README.md', readme);
+
+    // Add figures folder placeholder if needed
+    if (data.options.includeListings || data.options.includeFiguresFolder !== false) {
+      folder.folder('figures').file('.gitkeep', '');
+    }
+
+    const blob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
+    });
+
+    triggerDownload(blob, `${folderName}.zip`);
+    return {};
+  } catch (err) {
+    throw err;
   }
-
-  const blob = await zip.generateAsync({
-    type: 'blob',
-    compression: 'DEFLATE',
-    compressionOptions: { level: 6 },
-  });
-
-  triggerDownload(blob, `${folderName}.zip`);
 }
 
 /**

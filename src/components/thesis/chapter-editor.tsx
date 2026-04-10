@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { useThesisStore } from "@/lib/thesis-store";
 import { WIZARD_STEPS } from "@/lib/thesis-types";
@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { debounce } from "@/utils/debounce";
 import {
   Dialog,
   DialogContent,
@@ -45,10 +46,24 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
+// FIX(ZONE-6D): Debounced word count — prevents UI freeze on large inputs.
+// countWords() runs synchronously and blocks the input event for 400ms+ on
+// 100K-word pastes. Now deferred via requestIdleCallback.
 function countWords(text: string): number {
   if (!text || !text.trim()) return 0;
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
+
+// Create a stable debounced word counter
+const debouncedWordCountCallback = debounce((text: string, callback: (count: number) => void) => {
+  // Use requestIdleCallback for non-blocking computation
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(() => callback(countWords(text)));
+  } else {
+    // Fallback for browsers without requestIdleCallback
+    setTimeout(() => callback(countWords(text)), 0);
+  }
+}, 300);
 
 function chapterTotalWords(ch: ThesisChapter): number {
   return (

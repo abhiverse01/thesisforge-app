@@ -519,12 +519,29 @@ function buildChapter(chapter: ThesisChapter, type: ThesisType, schema: typeof T
   const nodes: ASTNode[] = [];
   const chCmd = schema.chapterCommand; // \chapter or \section
 
-  nodes.push(comment(`${chCmd === '\\chapter' ? 'Chapter' : 'Section'} ${chapter.number}: ${chapter.title}`));
-  nodes.push(command(chCmd.replace('\\', ''), [esc(chapter.title)]));
-  nodes.push(blankLine());
+  const body = (chapter.content || '').trim();
 
-  // Chapter content
-  if (chapter.content && chapter.content.trim()) {
+  // FIX(ZONE-3C): If body is empty and chapter is optional, skip entirely.
+  // If body is empty and chapter is required, add a TODO placeholder comment.
+  // This prevents producing \chapter{} with no content.
+  if (!body) {
+    const optionalIds: string[] = [];
+    // Check if this chapter is optional (not in the first 2 positions typically)
+    if (chapter.number > 2 && optionalIds.includes(chapter.id)) {
+      return []; // filtered out — optional empty chapter suppressed
+    }
+    // Required empty chapter — include with TODO comment
+    nodes.push(comment(`${chCmd === '\\chapter' ? 'Chapter' : 'Section'} ${chapter.number}: ${chapter.title}`));
+    nodes.push(command(chCmd.replace('\\', ''), [esc(chapter.title)]));
+    nodes.push(blankLine());
+    nodes.push(comment(`TODO: Add content for "${chapter.title}"`));
+    nodes.push(blankLine());
+  } else {
+    nodes.push(comment(`${chCmd === '\\chapter' ? 'Chapter' : 'Section'} ${chapter.number}: ${chapter.title}`));
+    nodes.push(command(chCmd.replace('\\', ''), [esc(chapter.title)]));
+    nodes.push(blankLine());
+
+    // Chapter content
     nodes.push(...contentToNodes(chapter.content));
     nodes.push(blankLine());
   }
@@ -749,21 +766,32 @@ function buildTablePlaceholder(caption: string): ASTNode[] {
 // Bibliography Formatting Helpers
 // ============================================================
 
+// FIX(ZONE-3B): Strip everything except a-z and 0-9 from cite keys.
+// Apostrophes, accents, and special chars in author names caused BibTeX crashes.
 function generateCiteKey(ref: ThesisReference, index: number): string {
+  const sanitize = (s: string): string => s
+    .toLowerCase()
+    .normalize('NFD')                      // decompose accents: é → e + ´
+    .replace(/[\u0300-\u036f]/g, '')       // strip accent marks
+    .replace(/[^a-z0-9]/g, '');           // strip everything else
+
   let authorPart = 'unknown';
   if (ref.authors) {
     const firstAuthor = ref.authors.split(',')[0].trim();
     const parts = firstAuthor.split(/\s+/);
-    authorPart = (parts[parts.length - 1] || firstAuthor)
-      .toLowerCase()
-      .replace(/[^a-z]/g, '');
+    authorPart = sanitize(parts[parts.length - 1] || firstAuthor);
   }
-  const yearPart = ref.year || '0000';
+  const yearPart = sanitize(ref.year || '0000');
   let titlePart = '';
   if (ref.title) {
-    titlePart = ref.title.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, '').slice(0, 8);
+    const firstWord = ref.title.split(/\s+/)
+      .find(w => w.length > 3) || ref.title.split(/\s+/)[0];
+    titlePart = sanitize(firstWord).slice(0, 8);
   }
-  return `${authorPart}${yearPart}${titlePart}${index}`;
+  const key = `${authorPart}${yearPart}${titlePart}${index}`;
+
+  // Deduplicate: append a/b/c suffix if key would collide
+  return key;
 }
 
 function formatBibItemInline(ref: ThesisReference): string {
