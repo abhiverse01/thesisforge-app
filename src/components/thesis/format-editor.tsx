@@ -168,7 +168,7 @@ const TOGGLE_OPTIONS = [
 ];
 
 export function FormatEditor() {
-  const { thesis, updateOptions, nextStep, prevStep, selectedTemplate } = useThesisStore();
+  const { thesis, updateOptions, selectedTemplate } = useThesisStore();
   const [showAdvanced, setShowAdvanced] = React.useState(false);
 
   const options = thesis?.options;
@@ -382,28 +382,7 @@ export function FormatEditor() {
         </CollapsibleContent>
       </Collapsible>
 
-      <Separator />
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between pt-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={prevStep}
-          className="gap-1.5 text-xs"
-        >
-          <ChevronLeft className="w-3.5 h-3.5" />
-          References
-        </Button>
-        <Button
-          size="sm"
-          onClick={nextStep}
-          className="gap-1.5 text-xs"
-        >
-          Generate LaTeX
-          <ChevronRight className="w-3.5 h-3.5" />
-        </Button>
-      </div>
     </motion.div>
   );
 }

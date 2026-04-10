@@ -287,8 +287,6 @@ export function ReferenceEditor() {
     updateReference,
     bulkImportReferences,
     undoDeleteReference,
-    nextStep,
-    prevStep,
   } = useThesisStore();
 
   // ----- State (ALL hooks before conditional return) -----
@@ -414,10 +412,7 @@ export function ReferenceEditor() {
     // Toast undo is sufficient — no banner needed
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    nextStep();
-  };
+
 
   // ============================================================
   // Render
@@ -444,7 +439,7 @@ export function ReferenceEditor() {
         </p>
       </motion.div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="space-y-5">
         {/* ---------- Action Row: Buttons + Search ---------- */}
         <div className="flex items-center gap-2 flex-wrap">
           <Button
@@ -1200,23 +1195,7 @@ export function ReferenceEditor() {
           </div>
         </ScrollArea>
 
-        {/* ---------- Navigation ---------- */}
-        <div className="flex justify-between pt-4 border-t">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={prevStep}
-            className="text-sm"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Back
-          </Button>
-          <Button type="submit" className="text-sm">
-            Continue
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

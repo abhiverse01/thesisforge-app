@@ -696,37 +696,37 @@ export default function IntelligencePanel({ isOpen, onClose, currentStep }: Inte
     return issues.sort((a, b) => b.weight - a.weight).slice(0, 5);
   }, [results]);
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          ref={panelRef}
-          initial={{ x: 320, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 320, opacity: 0 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed right-0 top-0 h-full w-80 bg-background/95 backdrop-blur-sm border-l border-border shadow-2xl z-50 overflow-y-auto"
-        >
-          {/* Header */}
-          <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center justify-between z-10">
-            <div className="flex items-center gap-2">
-              {sidebarTitle === 'Intelligence' ? (
-                <>
-                  <Sparkles className="w-4 h-4 text-purple-500" />
-                  <h2 className="text-sm font-semibold">Intelligence</h2>
-                </>
-              ) : (
-                <h2 className="text-sm font-semibold truncate max-w-[200px]" title={sidebarTitle}>
-                  {sidebarTitle}
-                </h2>
-              )}
-            </div>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+  if (!isOpen) return null;
 
-          <div className="p-3 space-y-3">
+  return (
+    <motion.div
+      ref={panelRef}
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+      className="w-80 shrink-0"
+    >
+      {/* Header */}
+      <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center justify-between z-10 rounded-t-lg">
+        <div className="flex items-center gap-2 min-w-0">
+          {sidebarTitle === 'Intelligence' ? (
+            <>
+              <Sparkles className="w-4 h-4 text-purple-500 shrink-0" />
+              <h2 className="text-sm font-semibold">Intelligence</h2>
+            </>
+          ) : (
+            <h2 className="text-sm font-semibold truncate" title={sidebarTitle}>
+              {sidebarTitle}
+            </h2>
+          )}
+        </div>
+        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onClose}>
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+
+        <div className="p-3 space-y-3">
             {/* Completeness Ring */}
             <div className="flex justify-center py-2">
               <CompletenessRing result={results.completeness} />
@@ -814,8 +814,7 @@ export default function IntelligencePanel({ isOpen, onClose, currentStep }: Inte
               </CollapsibleSection>
             )}
           </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </div>
+    </motion.div>
   );
 }

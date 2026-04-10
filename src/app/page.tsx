@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useCallback, useRef, useState } from "react";
+import { historyStack } from "@/core/history";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -17,6 +18,7 @@ import IntelligencePanel from "@/components/thesis/intelligence-panel";
 import { SaveIndicator } from "@/components/thesis/save-indicator";
 import { intelligenceScheduler } from "@/intelligence/scheduler";
 import { saveDraft, loadDraft, clearDraft, createSnapshot } from "@/core/persistence";
+import { historyStack } from "@/core/history";
 import { Button } from "@/components/ui/button";
 import {
   FileText,
@@ -32,6 +34,11 @@ import {
   FileUp,
   Menu,
   BrainCircuit,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 import {
   Tooltip,
@@ -88,6 +95,11 @@ const STEP_NAV: {
   { step: 6, name: "Generate", description: "Preview & download" },
 ];
 
+// Helper to get step label
+function getStepLabel(step: WizardStep): string {
+  return STEP_NAV.find((s) => s.step === step)?.name ?? `Step ${step}`;
+}
+
 // ============================================================
 // Konami Code
 // ============================================================
@@ -104,6 +116,41 @@ const KONAMI_CODE = [
   "KeyB",
   "KeyA",
 ];
+
+// ============================================================
+// History helpers — serialize / restore thesis state
+// ============================================================
+
+function captureState(): string {
+  const s = useThesisStore.getState();
+  return JSON.stringify({
+    thesis: s.thesis,
+    selectedTemplate: s.selectedTemplate,
+    currentStep: s.currentStep,
+    wizardStarted: s.wizardStarted,
+  });
+}
+
+function restoreState(entry: { state: string; description: string }, isUndo: boolean): void {
+  try {
+    const parsed = JSON.parse(entry.state);
+    useThesisStore.setState({
+      thesis: parsed.thesis,
+      selectedTemplate: parsed.selectedTemplate,
+      currentStep: parsed.currentStep,
+      wizardStarted: parsed.wizardStarted,
+      lastErrors: {},
+      lastDeletedChapter: null,
+      lastDeletedReference: null,
+    });
+    toast.success(isUndo ? "Undone" : "Redone", {
+      description: entry.description,
+      duration: 2000,
+    });
+  } catch {
+    toast.error("History restore failed", { duration: 2000 });
+  }
+}
 
 // ============================================================
 // Main Component
@@ -126,6 +173,10 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showIntelligencePanel, setShowIntelligencePanel] = useState(false);
   const [showShortcutHint, setShowShortcutHint] = useState(false);
+  const [showOverleafModal, setShowOverleafModal] = useState(false);
+  const [overleafDownloading, setOverleafDownloading] = useState(false);
+  const historyInitialized = useRef(false);
+  const lastPushedState = useRef<string>("");
 
   // ---- Refs ----
   const konamiBuffer = useRef<string[]>([]);
@@ -134,6 +185,7 @@ export default function Home() {
   const deletedChapterShownRef = useRef(false);
   const deletedRefShownRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const historyInitRef = useRef(false);
 
   // ================================================================
   // IndexedDB Persistence (first render only)
@@ -237,7 +289,28 @@ export default function Home() {
   }, [lastDeletedReference, undoDeleteReference]);
 
   // ================================================================
-  // Keyboard Shortcuts + Konami Code
+  // Push to history on meaningful state changes (debounced)
+  // ================================================================
+  useEffect(() => {
+    if (!wizardStarted || !thesis || !selectedTemplate) return;
+
+    // Don't record on initial load
+    if (!historyInitRef.current) {
+      historyInitRef.current = true;
+      historyStack.push(captureState(), "Initial state");
+      return;
+    }
+
+    // Debounce to avoid recording every keystroke
+    const timeout = setTimeout(() => {
+      historyStack.push(captureState(), `Step ${currentStep}: ${getStepLabel(currentStep)}`);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [thesis, currentStep, selectedTemplate, wizardStarted]);
+
+  // ================================================================
+  // Keyboard Shortcuts + Konami Code + Undo/Redo
   // ================================================================
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -262,6 +335,26 @@ export default function Home() {
       const meta = e.ctrlKey || e.metaKey;
 
       if (meta) {
+        // Undo: Ctrl+Z (without Shift)
+        if (e.key === "z" && !e.shiftKey) {
+          e.preventDefault();
+          const entry = historyStack.undo();
+          if (entry) {
+            restoreState(entry, true);
+          }
+          return;
+        }
+
+        // Redo: Ctrl+Shift+Z or Ctrl+Y
+        if ((e.key === "z" && e.shiftKey) || e.key === "y") {
+          e.preventDefault();
+          const entry = historyStack.redo();
+          if (entry) {
+            restoreState(entry, false);
+          }
+          return;
+        }
+
         switch (e.key) {
           case "ArrowRight":
           case "ArrowDown":
@@ -345,6 +438,7 @@ export default function Home() {
       // Silent fail
     });
     reset();
+    historyStack.clear();
     setShowResetConfirm(false);
     setMobileMenuOpen(false);
   }, [reset]);
@@ -432,6 +526,11 @@ export default function Home() {
         return <TemplateSelector />;
     }
   };
+
+  // ================================================================
+  // Whether to show the intelligence panel inline
+  // ================================================================
+  const showPanelInline = wizardStarted && selectedTemplate && showIntelligencePanel;
 
   // ================================================================
   // Mobile menu items
@@ -773,7 +872,12 @@ export default function Home() {
                 animate="animate"
                 exit="exit"
                 transition={fadeTransition}
-                className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6"
+                className={cn(
+                  "px-4 sm:px-6 py-6 space-y-6",
+                  showPanelInline
+                    ? "max-w-[calc(1280px-1rem)] mx-auto"
+                    : "max-w-4xl mx-auto"
+                )}
               >
                 {/* Step Indicator */}
                 <AnimatePresence mode="wait">
@@ -791,93 +895,206 @@ export default function Home() {
                   )}
                 </AnimatePresence>
 
-                {/* Step Content — simple fade transition */}
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentStep}
-                    variants={fadeVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    transition={fadeTransition}
-                  >
-                    {renderStep()}
-                  </motion.div>
-                </AnimatePresence>
+                {/* Content + Intelligence Panel Grid */}
+                <div className={cn(
+                  showPanelInline && "grid gap-5",
+                  showPanelInline
+                    ? "grid-cols-1 max-[900px]:grid-cols-[1fr_320px]"
+                    : ""
+                )}>
+                  {/* Step Content */}
+                  <div className={cn(showPanelInline && "min-w-0")}>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={currentStep}
+                        variants={fadeVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        transition={fadeTransition}
+                      >
+                        {renderStep()}
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Intelligence Panel — Inline Sidebar */}
+                  <AnimatePresence>
+                    {showPanelInline && (
+                      <motion.div
+                        initial={{ opacity: 0, width: 0 }}
+                        animate={{ opacity: 1, width: 320 }}
+                        exit={{ opacity: 0, width: 0 }}
+                        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                        className="hidden max-[900px]:block overflow-hidden"
+                      >
+                        <div className="sticky top-[calc(3.5rem+1.5rem)] max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl border border-border/60 bg-card/50 shadow-lg">
+                          <IntelligencePanel
+                            isOpen={true}
+                            onClose={() => setShowIntelligencePanel(false)}
+                            currentStep={currentStep}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
         </main>
 
         {/* ============================================================ */}
-        {/* FOOTER — Compact: tagline + developer credit */}
+        {/* GLOBAL WIZARD FOOTER — Back / Step Label / Next or Export */}
         {/* ============================================================ */}
-        <footer className="border-t mt-auto bg-background/60 backdrop-blur-sm">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-1.5">
-              {/* Tagline */}
-              <p className="text-[10px] text-muted-foreground/50 text-center sm:text-left">
-                Paste content &rarr;{" "}
-                <code className="text-[9px] bg-secondary/50 px-1 py-0.5 rounded font-mono">
-                  .tex
-                </code>{" "}
-                &rarr; Compile &rarr; PDF
-              </p>
+        <AnimatePresence>
+          {wizardStarted && (
+            <motion.footer
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="sticky bottom-0 z-40 border-t bg-background/80 backdrop-blur-xl"
+            >
+              <div className={cn(
+                "px-4 sm:px-6 h-14 flex items-center justify-between gap-3",
+                showPanelInline
+                  ? "max-w-[calc(1280px-1rem)] mx-auto"
+                  : "max-w-4xl mx-auto"
+              )}>
+                {/* LEFT: BACK */}
+                <div className="flex items-center gap-2 min-w-0">
+                  {currentStep === 1 ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowGoHomeConfirm(true)}
+                      className="text-xs gap-1.5 text-muted-foreground"
+                    >
+                      <HomeIcon className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Return to Homepage</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={prevStep}
+                      className="text-xs gap-1.5"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      Back
+                    </Button>
+                  )}
+                </div>
 
-              {/* Developer credit */}
-              <div className="flex items-center gap-2">
-                <a
-                  href="https://abhishekshah.vercel.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 group"
-                >
-                  <div className="w-4 h-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <span className="text-[7px] font-bold text-primary">
-                      AS
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
-                    Abhishek Shah
+                {/* CENTER: Step label */}
+                <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+                  <span className="font-medium text-foreground/80">
+                    Step {currentStep}
                   </span>
-                </a>
-                <div className="w-px h-3 bg-border/40" />
-                <a
-                  href="mailto:abhishek.aimarine@gmail.com"
-                  className="text-muted-foreground/40 hover:text-primary transition-colors inline-flex items-center"
-                  title="abhishek.aimarine@gmail.com"
-                >
-                  <Mail className="w-3 h-3" />
-                </a>
-                <a
-                  href="https://abhishekshah.vercel.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground/40 hover:text-primary transition-colors inline-flex items-center"
-                  title="Portfolio"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                  <span className="text-muted-foreground/50">·</span>
+                  <span>{getStepLabel(currentStep)}</span>
+                </div>
+
+                {/* RIGHT: NEXT or EXPORT */}
+                <div className="flex items-center gap-2 min-w-0 justify-end">
+                  {currentStep < 6 ? (
+                    <Button
+                      size="sm"
+                      onClick={() => nextStep()}
+                      disabled={!canGoNext()}
+                      className="text-xs gap-1.5"
+                    >
+                      Next
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="text-xs gap-1.5 font-semibold"
+                      disabled={false}
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Export
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </motion.footer>
+          )}
+        </AnimatePresence>
+
+        {/* ============================================================ */}
+        {/* FOOTER — Compact: tagline + developer credit (when not in wizard) */}
+        {/* ============================================================ */}
+        {!wizardStarted && (
+          <footer className="border-t mt-auto bg-background/60 backdrop-blur-sm">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-1.5">
+                {/* Tagline */}
+                <p className="text-[10px] text-muted-foreground/50 text-center sm:text-left">
+                  Paste content &rarr;{" "}
+                  <code className="text-[9px] bg-secondary/50 px-1 py-0.5 rounded font-mono">
+                    .tex
+                  </code>{" "}
+                  &rarr; Compile &rarr; PDF
+                </p>
+
+                {/* Developer credit */}
+                <div className="flex items-center gap-2">
+                  <a
+                    href="https://abhishekshah.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 group"
+                  >
+                    <div className="w-4 h-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <span className="text-[7px] font-bold text-primary">
+                        AS
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                      Abhishek Shah
+                    </span>
+                  </a>
+                  <div className="w-px h-3 bg-border/40" />
+                  <a
+                    href="mailto:abhishek.aimarine@gmail.com"
+                    className="text-muted-foreground/40 hover:text-primary transition-colors inline-flex items-center"
+                    title="abhishek.aimarine@gmail.com"
+                  >
+                    <Mail className="w-3 h-3" />
+                  </a>
+                  <a
+                    href="https://abhishekshah.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground/40 hover:text-primary transition-colors inline-flex items-center"
+                    title="Portfolio"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Brand line */}
+              <div className="mt-1.5 pt-1.5 border-t border-border/30 flex items-center justify-center">
+                <span className="text-[9px] text-muted-foreground/25">
+                  <span className="font-semibold">ThesisForge</span> by{" "}
+                  <a
+                    href="https://abhishekshah.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-primary transition-colors underline underline-offset-1 decoration-muted-foreground/10 hover:decoration-primary"
+                  >
+                    Abhishek Shah
+                  </a>{" "}
+                  &middot; &copy; {new Date().getFullYear()}
+                </span>
               </div>
             </div>
-
-            {/* Brand line */}
-            <div className="mt-1.5 pt-1.5 border-t border-border/30 flex items-center justify-center">
-              <span className="text-[9px] text-muted-foreground/25">
-                <span className="font-semibold">ThesisForge</span> by{" "}
-                <a
-                  href="https://abhishekshah.vercel.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-primary transition-colors underline underline-offset-1 decoration-muted-foreground/10 hover:decoration-primary"
-                >
-                  Abhishek Shah
-                </a>{" "}
-                &middot; &copy; {new Date().getFullYear()}
-              </span>
-            </div>
-          </div>
-        </footer>
+          </footer>
+        )}
 
         {/* ============================================================ */}
         {/* DIALOGS — Clean, no icons in headers */}
@@ -901,6 +1118,8 @@ export default function Home() {
                 { label: "Show shortcuts", keys: ["?"] },
                 { label: "Save snapshot", keys: ["Ctrl", "S"] },
                 { label: "Next step", keys: ["Ctrl", "Enter"] },
+                { label: "Undo", keys: ["Ctrl", "Z"] },
+                { label: "Redo", keys: ["Ctrl", "Shift", "Z"] },
               ].map((item, idx) => (
                 <div
                   key={`${item.label}-${item.keys.join("-")}-${idx}`}
@@ -1066,15 +1285,6 @@ export default function Home() {
             </div>
           </DialogContent>
         </Dialog>
-
-        {/* ---- Intelligence Panel ---- */}
-        {wizardStarted && selectedTemplate && (
-          <IntelligencePanel
-            isOpen={showIntelligencePanel}
-            onClose={() => setShowIntelligencePanel(false)}
-            currentStep={currentStep}
-          />
-        )}
       </div>
     </TooltipProvider>
   );

@@ -99,7 +99,7 @@ function FieldCheck({ filled }: { filled: boolean }) {
 }
 
 export function MetadataForm() {
-  const { thesis, updateMetadata, nextStep, prevStep, updateOptions, setAbstract, addKeyword, removeKeyword } =
+  const { thesis, updateMetadata, updateOptions, setAbstract, addKeyword, removeKeyword } =
     useThesisStore();
   const [suggestedUniversities, setSuggestedUniversities] = useState<
     string[]
@@ -172,10 +172,7 @@ export function MetadataForm() {
     setSuggestedUniversities([]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    nextStep();
-  };
+
 
   const requiredPct =
     requiredFieldsFilled.total > 0
@@ -224,7 +221,7 @@ export function MetadataForm() {
         </p>
       </motion.div>
 
-      <form onSubmit={handleSubmit}>
+      <div>
         <ScrollArea className="max-h-[calc(100vh-440px)] px-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
             {/* ---- Title & Subtitle ---- */}
@@ -1094,31 +1091,7 @@ export function MetadataForm() {
           </div>
         </ScrollArea>
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={prevStep}
-            className="text-muted-foreground"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Back
-          </Button>
-          <Button type="submit" size="sm">
-            {requiredFieldsFilled.allFilled ? (
-              <>
-                <Check className="w-4 h-4 mr-1.5" />
-                Continue
-              </>
-            ) : (
-              "Continue"
-            )}
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

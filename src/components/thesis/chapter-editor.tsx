@@ -243,8 +243,6 @@ export function ChapterEditor() {
     addSubSection,
     removeSubSection,
     updateSubSection,
-    nextStep,
-    prevStep,
     undoDeleteChapter,
   } = useThesisStore();
 
@@ -369,10 +367,7 @@ export function ChapterEditor() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    nextStep();
-  };
+
 
   // -----------------------------------------------------------------------
   // Render
@@ -419,7 +414,7 @@ export function ChapterEditor() {
         </span>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <div>
         {/* Expand/Collapse controls */}
         {chapters.length > 1 && (
           <div className="flex items-center justify-end mb-3">
@@ -810,22 +805,7 @@ export function ChapterEditor() {
           </Reorder.Group>
         )}
 
-        {/* Navigation */}
-        <div className="flex justify-between pt-4 border-t">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={prevStep}
-            className="text-sm"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Back
-          </Button>
-          <Button type="submit" className="text-sm">
-            Continue to References
-          </Button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }
