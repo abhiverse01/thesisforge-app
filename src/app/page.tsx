@@ -11,8 +11,10 @@ import { MetadataForm } from "@/components/thesis/metadata-form";
 import { AbstractEditor } from "@/components/thesis/abstract-editor";
 import { ChapterEditor } from "@/components/thesis/chapter-editor";
 import { ReferenceEditor } from "@/components/thesis/reference-editor";
+import { FormatEditor } from "@/components/thesis/format-editor";
 import { GeneratePreview } from "@/components/thesis/generate-preview";
 import { Homepage } from "@/components/thesis/homepage";
+import { saveDraft, loadDraft, clearDraft, createSnapshot } from "@/core/persistence";
 import { Button } from "@/components/ui/button";
 import {
   FileText,
@@ -80,7 +82,8 @@ const STEP_NAV: {
   { step: 3, name: "Abstract", description: "Write your abstract" },
   { step: 4, name: "Chapters", description: "Add chapter content" },
   { step: 5, name: "References", description: "Manage citations" },
-  { step: 6, name: "Generate", description: "Export LaTeX files" },
+  { step: 6, name: "Format", description: "Configure output" },
+  { step: 7, name: "Generate", description: "Export LaTeX" },
 ];
 
 // ============================================================
@@ -140,63 +143,62 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ================================================================
-  // Local Storage Persistence (first render only)
+  // IndexedDB Persistence (first render only)
   // ================================================================
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      const saved = localStorage.getItem("thesisforge_state");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed.thesis && parsed.selectedTemplate) {
-            useThesisStore.setState({
-              thesis: parsed.thesis,
-              selectedTemplate: parsed.selectedTemplate,
-              currentStep: parsed.currentStep,
-              wizardStarted: parsed.wizardStarted ?? true,
+      loadDraft().then((draft) => {
+        if (draft?.thesis && draft?.templateId) {
+          useThesisStore.setState({
+            thesis: draft.thesis,
+            selectedTemplate: draft.templateId,
+            currentStep: Math.min(draft.step, 7) as WizardStep,
+            wizardStarted: true,
+          });
+          setTimeout(() => {
+            toast.info("Restored from draft", {
+              description: "Your progress has been loaded from IndexedDB.",
+              duration: 2500,
             });
-            setTimeout(() => {
-              toast.info("Restored from draft", {
-                description: "Your progress has been loaded.",
-                duration: 2500,
-              });
-            }, 100);
-          }
-        } catch {
-          // Invalid saved state, ignore
+          }, 100);
         }
-      }
+      });
     }
   }, []);
 
   // ================================================================
-  // Auto-save — silent, no toast, no indicator
+  // Auto-save to IndexedDB — silent, no toast
   // ================================================================
   useEffect(() => {
-    if (!wizardStarted || !thesis) return;
+    if (!wizardStarted || !thesis || !selectedTemplate) return;
 
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 
     saveTimeoutRef.current = setTimeout(() => {
-      const state = useThesisStore.getState();
-      if (state.thesis) {
-        localStorage.setItem(
-          "thesisforge_state",
-          JSON.stringify({
-            thesis: state.thesis,
-            selectedTemplate: state.selectedTemplate,
-            currentStep: state.currentStep,
-            wizardStarted: state.wizardStarted,
-          })
-        );
-      }
-    }, 800);
+      saveDraft(thesis, selectedTemplate, currentStep).catch(() => {
+        // Silent fail for auto-save
+      });
+    }, 1000);
 
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [thesis, currentStep, wizardStarted]);
+  }, [thesis, currentStep, wizardStarted, selectedTemplate]);
+
+  // ================================================================
+  // beforeunload — warn about unsaved changes
+  // ================================================================
+  useEffect(() => {
+    if (!wizardStarted || !thesis) return;
+
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [wizardStarted, thesis]);
 
   // ================================================================
   // Undo chapter delete — toast with undo action
@@ -283,6 +285,21 @@ export default function Home() {
             e.preventDefault();
             setShowShortcuts(true);
             break;
+          case "s":
+          case "S":
+            e.preventDefault();
+            // Manual save snapshot via Ctrl+S
+            if (thesis && selectedTemplate) {
+              createSnapshot(thesis, "Manual save").then((id) => {
+                toast.success("Snapshot saved", {
+                  description: `Snapshot #${id.slice(-6)} created.`,
+                  duration: 2000,
+                });
+              }).catch(() => {
+                toast.error("Snapshot failed", { duration: 2000 });
+              });
+            }
+            break;
         }
       }
 
@@ -303,7 +320,9 @@ export default function Home() {
   // Handlers
   // ================================================================
   const handleReset = useCallback(() => {
-    localStorage.removeItem("thesisforge_state");
+    clearDraft().catch(() => {
+      // Silent fail
+    });
     reset();
     setShowResetConfirm(false);
     setMobileMenuOpen(false);
@@ -387,6 +406,8 @@ export default function Home() {
       case 5:
         return <ReferenceEditor />;
       case 6:
+        return <FormatEditor />;
+      case 7:
         return <GeneratePreview />;
       default:
         return <TemplateSelector />;
@@ -833,6 +854,7 @@ export default function Home() {
                 { label: "Return to templates", keys: ["Esc"] },
                 { label: "Show shortcuts", keys: ["Ctrl", "/"] },
                 { label: "Show shortcuts", keys: ["?"] },
+                { label: "Save snapshot", keys: ["Ctrl", "S"] },
               ].map((item, idx) => (
                 <div
                   key={`${item.label}-${item.keys.join("-")}-${idx}`}
@@ -858,7 +880,7 @@ export default function Home() {
                   <p className="text-[11px] font-medium text-muted-foreground px-3 mb-2">
                     Go to Step
                   </p>
-                  <div className="grid grid-cols-3 gap-1.5 px-1">
+                  <div className="grid grid-cols-4 gap-1.5 px-1">
                     {STEP_NAV.map((s) => (
                       <button
                         key={s.step}

@@ -124,7 +124,8 @@ export const WIZARD_STEPS = [
   { id: 3, name: 'Abstract', description: 'Abstract & keywords' },
   { id: 4, name: 'Chapters', description: 'Write your content' },
   { id: 5, name: 'References', description: 'Manage citations' },
-  { id: 6, name: 'Generate', description: 'Preview & download' },
+  { id: 6, name: 'Format', description: 'Configure output' },
+  { id: 7, name: 'Generate', description: 'Preview & download' },
 ] as const;
 
 export const THESIS_TEMPLATES: ThesisTemplateInfo[] = [

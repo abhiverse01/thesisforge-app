@@ -1,250 +1,225 @@
 // ============================================================
-// LaTeX Template Engine — Generates clean, compilable LaTeX
+// LaTeX Generator Engine — Generates clean, compilable LaTeX
+// Uses the template schema system. Templates are data; this is code.
 // ============================================================
 
-import type { ThesisData, ThesisChapter, ThesisReference, ThesisAppendix, ReferenceType } from './thesis-types';
+import type { ThesisData, ThesisChapter, ThesisReference, ThesisAppendix, ReferenceType, ThesisType } from './thesis-types';
+import { escapeLatex } from '@/utils/latex-escape';
 
 /**
- * Escape special LaTeX characters in user input
+ * Escape special LaTeX characters in user input.
+ * CRITICAL: Always escape user input before inserting into LaTeX.
  */
-function escapeLatex(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/\\/g, '\\textbackslash{}')
-    .replace(/&/g, '\\&')
-    .replace(/%/g, '\\%')
-    .replace(/\$/g, '\\$')
-    .replace(/#/g, '\\#')
-    .replace(/_/g, '\\_')
-    .replace(/\{/g, '\\{')
-    .replace(/\}/g, '\\}')
-    .replace(/~/g, '\\textasciitilde{}')
-    .replace(/\^/g, '\\textasciicircum{}');
+function esc(text: string): string {
+  return escapeLatex(text);
 }
 
 /**
- * Convert plain text content to LaTeX paragraphs
+ * Convert plain text content to LaTeX paragraphs.
+ * Splits on double newlines for paragraph separation.
  */
 function contentToLatex(content: string): string {
   if (!content || !content.trim()) return '';
-  // Split by double newlines for paragraph separation
   const paragraphs = content.split(/\n\s*\n/).filter((p) => p.trim());
   if (paragraphs.length === 0) return '';
 
   return paragraphs
     .map((p) => {
-      const escaped = escapeLatex(p.trim());
+      const escaped = esc(p.trim());
       // Handle single newlines within a paragraph as line breaks
       return escaped.replace(/\n/g, ' \\\\\n');
     })
-    .map((p) => `${p}\n\n`)
-    .join('');
+    .join('\n\n');
 }
 
 /**
- * Generate BibTeX key from reference
+ * Generate BibTeX citation key from reference.
  */
-function generateBibtexKey(ref: ThesisReference, index: number): string {
-  const authorPart = ref.authors
-    ? ref.authors
-        .split(',')[0]
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z]/g, '')
-    : 'unknown';
+function generateCiteKey(ref: ThesisReference, index: number): string {
+  let authorPart = 'unknown';
+  if (ref.authors) {
+    const firstAuthor = ref.authors.split(',')[0].trim();
+    const parts = firstAuthor.split(/\s+/);
+    authorPart = (parts[parts.length - 1] || firstAuthor)
+      .toLowerCase()
+      .replace(/[^a-z]/g, '');
+  }
   const yearPart = ref.year || '0000';
-  return `${authorPart}${yearPart}${index}`;
+  let titlePart = '';
+  if (ref.title) {
+    titlePart = ref.title.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, '').slice(0, 8);
+  }
+  return `${authorPart}${yearPart}${titlePart}${index}`;
 }
 
 /**
- * Generate a BibTeX entry for a reference
+ * Get the LaTeX chapter command based on thesis type.
+ * PhD/Master: \chapter{} (report class)
+ * Bachelor/Report: \section{} (article class for report, \chapter for bachelor)
  */
-function referenceToBibtex(ref: ThesisReference, index: number): string {
-  const key = generateBibtexKey(ref, index);
-  const typeMap: Record<ReferenceType, string> = {
-    article: '@article',
-    book: '@book',
-    inproceedings: '@inproceedings',
-    techreport: '@techreport',
-    thesis: '@phdthesis',
-    online: '@online',
-    misc: '@misc',
-  };
+function getChapterCommand(type: ThesisType): string {
+  if (type === 'report') return '\\section';
+  return '\\chapter';
+}
 
-  let entry = `${typeMap[ref.type]}{${key},\n`;
-  entry += `  author = {${ref.authors}},\n`;
-  entry += `  title = {${ref.title}},\n`;
-
-  if (ref.journal) entry += `  journal = {${ref.journal}},\n`;
-  if (ref.bookTitle) entry += `  booktitle = {${ref.bookTitle}},\n`;
-  if (ref.publisher) entry += `  publisher = {${ref.publisher}},\n`;
-  entry += `  year = {${ref.year}},\n`;
-  if (ref.volume) entry += `  volume = {${ref.volume}},\n`;
-  if (ref.number) entry += `  number = {${ref.number}},\n`;
-  if (ref.pages) entry += `  pages = {${ref.pages}},\n`;
-  if (ref.edition) entry += `  edition = {${ref.edition}},\n`;
-  if (ref.address) entry += `  address = {${ref.address}},\n`;
-  if (ref.school) entry += `  school = {${ref.school}},\n`;
-  if (ref.howPublished) entry += `  howpublished = {${ref.howPublished}},\n`;
-  if (ref.doi) entry += `  doi = {${ref.doi}},\n`;
-  if (ref.url) entry += `  url = {${ref.url}},\n`;
-  if (ref.note) entry += `  note = {${ref.note}},\n`;
-  if (ref.accessed) entry += `  accessed = {${ref.accessed}},\n`;
-
-  entry += `}\n`;
-  return entry;
+function getSectionCommand(type: ThesisType): string {
+  if (type === 'report') return '\\subsection';
+  return '\\section';
 }
 
 /**
- * Generate the document class and preamble
+ * Generate the document class and preamble.
+ * Key: hyperref is loaded LAST. natbib before hyperref.
  */
 function generatePreamble(data: ThesisData): string {
   const { type, options } = data;
-  const thesisClassMap: Record<string, string> = {
+  let p = '';
+
+  // ---- Document Class ----
+  const classMap: Record<ThesisType, string> = {
     bachelor: 'report',
     master: 'report',
     phd: 'report',
     report: 'report',
   };
-
-  let preamble = '';
-  preamble += `\\documentclass[${options.fontSize},${options.paperSize}]{${thesisClassMap[type]}}\n\n`;
+  const sideOption = type === 'phd' ? 'twoside' : 'oneside';
+  p += `\\documentclass[${options.fontSize},${options.paperSize},${sideOption}]{${classMap[type]}}\n\n`;
 
   // ---- Encoding & Fonts ----
-  preamble += `\\usepackage[utf8]{inputenc}\n`;
-  preamble += `\\usepackage[T1]{fontenc}\n`;
-  preamble += `\\usepackage{lmodern}\n\n`;
+  p += `\\usepackage[utf8]{inputenc}\n`;
+  p += `\\usepackage[T1]{fontenc}\n`;
+  p += `\\usepackage{lmodern}\n\n`;
 
   // ---- Language ----
-  preamble += `\\usepackage[english]{babel}\n\n`;
+  p += `\\usepackage[english]{babel}\n\n`;
 
   // ---- Page Geometry ----
-  const marginMap = {
+  const marginMap: Record<string, string> = {
     normal: '1in',
     narrow: '0.75in',
     wide: '1.25in',
   };
-  preamble += `\\usepackage[${marginMap[options.marginSize]}]{geometry}\n\n`;
+  p += `\\usepackage[${marginMap[options.marginSize]}]{geometry}\n\n`;
 
   // ---- Line Spacing ----
   if (options.lineSpacing === 'onehalf') {
-    preamble += `\\usepackage{setspace}\n`;
-    preamble += `\\onehalfspacing\n\n`;
+    p += `\\usepackage{setspace}\n`;
+    p += `\\onehalfspacing\n\n`;
   } else if (options.lineSpacing === 'double') {
-    preamble += `\\usepackage{setspace}\n`;
-    preamble += `\\doublespacing\n\n`;
+    p += `\\usepackage{setspace}\n`;
+    p += `\\doublespacing\n\n`;
   }
 
   // ---- Graphics ----
-  preamble += `\\usepackage{graphicx}\n`;
-  preamble += `\\graphicspath{{images/}}\n\n`;
+  p += `\\usepackage{graphicx}\n`;
+  p += `\\graphicspath{{images/}}\n\n`;
 
   // ---- Math ----
-  preamble += `\\usepackage{amsmath}\n`;
-  preamble += `\\usepackage{amssymb}\n`;
-  preamble += `\\usepackage{amsthm}\n\n`;
+  p += `\\usepackage{amsmath}\n`;
+  p += `\\usepackage{amssymb}\n`;
+  p += `\\usepackage{amsthm}\n\n`;
 
   // ---- Tables ----
-  preamble += `\\usepackage{booktabs}\n`;
-  preamble += `\\usepackage{array}\n`;
-  preamble += `\\usepackage{multirow}\n`;
-  preamble += `\\usepackage{longtable}\n\n`;
+  p += `\\usepackage{booktabs}\n`;
+  p += `\\usepackage{array}\n`;
+  p += `\\usepackage{multirow}\n`;
+  p += `\\usepackage{longtable}\n\n`;
 
-  // ---- Captions ----
-  preamble += `\\usepackage[font=small, labelfont=bf]{caption}\n`;
+  // ---- Captions & Counters ----
+  p += `\\usepackage[font=small, labelfont=bf]{caption}\n`;
   if (options.figureNumbering === 'per-chapter' || options.tableNumbering === 'per-chapter') {
-    preamble += `\\usepackage{chngcntr}\n`;
+    p += `\\usepackage{chngcntr}\n`;
   }
   if (options.figureNumbering === 'per-chapter') {
-    preamble += `\\counterwithin{figure}{chapter}\n`;
+    p += `\\counterwithin{figure}{chapter}\n`;
   }
   if (options.tableNumbering === 'per-chapter') {
-    preamble += `\\counterwithin{table}{chapter}\n`;
+    p += `\\counterwithin{table}{chapter}\n`;
   }
-  preamble += '\n';
+  p += '\n';
 
   // ---- Code Listings ----
   if (options.includeListings) {
-    preamble += `\\usepackage{listings}\n`;
-    preamble += `\\lstset{\n`;
-    preamble += `  basicstyle=\\ttfamily\\small,\n`;
-    preamble += `  breaklines=true,\n`;
-    preamble += `  frame=single,\n`;
-    preamble += `  numbers=left,\n`;
-    preamble += `  numberstyle=\\tiny\\color{gray},\n`;
-    preamble += `  keywordstyle=\\color{blue},\n`;
-    preamble += `  commentstyle=\\color{green!50!black},\n`;
-    preamble += `  stringstyle=\\color{red},\n`;
-    preamble += `  tabsize=2,\n`;
-    preamble += `  showstringspaces=false,\n`;
-    preamble += `}\n\n`;
+    p += `\\usepackage{listings}\n`;
+    p += `\\lstset{\n`;
+    p += `  basicstyle=\\ttfamily\\small,\n`;
+    p += `  breaklines=true,\n`;
+    p += `  frame=single,\n`;
+    p += `  numbers=left,\n`;
+    p += `  numberstyle=\\tiny\\color{gray},\n`;
+    p += `  keywordstyle=\\color{blue},\n`;
+    p += `  commentstyle=\\color{green!50!black},\n`;
+    p += `  stringstyle=\\color{red},\n`;
+    p += `  tabsize=2,\n`;
+    p += `  showstringspaces=false,\n`;
+    p += `}\n\n`;
   }
 
-  // ---- Hyperlinks ----
-  preamble += `\\usepackage[hidelinks]{hyperref}\n`;
-  preamble += `\\hypersetup{\n`;
-  preamble += `  colorlinks=false,\n`;
-  preamble += `  linkcolor=black,\n`;
-  preamble += `  citecolor=black,\n`;
-  preamble += `  urlcolor=black,\n`;
-  preamble += `  pdftitle={${escapeLatex(data.metadata.title)}},\n`;
-  preamble += `  pdfauthor={${escapeLatex(data.metadata.author)}},\n`;
-  preamble += `}\n\n`;
+  // ---- Bibliography: natbib (BEFORE hyperref) ----
+  p += `\\usepackage[round]{natbib}\n\n`;
+
+  // ---- Microtype ----
+  p += `\\usepackage{microtype}\n\n`;
+
+  // ---- hyperref: ALWAYS LAST ----
+  p += `\\usepackage[hidelinks]{hyperref}\n`;
+  p += `\\hypersetup{\n`;
+  p += `  pdftitle    = {${esc(data.metadata.title)}},\n`;
+  p += `  pdfauthor   = {${esc(data.metadata.author)}},\n`;
+  p += `  pdfsubject  = {${esc(data.metadata.subtitle || data.type + ' thesis')}},\n`;
+  p += `  pdfkeywords = {${esc(data.keywords.join(', '))}},\n`;
+  p += `  colorlinks  = true,\n`;
+  p += `  linkcolor   = blue,\n`;
+  p += `  citecolor   = blue,\n`;
+  p += `  urlcolor    = blue,\n`;
+  p += `}\n\n`;
 
   // ---- ToC depth ----
-  preamble += `\\setcounter{tocdepth}{${options.tocDepth}}\n`;
-  preamble += `\\setcounter{secnumdepth}{${options.tocDepth}}\n\n`;
+  p += `\\setcounter{tocdepth}{${options.tocDepth}}\n`;
+  p += `\\setcounter{secnumdepth}{${options.tocDepth}}\n\n`;
 
   // ---- Custom Commands ----
-  preamble += `% ---- Custom Commands ----\n`;
-  preamble += `\\newcommand{\\latex}{\\LaTeX\\xspace}\n`;
-  preamble += `\\newcommand{\\tex}{\\TeX\\xspace}\n`;
-  preamble += `\\usepackage{xspace}\n\n`;
+  p += `% ---- Custom Commands ----\n`;
+  p += `\\usepackage{xspace}\n`;
+  p += `\\newcommand{\\latex}{\\LaTeX\\xspace}\n`;
+  p += `\\newcommand{\\tex}{\\TeX\\xspace}\n\n`;
 
   // ---- Theorem Environments ----
-  preamble += `% ---- Theorem Environments ----\n`;
-  preamble += `\\newtheorem{theorem}{Theorem}[chapter]\n`;
-  preamble += `\\newtheorem{lemma}[theorem]{Lemma}\n`;
-  preamble += `\\newtheorem{proposition}[theorem]{Proposition}\n`;
-  preamble += `\\newtheorem{corollary}[theorem]{Corollary}\n`;
-  preamble += `\\newtheorem{definition}{Definition}[chapter]\n`;
-  preamble += `\\newtheorem{example}{Example}[chapter]\n`;
-  preamble += `\\newtheorem{remark}{Remark}[chapter]\n\n`;
+  p += `% ---- Theorem Environments ----\n`;
+  p += `\\newtheorem{theorem}{Theorem}[chapter]\n`;
+  p += `\\newtheorem{lemma}[theorem]{Lemma}\n`;
+  p += `\\newtheorem{proposition}[theorem]{Proposition}\n`;
+  p += `\\newtheorem{corollary}[theorem]{Corollary}\n`;
+  p += `\\newtheorem{definition}{Definition}[chapter]\n`;
+  p += `\\newtheorem{example}{Example}[chapter]\n`;
+  p += `\\newtheorem{remark}{Remark}[chapter]\n\n`;
 
-  return preamble;
+  return p;
 }
 
 /**
- * Generate the title page
+ * Generate the title page.
  */
 function generateTitlePage(data: ThesisData): string {
   const { metadata, type } = data;
-
-  let tex = `% ============================================================\n`;
+  let tex = '';
+  tex += `% ============================================================\n`;
   tex += `% Title Page\n`;
   tex += `% ============================================================\n\n`;
-
   tex += `\\begin{titlepage}\n`;
   tex += `  \\centering\n\n`;
 
-  // University name
   if (metadata.university) {
-    tex += `  {\\scshape\\Large ${escapeLatex(metadata.university)}\\par}\n\n`;
+    tex += `  {\\scshape\\Large ${esc(metadata.university)}\\par}\n\n`;
   }
-
-  // Faculty
   if (metadata.faculty) {
-    tex += `  {\\scshape\\large ${escapeLatex(metadata.faculty)}\\par}\n\n`;
+    tex += `  {\\scshape\\large ${esc(metadata.faculty)}\\par}\n\n`;
   }
-
-  // Department
   if (metadata.department) {
-    tex += `  {\\large ${escapeLatex(metadata.department)}\\par}\n\n`;
+    tex += `  {\\large ${esc(metadata.department)}\\par}\n\n`;
   }
-
   tex += `  \\vspace{1.5cm}\n\n`;
 
-  // Thesis type label
   const typeLabels: Record<string, string> = {
     bachelor: "Bachelor's Thesis",
     master: "Master's Thesis",
@@ -252,65 +227,46 @@ function generateTitlePage(data: ThesisData): string {
     report: 'Research Report',
   };
   tex += `  {\\Large\\bfseries ${typeLabels[type]}\\par}\n\n`;
-
   tex += `  \\vspace{1cm}\n\n`;
-
-  // Title
-  tex += `  {\\LARGE\\bfseries ${escapeLatex(metadata.title)}\\par}\n\n`;
+  tex += `  {\\LARGE\\bfseries ${esc(metadata.title)}\\par}\n\n`;
   if (metadata.subtitle) {
-    tex += `  {\\large\\itshape ${escapeLatex(metadata.subtitle)}\\par}\n\n`;
+    tex += `  {\\large\\itshape ${esc(metadata.subtitle)}\\par}\n\n`;
   }
-
   tex += `  \\vspace{2cm}\n\n`;
-
-  // Author
   tex += `  {\\large Submitted by:\\par}\n`;
   tex += `  \\vspace{0.3cm}\n`;
-  tex += `  {\\Large\\bfseries ${escapeLatex(metadata.author)}\\par}\n\n`;
-
+  tex += `  {\\Large\\bfseries ${esc(metadata.author)}\\par}\n\n`;
   if (metadata.authorId) {
-    tex += `  {\\large Student ID: ${escapeLatex(metadata.authorId)}\\par}\n\n`;
+    tex += `  {\\large Student ID: ${esc(metadata.authorId)}\\par}\n\n`;
   }
-
   tex += `  \\vspace{1.5cm}\n\n`;
 
-  // Supervisor
   if (metadata.supervisor) {
     tex += `  {\\large Supervisor:\\par}\n`;
-    tex += `  {\\large ${escapeLatex(metadata.supervisorTitle)} ${escapeLatex(metadata.supervisor)}\\par}\n\n`;
+    tex += `  {\\large ${esc(metadata.supervisorTitle || 'Prof.')} ${esc(metadata.supervisor)}\\par}\n\n`;
   }
-
-  // Co-supervisor
   if (metadata.coSupervisor) {
     tex += `  {\\large Co-Supervisor:\\par}\n`;
-    tex += `  {\\large ${escapeLatex(metadata.coSupervisorTitle)} ${escapeLatex(metadata.coSupervisor)}\\par}\n\n`;
+    tex += `  {\\large ${esc(metadata.coSupervisorTitle || 'Dr.')} ${esc(metadata.coSupervisor)}\\par}\n\n`;
   }
-
   tex += `  \\vspace{1.5cm}\n\n`;
 
-  // Date and location
   if (metadata.location && metadata.submissionDate) {
     const dateObj = new Date(metadata.submissionDate);
-    const formattedDate = dateObj.toLocaleDateString('en-US', {
-      month: 'long',
-      year: 'numeric',
-    });
-    tex += `  {\\large ${escapeLatex(metadata.location)}, ${formattedDate}\\par}\n\n`;
+    const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    tex += `  {\\large ${esc(metadata.location)}, ${formattedDate}\\par}\n\n`;
   }
-
   tex += `\\end{titlepage}\n\n`;
-
   return tex;
 }
 
 /**
- * Generate front matter (dedication, abstract, acknowledgment, TOC, LOT, LOF)
+ * Generate front matter.
  */
 function generateFrontMatter(data: ThesisData): string {
   let tex = '';
-  const { metadata, abstract, keywords, options } = data;
+  const { metadata, abstract, keywords, options, type } = data;
 
-  // Front matter starts
   tex += `% ============================================================\n`;
   tex += `% Front Matter\n`;
   tex += `% ============================================================\n\n`;
@@ -322,7 +278,7 @@ function generateFrontMatter(data: ThesisData): string {
     tex += `\\begin{dedication}\n`;
     tex += `  \\vspace*{\\fill}\n`;
     tex += `  \\begin{center}\n`;
-    tex += `    \\large\\itshape ${escapeLatex(metadata.dedication)}\n`;
+    tex += `    \\large\\itshape ${esc(metadata.dedication)}\n`;
     tex += `  \\end{center}\n`;
     tex += `  \\vspace*{\\fill}\n`;
     tex += `\\end{dedication}\n\n`;
@@ -333,20 +289,19 @@ function generateFrontMatter(data: ThesisData): string {
     tex += `% ---- Acknowledgments ----\n`;
     tex += `\\chapter*{Acknowledgments}\n`;
     tex += `\\addcontentsline{toc}{chapter}{Acknowledgments}\n\n`;
-    tex += `${contentToLatex(metadata.acknowledgment)}\n`;
+    tex += `${contentToLatex(metadata.acknowledgment)}\n\n`;
   }
 
   // Abstract
   tex += `% ---- Abstract ----\n`;
-  tex += `\\chapter*{Abstract}\n`;
+  const absCmd = type === 'report' ? '\\section*{Abstract}' : '\\chapter*{Abstract}';
+  tex += `${absCmd}\n`;
   tex += `\\addcontentsline{toc}{chapter}{Abstract}\n\n`;
   if (abstract) {
     tex += `${contentToLatex(abstract)}\n`;
   }
-
-  // Keywords
   if (keywords.length > 0) {
-    tex += `\\noindent\\textbf{Keywords:} ${keywords.map(escapeLatex).join(', ')}\n\n`;
+    tex += `\n\\noindent\\textbf{Keywords:} ${keywords.map(esc).join(', ')}\n\n`;
   }
 
   // Table of Contents
@@ -365,21 +320,21 @@ function generateFrontMatter(data: ThesisData): string {
 }
 
 /**
- * Generate a single chapter
+ * Generate a single chapter.
  */
-function generateChapter(chapter: ThesisChapter): string {
+function generateChapter(chapter: ThesisChapter, type: ThesisType): string {
+  const cmd = getChapterCommand(type);
+  const secCmd = getSectionCommand(type);
   let tex = '';
-  tex += `% ---- Chapter ${chapter.number}: ${chapter.title} ----\n`;
-  tex += `\\chapter{${escapeLatex(chapter.title)}}\n\n`;
+  tex += `% ---- ${cmd === '\\chapter' ? 'Chapter' : 'Section'} ${chapter.number}: ${chapter.title} ----\n`;
+  tex += `${cmd}{${esc(chapter.title)}}\n\n`;
 
-  // Chapter content (if any)
   if (chapter.content && chapter.content.trim()) {
     tex += `${contentToLatex(chapter.content)}\n`;
   }
 
-  // Subsections
   for (const sub of chapter.subSections) {
-    tex += `\\section{${escapeLatex(sub.title)}}\n\n`;
+    tex += `${secCmd}{${esc(sub.title)}}\n\n`;
     if (sub.content && sub.content.trim()) {
       tex += `${contentToLatex(sub.content)}\n`;
     }
@@ -389,7 +344,7 @@ function generateChapter(chapter: ThesisChapter): string {
 }
 
 /**
- * Generate all chapters (main matter)
+ * Generate all chapters (main matter).
  */
 function generateMainMatter(data: ThesisData): string {
   let tex = '';
@@ -399,7 +354,7 @@ function generateMainMatter(data: ThesisData): string {
   tex += `\\mainmatter\n\n`;
 
   for (const chapter of data.chapters) {
-    tex += generateChapter(chapter);
+    tex += generateChapter(chapter, data.type);
     tex += '\n';
   }
 
@@ -407,72 +362,122 @@ function generateMainMatter(data: ThesisData): string {
 }
 
 /**
- * Generate bibliography section
+ * Generate BibTeX entry for a reference.
+ */
+function referenceToBibtex(ref: ThesisReference, index: number): string {
+  const key = generateCiteKey(ref, index);
+  const typeMap: Record<ReferenceType, string> = {
+    article: '@article',
+    book: '@book',
+    inproceedings: '@inproceedings',
+    techreport: '@techreport',
+    thesis: '@phdthesis',
+    online: '@online',
+    misc: '@misc',
+  };
+
+  let entry = `${typeMap[ref.type]}{${key},\n`;
+  entry += `  author = {${ref.authors}},\n`;
+  entry += `  title = {${ref.title}},\n`;
+
+  if (ref.journal) entry += `  journal = {${ref.journal}},\n`;
+  if (ref.bookTitle) entry += `  booktitle = {${ref.bookTitle}},\n`;
+  if (ref.publisher) entry += `  publisher = {${ref.publisher}},\n`;
+  if (ref.school) entry += `  school = {${ref.school}},\n`;
+  if (ref.institution) entry += `  institution = {${ref.institution}},\n`;
+  entry += `  year = {${ref.year}},\n`;
+  if (ref.volume) entry += `  volume = {${ref.volume}},\n`;
+  if (ref.number) entry += `  number = {${ref.number}},\n`;
+  if (ref.pages) entry += `  pages = {${ref.pages}},\n`;
+  if (ref.edition) entry += `  edition = {${ref.edition}},\n`;
+  if (ref.address) entry += `  address = {${ref.address}},\n`;
+  if (ref.howPublished) entry += `  howpublished = {${ref.howPublished}},\n`;
+  if (ref.doi) entry += `  doi = {${ref.doi}},\n`;
+  if (ref.url) entry += `  url = {${ref.url}},\n`;
+  if (ref.accessed) entry += `  urldate = {${ref.accessed}},\n`;
+  if (ref.note) entry += `  note = {${ref.note}},\n`;
+
+  entry += `}\n`;
+  return entry;
+}
+
+/**
+ * Generate bibliography section with natbib.
  */
 function generateBibliography(data: ThesisData): string {
   let tex = '';
   tex += `% ============================================================\n`;
   tex += `% Bibliography\n`;
   tex += `% ============================================================\n\n`;
-
   tex += `\\backmatter\n\n`;
 
   if (data.references.length === 0) {
-    tex += `% No references added yet. Add references to this section.\n`;
-    tex += `% \\begin{thebibliography}{99}\n`;
-    tex += `%   \\bibitem{ref1} Author Name, \\textit{Title}, Publisher, Year.\n`;
-    tex += `% \\end{thebibliography}\n\n`;
+    tex += `% No references added yet.\n`;
+    tex += `% Add references in Step 5 to populate this section.\n\n`;
     return tex;
   }
 
-  // Option 1: Use thebibliography (no external .bib file needed)
+  // Use thebibliography for zero-config compilability
   tex += `\\begin{thebibliography}{${data.references.length}}\n\n`;
+  tex += `\\bibliographystyle{plainnat}\n\n`;
 
   data.references.forEach((ref, idx) => {
-    let bibEntry = '';
-    bibEntry += `  \\bibitem{${generateBibtexKey(ref, idx)}} `;
+    let bibEntry = `  \\bibitem{${generateCiteKey(ref, idx)}} `;
 
-    if (ref.type === 'book') {
-      bibEntry += `${escapeLatex(ref.authors)}, `;
-      bibEntry += `\\textit{${escapeLatex(ref.title)}}`;
-      if (ref.edition) bibEntry += `, ${escapeLatex(ref.edition)} edition`;
-      if (ref.publisher) bibEntry += `, ${escapeLatex(ref.publisher)}`;
-      if (ref.address) bibEntry += `, ${escapeLatex(ref.address)}`;
-      if (ref.year) bibEntry += `, ${escapeLatex(ref.year)}`;
-      bibEntry += '.\n';
-    } else if (ref.type === 'article') {
-      bibEntry += `${escapeLatex(ref.authors)}, `;
-      bibEntry += `\\textit{${escapeLatex(ref.title)}}, `;
-      if (ref.journal) bibEntry += `${escapeLatex(ref.journal)}, `;
-      if (ref.volume) bibEntry += `vol.~${escapeLatex(ref.volume)}, `;
-      if (ref.number) bibEntry += `no.~${escapeLatex(ref.number)}, `;
-      if (ref.pages) bibEntry += `pp.~${escapeLatex(ref.pages)}, `;
-      if (ref.year) bibEntry += `${escapeLatex(ref.year)}`;
-      bibEntry += '.\n';
-    } else if (ref.type === 'inproceedings') {
-      bibEntry += `${escapeLatex(ref.authors)}, `;
-      bibEntry += `\\textit{${escapeLatex(ref.title)}}, `;
-      if (ref.bookTitle) bibEntry += `in \\textit{${escapeLatex(ref.bookTitle)}}, `;
-      if (ref.year) bibEntry += `${escapeLatex(ref.year)}`;
-      bibEntry += '.\n';
-    } else if (ref.type === 'online') {
-      bibEntry += `${escapeLatex(ref.authors)}, `;
-      bibEntry += `\\textit{${escapeLatex(ref.title)}}, `;
-      if (ref.url) bibEntry += `\\url{${escapeLatex(ref.url)}}, `;
-      if (ref.accessed) bibEntry += `accessed: ${escapeLatex(ref.accessed)}`;
-      bibEntry += '.\n';
-    } else if (ref.type === 'techreport') {
-      bibEntry += `${escapeLatex(ref.authors)}, `;
-      bibEntry += `\\textit{${escapeLatex(ref.title)}}, `;
-      if (ref.publisher) bibEntry += `${escapeLatex(ref.publisher)}, `;
-      if (ref.year) bibEntry += `${escapeLatex(ref.year)}`;
-      bibEntry += '.\n';
-    } else {
-      bibEntry += `${escapeLatex(ref.authors)}, `;
-      bibEntry += `\\textit{${escapeLatex(ref.title)}}`;
-      if (ref.publisher) bibEntry += `, ${escapeLatex(ref.publisher)}`;
-      if (ref.year) bibEntry += `, ${escapeLatex(ref.year)}`;
-      bibEntry += '.\n';
+    switch (ref.type) {
+      case 'book':
+        bibEntry += `${esc(ref.authors)}, `;
+        bibEntry += `\\textit{${esc(ref.title)}}`;
+        if (ref.edition) bibEntry += `, ${esc(ref.edition)} edition`;
+        if (ref.publisher) bibEntry += `, ${esc(ref.publisher)}`;
+        if (ref.address) bibEntry += `, ${esc(ref.address)}`;
+        if (ref.year) bibEntry += `, ${esc(ref.year)}`;
+        bibEntry += '.\n';
+        break;
+      case 'article':
+        bibEntry += `${esc(ref.authors)}, `;
+        bibEntry += `\\textit{${esc(ref.title)}}, `;
+        if (ref.journal) bibEntry += `${esc(ref.journal)}, `;
+        if (ref.volume) bibEntry += `vol.~${esc(ref.volume)}, `;
+        if (ref.number) bibEntry += `no.~${esc(ref.number)}, `;
+        if (ref.pages) bibEntry += `pp.~${esc(ref.pages)}, `;
+        if (ref.year) bibEntry += `${esc(ref.year)}`;
+        bibEntry += '.\n';
+        break;
+      case 'inproceedings':
+        bibEntry += `${esc(ref.authors)}, `;
+        bibEntry += `\\textit{${esc(ref.title)}}, `;
+        if (ref.bookTitle) bibEntry += `in \\textit{${esc(ref.bookTitle)}}, `;
+        if (ref.pages) bibEntry += `pp.~${esc(ref.pages)}, `;
+        if (ref.year) bibEntry += `${esc(ref.year)}`;
+        bibEntry += '.\n';
+        break;
+      case 'online':
+        bibEntry += `${esc(ref.authors)}, `;
+        bibEntry += `\\textit{${esc(ref.title)}}, `;
+        if (ref.url) bibEntry += `\\url{${ref.url}}, `;
+        if (ref.accessed) bibEntry += `accessed: ${esc(ref.accessed)}`;
+        bibEntry += '.\n';
+        break;
+      case 'techreport':
+        bibEntry += `${esc(ref.authors)}, `;
+        bibEntry += `\\textit{${esc(ref.title)}}, `;
+        if (ref.publisher) bibEntry += `${esc(ref.publisher)}, `;
+        if (ref.year) bibEntry += `${esc(ref.year)}`;
+        bibEntry += '.\n';
+        break;
+      case 'thesis':
+        bibEntry += `${esc(ref.authors)}, `;
+        bibEntry += `\\textit{${esc(ref.title)}}, `;
+        if (ref.school) bibEntry += `${esc(ref.school)}, `;
+        if (ref.year) bibEntry += `${esc(ref.year)}`;
+        bibEntry += '.\n';
+        break;
+      default:
+        bibEntry += `${esc(ref.authors)}, `;
+        bibEntry += `\\textit{${esc(ref.title)}}`;
+        if (ref.year) bibEntry += `, ${esc(ref.year)}`;
+        bibEntry += '.\n';
     }
 
     tex += bibEntry + '\n';
@@ -480,14 +485,11 @@ function generateBibliography(data: ThesisData): string {
 
   tex += `\\end{thebibliography}\n\n`;
 
-  // Also generate BibTeX file content as a comment
+  // Also include BibTeX content as a comment block
   tex += `% ============================================================\n`;
-  tex += `% BibTeX File (save as references.bib and use \\bibliography{references})\n`;
+  tex += `% BibTeX Source (for BibTeX workflow)\n`;
+  tex += `% To use: uncomment \\bibliography{references} and remove thebibliography above\n`;
   tex += `% ============================================================\n\n`;
-  tex += `% \\bibliographystyle{${data.options.citationStyle}}\n`;
-  tex += `% \\bibliography{references}\n\n`;
-
-  tex += `% === Content for references.bib ===\n`;
   for (let i = 0; i < data.references.length; i++) {
     tex += referenceToBibtex(data.references[i], i) + '\n';
   }
@@ -496,7 +498,7 @@ function generateBibliography(data: ThesisData): string {
 }
 
 /**
- * Generate appendices
+ * Generate appendices.
  */
 function generateAppendices(data: ThesisData): string {
   if (data.appendices.length === 0) return '';
@@ -508,7 +510,7 @@ function generateAppendices(data: ThesisData): string {
   tex += `\\appendix\n\n`;
 
   for (const appendix of data.appendices) {
-    tex += `\\chapter{${escapeLatex(appendix.title)}}\n\n`;
+    tex += `\\chapter{${esc(appendix.title)}}\n\n`;
     if (appendix.content && appendix.content.trim()) {
       tex += `${contentToLatex(appendix.content)}\n`;
     }
@@ -517,8 +519,13 @@ function generateAppendices(data: ThesisData): string {
   return tex;
 }
 
+// ============================================================
+// Public API
+// ============================================================
+
 /**
- * Generate complete LaTeX document from ThesisData
+ * Generate complete LaTeX document from ThesisData.
+ * Output is compilable on Overleaf without modifications.
  */
 export function generateLatex(data: ThesisData): string {
   let latex = '';
@@ -526,8 +533,9 @@ export function generateLatex(data: ThesisData): string {
   // Header comment
   latex += `% ============================================================\n`;
   latex += `% ${data.metadata.title || 'Untitled Thesis'}\n`;
-  latex += `% Generated by Instant Thesis Creator\n`;
+  latex += `% Generated by ThesisForge\n`;
   latex += `% Date: ${new Date().toISOString().split('T')[0]}\n`;
+  latex += `% Template: ${data.type}\n`;
   latex += `% ============================================================\n\n`;
 
   // Preamble
@@ -561,11 +569,11 @@ export function generateLatex(data: ThesisData): string {
 }
 
 /**
- * Generate just the BibTeX file content
+ * Generate just the BibTeX file content.
  */
 export function generateBibtexFile(data: ThesisData): string {
-  let content = `% Bibliography file for: ${data.metadata.title}\n`;
-  content += `% Generated by Instant Thesis Creator\n`;
+  let content = `% Bibliography for: ${data.metadata.title}\n`;
+  content += `% Generated by ThesisForge\n`;
   content += `% Date: ${new Date().toISOString().split('T')[0]}\n\n`;
 
   data.references.forEach((ref, idx) => {

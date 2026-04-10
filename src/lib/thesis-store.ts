@@ -1,5 +1,6 @@
 // ============================================================
-// Zustand Store — Thesis State Management (Enhanced)
+// ThesisForge Store — Zustand State Management with FSM
+// Wizard transitions follow the FSM. Side effects are isolated.
 // ============================================================
 
 import { create } from 'zustand';
@@ -12,12 +13,34 @@ import type {
   ThesisReference,
   ThesisAppendix,
   ThesisOptions,
-  ReferenceType,
-  CitationStyle,
 } from './thesis-types';
 import { createDefaultThesisData } from './thesis-types';
+import { transition, getProgressPercentage, type WizardStateName, STATE_ORDER } from '@/core/fsm';
 
-export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
+export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+// Map UI step numbers to FSM state names
+const STEP_TO_STATE: Record<number, WizardStateName> = {
+  0: 'IDLE',
+  1: 'TEMPLATE_SELECT',
+  2: 'METADATA',
+  3: 'ABSTRACT',
+  4: 'CHAPTERS',
+  5: 'REFERENCES',
+  6: 'FORMAT',
+  7: 'PREVIEW',
+};
+
+const STATE_TO_STEP: Record<WizardStateName, WizardStep> = {
+  IDLE: 1,
+  TEMPLATE_SELECT: 1,
+  METADATA: 2,
+  ABSTRACT: 3,
+  CHAPTERS: 4,
+  REFERENCES: 5,
+  FORMAT: 6,
+  PREVIEW: 7,
+};
 
 interface ThesisStore {
   // Core state
@@ -27,15 +50,18 @@ interface ThesisStore {
   isGenerating: boolean;
   generatedLatex: string;
   showLatexPreview: boolean;
+  generatedBib: string;
 
   // Wizard lifecycle
   wizardStarted: boolean;
   startWizard: () => void;
 
-  // Wizard navigation
+  // Wizard navigation (FSM-gated)
   setStep: (step: WizardStep) => void;
   nextStep: () => void;
   prevStep: () => void;
+  canGoNext: () => boolean;
+  canGoToStep: (step: WizardStep) => boolean;
 
   // Template selection
   selectTemplate: (type: ThesisType) => void;
@@ -75,6 +101,7 @@ interface ThesisStore {
   // Generation
   setGenerating: (isGenerating: boolean) => void;
   setGeneratedLatex: (latex: string) => void;
+  setGeneratedBib: (bib: string) => void;
   toggleLatexPreview: () => void;
 
   // Undo support
@@ -90,11 +117,19 @@ interface ThesisStore {
   // Completion
   getCompletionPercentage: () => number;
 
+  // Progress
+  getProgressPercent: () => number;
+
   // Navigation helpers
   goToHome: () => void;
 
   // Reset
   reset: () => void;
+
+  // Validation
+  lastErrors: Record<string, string>;
+  setErrors: (errors: Record<string, string>) => void;
+  clearErrors: () => void;
 }
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -105,25 +140,105 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   selectedTemplate: null,
   isGenerating: false,
   generatedLatex: '',
+  generatedBib: '',
   showLatexPreview: false,
   wizardStarted: false,
-
-  // Undo state
   lastDeletedChapter: null,
   lastDeletedReference: null,
+  lastErrors: {},
 
   // ---- Wizard Lifecycle ----
   startWizard: () => set({ wizardStarted: true, currentStep: 1 }),
 
-  // ---- Wizard Navigation ----
-  setStep: (step) => set({ currentStep: step }),
-  nextStep: () => set((s) => ({ currentStep: Math.min(s.currentStep + 1, 6) as WizardStep })),
-  prevStep: () => set((s) => ({ currentStep: Math.max(s.currentStep - 1, 1) as WizardStep })),
+  // ---- Wizard Navigation (FSM-gated) ----
+  setStep: (step) => {
+    const { selectedTemplate, thesis } = get();
+    // Build FSM data for guard checks
+    const fsmData: Record<string, unknown> = {
+      templateId: selectedTemplate,
+      metadata: thesis?.metadata || {},
+      chapters: thesis?.chapters || [],
+    };
+
+    const currentState = STEP_TO_STATE[get().currentStep] || 'IDLE';
+    const targetState = STEP_TO_STATE[step] || 'IDLE';
+
+    const result = transition(
+      { step: currentState, stepIndex: get().currentStep, data: fsmData, errors: {}, warnings: {} },
+      step > get().currentStep ? 'NEXT' : step < get().currentStep ? 'BACK' : 'JUMP',
+      undefined,
+      STATE_ORDER.indexOf(targetState)
+    );
+
+    if (Object.keys(result.errors).length > 0) {
+      set({ lastErrors: result.errors });
+      return;
+    }
+
+    set({ currentStep: step, lastErrors: {} });
+  },
+
+  nextStep: () => {
+    const { currentStep, selectedTemplate, thesis } = get();
+    if (currentStep >= 7) return;
+
+    const fsmData: Record<string, unknown> = {
+      templateId: selectedTemplate,
+      metadata: thesis?.metadata || {},
+      chapters: thesis?.chapters || [],
+    };
+
+    const currentState = STEP_TO_STATE[currentStep] || 'IDLE';
+    const result = transition(
+      { step: currentState, stepIndex: currentStep, data: fsmData, errors: {}, warnings: {} },
+      'NEXT'
+    );
+
+    if (Object.keys(result.errors).length > 0) {
+      set({ lastErrors: result.errors });
+      return;
+    }
+
+    const newStep = Math.min(currentStep + 1, 7) as WizardStep;
+    set({ currentStep: newStep, lastErrors: {} });
+  },
+
+  prevStep: () => {
+    const { currentStep } = get();
+    if (currentStep <= 1) return;
+    set({ currentStep: (currentStep - 1) as WizardStep, lastErrors: {} });
+  },
+
+  canGoNext: () => {
+    const { currentStep, selectedTemplate, thesis } = get();
+    if (currentStep >= 7) return false;
+    if (currentStep === 1) return !!selectedTemplate;
+    if (currentStep === 2) {
+      const meta = thesis?.metadata;
+      return !!(meta?.title?.trim() && meta?.author?.trim());
+    }
+    return true;
+  },
+
+  canGoToStep: (step) => {
+    const { currentStep, selectedTemplate, thesis } = get();
+    if (step <= currentStep) return true;
+    if (step === 1) return true;
+    if (!selectedTemplate) return false;
+    if (step >= 2) {
+      const meta = thesis?.metadata;
+      if (!meta?.title?.trim() || !meta?.author?.trim()) return false;
+    }
+    if (step >= 4) {
+      if (!thesis?.chapters?.length) return false;
+    }
+    return true;
+  },
 
   // ---- Template Selection ----
   selectTemplate: (type) => {
     const thesis = createDefaultThesisData(type);
-    set({ selectedTemplate: type, thesis, currentStep: 2 });
+    set({ selectedTemplate: type, thesis, currentStep: 2, lastErrors: {} });
   },
 
   // ---- Metadata ----
@@ -144,8 +259,9 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   addKeyword: (keyword) =>
     set((s) => {
       if (!s.thesis) return {};
-      if (s.thesis.keywords.includes(keyword.trim())) return {};
-      return { thesis: { ...s.thesis, keywords: [...s.thesis.keywords, keyword.trim()] } };
+      const trimmed = keyword.trim();
+      if (s.thesis.keywords.includes(trimmed) || !trimmed) return {};
+      return { thesis: { ...s.thesis, keywords: [...s.thesis.keywords, trimmed] } };
     }),
   removeKeyword: (keyword) =>
     set((s) => ({
@@ -172,7 +288,6 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   removeChapter: (id) =>
     set((s) => {
       if (!s.thesis) return {};
-      // Save deleted chapter for undo
       const deleted = s.thesis.chapters.find((c) => c.id === id) ?? null;
       return {
         lastDeletedChapter: deleted,
@@ -275,7 +390,6 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   removeReference: (id) =>
     set((s) => {
       if (!s.thesis) return {};
-      // Save deleted reference for undo
       const deleted = s.thesis.references.find((r) => r.id === id) ?? null;
       return {
         lastDeletedReference: deleted,
@@ -361,6 +475,7 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   // ---- Generation ----
   setGenerating: (isGenerating) => set({ isGenerating }),
   setGeneratedLatex: (generatedLatex) => set({ generatedLatex }),
+  setGeneratedBib: (generatedBib) => set({ generatedBib }),
   toggleLatexPreview: () => set((s) => ({ showLatexPreview: !s.showLatexPreview })),
 
   // ---- Undo Support ----
@@ -368,7 +483,6 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
     set((s) => {
       if (!s.lastDeletedChapter || !s.thesis) return {};
       const restored = { ...s.lastDeletedChapter };
-      // Insert at the end and renumber
       const updatedChapters = [...s.thesis.chapters, restored].map((c, idx) => ({
         ...c,
         number: idx + 1,
@@ -395,7 +509,7 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   exportProject: () => {
     const { thesis, selectedTemplate, currentStep } = get();
     const projectData = {
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       selectedTemplate,
       currentStep,
@@ -416,9 +530,11 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
         wizardStarted: true,
         isGenerating: false,
         generatedLatex: '',
+        generatedBib: '',
         showLatexPreview: false,
         lastDeletedChapter: null,
         lastDeletedReference: null,
+        lastErrors: {},
       });
       return true;
     } catch {
@@ -430,45 +546,29 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   getCompletionPercentage: () => {
     const { thesis } = get();
     if (!thesis) return 0;
-
     const { metadata, abstract, keywords, chapters, references } = thesis;
     let filled = 0;
     let total = 8;
-
-    // 1. Title
     if (metadata.title.trim()) filled++;
-
-    // 2. Author
     if (metadata.author.trim()) filled++;
-
-    // 3. University
     if (metadata.university.trim()) filled++;
-
-    // 4. Supervisor
     if (metadata.supervisor.trim()) filled++;
-
-    // 5. Abstract
     if (abstract.trim()) filled++;
-
-    // 6. Keywords
     if (keywords.length > 0) filled++;
-
-    // 7. At least one chapter has content
     if (chapters.some((ch) => ch.content.trim() || ch.subSections.some((ss) => ss.content.trim()))) filled++;
-
-    // 8. At least one reference
     if (references.length > 0) filled++;
-
     return Math.round((filled / total) * 100);
   },
 
+  // ---- Progress ----
+  getProgressPercent: () => {
+    const { currentStep } = get();
+    // Map to 7-step progress (step 1-7 → 0-100%)
+    return getProgressPercentage(currentStep);
+  },
+
   // ---- Navigation Helpers ----
-  goToHome: () =>
-    set({
-      wizardStarted: false,
-      currentStep: 1,
-      // Keep thesis data intact so user doesn't lose progress
-    }),
+  goToHome: () => set({ wizardStarted: false, currentStep: 1 }),
 
   // ---- Reset ----
   reset: () =>
@@ -478,9 +578,15 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
       selectedTemplate: null,
       isGenerating: false,
       generatedLatex: '',
+      generatedBib: '',
       showLatexPreview: false,
       wizardStarted: false,
       lastDeletedChapter: null,
       lastDeletedReference: null,
+      lastErrors: {},
     }),
+
+  // ---- Validation ----
+  setErrors: (errors) => set({ lastErrors: errors }),
+  clearErrors: () => set({ lastErrors: {} }),
 }));

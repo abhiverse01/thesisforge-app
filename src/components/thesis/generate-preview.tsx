@@ -1,939 +1,650 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useThesisStore } from "@/lib/thesis-store";
-import { WIZARD_STEPS, THESIS_TEMPLATES } from "@/lib/thesis-types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
-  Sparkles,
-  Download,
-  Copy,
-  Check,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   ChevronLeft,
-  Code,
-  RefreshCw,
-  Loader2,
-  AlertCircle,
-  Lightbulb,
-  RotateCcw,
+  Download,
+  FileText,
   FileDown,
-  Upload,
-  Home,
   BookOpen,
   CheckCircle2,
-  FileText,
-  GraduationCap,
+  AlertTriangle,
+  Info,
+  Copy,
+  Check,
+  Sparkles,
+  Loader2,
+  AlertCircle,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { generateLatex, generateBibtexFile } from "@/lib/latex-generator";
+import { lintLatex, lintSummary, type LintResult } from "@/core/linter";
+import { exportThesis, exportTexOnly, exportBibOnly } from "@/core/export";
+import { validateAll, type ValidationResult } from "@/core/validators";
 
-// ============================================================
-// LaTeX Syntax Highlighter
-// ============================================================
-function highlightLatex(code: string): string {
-  let highlighted = code
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+const fadeVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+};
 
-  highlighted = highlighted.replace(
-    /(%[^\n]*)/g,
-    '<span class="latex-comment">$1</span>'
-  );
+const fadeTransition = {
+  duration: 0.25,
+  ease: [0.22, 1, 0.36, 1] as const,
+};
 
-  highlighted = highlighted.replace(
-    /(\\(?:documentclass|usepackage|begin|end|input|include|includegraphics|caption|label|ref|cite|bibliography|bibliographystyle|addbibresource|printbibliography|tableofcontents|listoffigures|listoftables|appendix|title|author|date|maketitle|titlepage|chapter|section|subsection|subsubsection|paragraph|subparagraph|textbf|textit|emph|underline|footnote|marginnote|newcommand|renewcommand|def|let|setlength|geometry|pagestyle|fancyhf|fancyhead|fancyfoot|headheight|headwidth|textheight|textwidth|linespread|baselinestretch|onehalfspacing|doublespacing|singlespacing|abstract|keywords|dedication|acknowledgments|tableofcontents|lstlisting|lstinline|verbatim|centering|raggedright|raggedleft|hfill|vspace|hspace|newpage|clearpage|pagebreak|linebreak|noindent|indent|parskip|parindent|item|itemize|enumerate|description|figure|table|tabular|align|equation|eqnarray|multline|gather|split|array|matrix|bmatrix|pmatrix|vmatrix|cases|frac|sqrt|sum|prod|int|lim|inf|sup|log|ln|exp|sin|cos|tan|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|infty|partial|nabla|cdot|cdots|ldots|vdots|ddots|quad|qquad|text|mathrm|mathbf|mathit|mathcal|mathbb|mathrm|boldsymbol|left|right|big|Big|bigg|Bigg|phantom|hphantom|vphantom|overline|underline|hat|bar|vec|tilde|dot|ddot|breve|acute|grave|check|tilde|widehat|widetilde|overrightarrow|overleftarrow|overbrace|underbrace|boxed|color|textcolor|colorbox|fcolorbox|pagecolor|definecolor|includepdf|includegraphics|scalebox|resizebox|rotatebox|subfloat|subfigure|minipage|parbox|tcbox|tcolorbox|newtcolorbox|newenvironment|newtheorem|theoremstyle|newtheorem|proof|qed)\b)/g,
-    '<span class="latex-command">$1</span>'
-  );
-
-  highlighted = highlighted.replace(/(\{)/g, '<span class="latex-brace">$1</span>');
-  highlighted = highlighted.replace(/(\})/g, '<span class="latex-brace">$1</span>');
-  highlighted = highlighted.replace(/(\[)/g, '<span class="latex-bracket">$1</span>');
-  highlighted = highlighted.replace(/(\])/g, '<span class="latex-bracket">$1</span>');
-  highlighted = highlighted.replace(/(\[[^\]]*\])/g, '<span class="latex-option">$1</span>');
-
-  return highlighted;
-}
-
-// ============================================================
-// Main GeneratePreview Component
-// ============================================================
 export function GeneratePreview() {
-  const {
-    thesis,
-    generatedLatex,
-    isGenerating,
-    setGeneratedLatex,
-    setGenerating,
-    prevStep,
-    goToHome,
-    exportProject,
-    importProject,
-    getCompletionPercentage,
-  } = useThesisStore();
-
+  const { thesis, selectedTemplate, prevStep, isGenerating, setGenerating } =
+    useThesisStore();
+  const [latex, setLatex] = useState("");
+  const [bib, setBib] = useState("");
+  const [lintResult, setLintResult] = useState<LintResult | null>(null);
+  const [validationResult, setValidationResult] =
+    useState<ValidationResult | null>(null);
+  const [activeTab, setActiveTab] = useState("tex");
   const [copied, setCopied] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
-  const [activeTab, setActiveTab] = useState("preview");
-  const [generationError, setGenerationError] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [hasGenerated, setHasGenerated] = useState(false);
+  const confettiShown = useRef(false);
 
-  const templateInfo = thesis
-    ? THESIS_TEMPLATES.find((t) => t.type === thesis.type)
-    : null;
+  // Auto-generate on mount
+  useEffect(() => {
+    if (!thesis || isGenerating) return;
+    handleGenerate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const completion = getCompletionPercentage();
-
-  const criteria = useMemo(() => {
-    if (!thesis) return [];
-    const m = thesis.metadata;
-    return [
-      { label: "Title", met: !!m.title.trim() },
-      { label: "Author", met: !!m.author.trim() },
-      { label: "University", met: !!m.university.trim() },
-      { label: "Supervisor", met: !!m.supervisor.trim() },
-      { label: "Abstract", met: !!thesis.abstract.trim() },
-      { label: "Keywords", met: thesis.keywords.length > 0 },
-      {
-        label: "Chapter content",
-        met: thesis.chapters.some(
-          (ch) =>
-            ch.content.trim() ||
-            ch.subSections.some((ss) => ss.content.trim())
-        ),
-      },
-      { label: "References", met: thesis.references.length > 0 },
-    ];
-  }, [thesis]);
-
-  // ---- Generate LaTeX ----
-  const generateThesis = useCallback(async () => {
+  const handleGenerate = useCallback(async () => {
     if (!thesis) return;
     setGenerating(true);
-    setGenerationError(null);
 
     try {
-      const response = await fetch("/api/generate-latex", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ thesis }),
-      });
+      // Small delay for UX feedback
+      await new Promise((r) => setTimeout(r, 400));
 
-      const data = await response.json();
+      const tex = generateLatex(thesis);
+      const bibContent = generateBibtexFile(thesis);
+      const lint = lintLatex(tex);
+      const validation = validateAll(thesis);
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Generation failed");
+      setLatex(tex);
+      setBib(bibContent);
+      setLintResult(lint);
+      setValidationResult(validation);
+      setHasGenerated(true);
+      setGenerating(false);
+
+      // Show confetti on first generation
+      if (!confettiShown.current) {
+        confettiShown.current = true;
+        triggerConfetti();
       }
 
-      setGeneratedLatex(data.latex);
-      setActiveTab("code");
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 2000);
-      toast.success("LaTeX generated successfully!");
-    } catch (error) {
-      console.error("Generation error:", error);
-      setGenerationError(
-        error instanceof Error
-          ? error.message
-          : "An unexpected error occurred. Please try again."
-      );
-      toast.error("Generation failed");
-    } finally {
+      const summary = lintSummary(lint);
+      if (lint.hasErrors) {
+        toast.warning("Generated with issues", {
+          description: summary,
+          duration: 4000,
+        });
+      } else if (lint.warnings.length > 0) {
+        toast.success("LaTeX generated", {
+          description: summary,
+          duration: 3000,
+        });
+      } else {
+        toast.success("LaTeX generated successfully", {
+          description: "No issues found. Ready to download!",
+          duration: 3000,
+        });
+      }
+    } catch (err) {
+      toast.error("Generation failed", {
+        description:
+          err instanceof Error ? err.message : "An unknown error occurred.",
+        duration: 4000,
+      });
       setGenerating(false);
     }
-  }, [thesis, setGeneratedLatex, setGenerating]);
+  }, [thesis, setGenerating]);
 
-  // ---- Clipboard ----
-  const copyToClipboard = useCallback(async () => {
-    if (!generatedLatex) return;
-    try {
-      await navigator.clipboard.writeText(generatedLatex);
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = generatedLatex;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
+  const handleExportZip = useCallback(async () => {
+    if (!thesis || !selectedTemplate) {
+      toast.error("No thesis to export");
+      return;
     }
-    setCopied(true);
-    toast.success("Copied to clipboard!");
-    setTimeout(() => setCopied(false), 2000);
-  }, [generatedLatex]);
-
-  const copyCodeBlock = useCallback(async () => {
-    if (!generatedLatex) return;
     try {
-      await navigator.clipboard.writeText(generatedLatex);
-    } catch {
-      // fallback
+      await exportThesis(thesis, selectedTemplate);
+      toast.success("ZIP downloaded", {
+        description: "Includes main.tex, references.bib, and README.md",
+        duration: 3000,
+      });
+    } catch (err) {
+      toast.error("Export failed", {
+        description:
+          err instanceof Error ? err.message : "Failed to create ZIP file.",
+        duration: 4000,
+      });
     }
-    setCopiedCode(true);
-    toast.success("Code copied!");
-    setTimeout(() => setCopiedCode(false), 2000);
-  }, [generatedLatex]);
+  }, [thesis, selectedTemplate]);
 
-  // ---- File Download ----
-  const downloadFile = useCallback(
-    (content: string, extension: string, mimeType: string) => {
-      if (!thesis) return;
-      const filename = thesis.metadata.title
-        ? `${thesis.metadata.title
-            .replace(/[^a-zA-Z0-9]/g, "_")
-            .toLowerCase()}.${extension}`
-        : `thesis.${extension}`;
-
-      const blob = new Blob([content], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    },
-    [thesis]
-  );
-
-  const downloadLatex = useCallback(() => {
-    if (!generatedLatex) return;
-    downloadFile(generatedLatex, "tex", "text/x-tex");
-    toast.success("Downloaded!", {
-      description: "Your .tex file has been saved.",
-    });
-  }, [generatedLatex, downloadFile]);
-
-  const downloadBibtex = useCallback(async () => {
+  const handleExportTex = useCallback(async () => {
     if (!thesis) return;
     try {
-      const response = await fetch("/api/generate-latex", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ thesis, format: "bib" }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        downloadFile(data.latex, "bib", "text/plain");
-        toast.success("BibTeX downloaded!");
-      }
+      await exportTexOnly(thesis);
+      toast.success("TEX downloaded", { duration: 2000 });
     } catch {
-      toast.error("Failed to generate BibTeX");
+      toast.error("Export failed", { duration: 3000 });
     }
-  }, [thesis, downloadFile]);
+  }, [thesis]);
 
-  // ---- Export / Import ----
-  const handleExportProject = useCallback(() => {
+  const handleExportBib = useCallback(async () => {
+    if (!thesis) return;
     try {
-      const jsonStr = exportProject();
-      const filename = thesis?.metadata.title
-        ? `${thesis.metadata.title
-            .replace(/[^a-zA-Z0-9]/g, "_")
-            .toLowerCase()}-project.json`
-        : "thesis-project.json";
-      const blob = new Blob([jsonStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success("Project exported!");
+      await exportBibOnly(thesis);
+      toast.success("BIB downloaded", { duration: 2000 });
     } catch {
-      toast.error("Export failed");
+      toast.error("Export failed", { duration: 3000 });
     }
-  }, [exportProject, thesis]);
-
-  const handleImportProject = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const jsonString = e.target?.result as string;
-        const success = importProject(jsonString);
-        if (success) {
-          setImportError(null);
-          toast.success("Project imported!");
-        } else {
-          setImportError(
-            "Invalid project file. Please check the file and try again."
-          );
-          toast.error("Import failed", {
-            description:
-              "The file does not appear to be a valid ThesisForge project.",
-          });
-        }
-      };
-      reader.readAsText(file);
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    },
-    [importProject]
-  );
-
-  // ---- Stats ----
-  const stats = useMemo(() => {
-    if (!thesis) return null;
-    const totalWords = thesis.chapters.reduce((acc, ch) => {
-      const cw = ch.content
-        ? ch.content.trim().split(/\s+/).filter(Boolean).length
-        : 0;
-      const sw = ch.subSections.reduce(
-        (subAcc, sub) =>
-          subAcc +
-          (sub.content
-            ? sub.content.trim().split(/\s+/).filter(Boolean).length
-            : 0),
-        0
-      );
-      return acc + cw + sw;
-    }, 0);
-
-    return {
-      chapters: thesis.chapters.length,
-      sections: thesis.chapters.reduce(
-        (acc, ch) => acc + ch.subSections.length,
-        0
-      ),
-      references: thesis.references.length,
-      words: totalWords,
-      readTime: Math.max(1, Math.ceil(totalWords / 200)),
-    };
   }, [thesis]);
 
-  // ---- Chapter Breakdown ----
-  const chapterBreakdown = useMemo(() => {
-    if (!thesis) return [];
-    return thesis.chapters.map((ch) => {
-      const cw = ch.content
-        ? ch.content.trim().split(/\s+/).filter(Boolean).length
-        : 0;
-      const sw = ch.subSections.reduce(
-        (subAcc, sub) =>
-          subAcc +
-          (sub.content
-            ? sub.content.trim().split(/\s+/).filter(Boolean).length
-            : 0),
-        0
-      );
-      return {
-        title: ch.title || `Chapter ${ch.number}`,
-        words: cw + sw,
-        number: ch.number,
-      };
-    });
-  }, [thesis]);
+  const handleCopy = useCallback(async (content: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      toast.success(`${type} copied`, { duration: 1500 });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Copy failed", { duration: 2000 });
+    }
+  }, []);
 
-  // ---- Code Display ----
-  const highlightedCode = useMemo(
-    () => (generatedLatex ? highlightLatex(generatedLatex) : ""),
-    [generatedLatex]
-  );
+  if (!thesis) return null;
 
-  const lineCount = generatedLatex ? generatedLatex.split("\n").length : 0;
-  const codeLines = useMemo(
-    () => (generatedLatex ? generatedLatex.split("\n") : []),
-    [generatedLatex]
-  );
-
-  const fileSizeBytes = generatedLatex ? new Blob([generatedLatex]).size : 0;
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
+  // Word count stats
+  const totalWords = thesis.chapters
+    .reduce(
+      (sum, ch) =>
+        sum +
+        (ch.content?.trim().split(/\s+/).filter((w) => w).length || 0) +
+        ch.subSections.reduce(
+          (ss, s) =>
+            ss +
+            (s.content?.trim().split(/\s+/).filter((w) => w).length || 0),
+          0
+        ),
+      0
+    );
+  const abstractWords = thesis.abstract
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w).length;
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      variants={fadeVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={fadeTransition}
+      className="space-y-5"
+    >
       {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-          <Sparkles className="w-3.5 h-3.5" />
-          Step {WIZARD_STEPS[5].id} of {WIZARD_STEPS.length}
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-primary" />
+          <h2 className="text-xl font-bold tracking-tight">
+            Generate & Export
+          </h2>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Generate &amp; Download
-        </h2>
-        <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-          Review your thesis summary and generate compilable LaTeX code.
+        <p className="text-sm text-muted-foreground">
+          Your LaTeX code has been generated below. Review, lint, and download
+          your thesis files.
         </p>
       </div>
 
-      {/* ---- Completion Indicator: Horizontal Bar + Inline Checkmarks ---- */}
-      <Card className="surface-1">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Completion</h3>
-            <span
-              className={`text-xs font-semibold ${
-                completion === 100
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : completion >= 75
-                    ? "text-primary"
-                    : completion >= 50
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-muted-foreground"
-              }`}
-            >
-              {completion}% Complete
-            </span>
-          </div>
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="p-3 text-center">
+            <div className="text-lg font-bold text-foreground">
+              {thesis.chapters.length}
+            </div>
+            <p className="text-[10px] text-muted-foreground">Chapters</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="p-3 text-center">
+            <div className="text-lg font-bold text-foreground">
+              {totalWords.toLocaleString()}
+            </div>
+            <p className="text-[10px] text-muted-foreground">Total Words</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="p-3 text-center">
+            <div className="text-lg font-bold text-foreground">
+              {abstractWords}
+            </div>
+            <p className="text-[10px] text-muted-foreground">Abstract Words</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="p-3 text-center">
+            <div className="text-lg font-bold text-foreground">
+              {thesis.references.length}
+            </div>
+            <p className="text-[10px] text-muted-foreground">References</p>
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Progress bar */}
-          <div className="h-1.5 bg-secondary/60 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                completion === 100
-                  ? "bg-emerald-500"
-                  : completion >= 75
-                    ? "bg-primary"
-                    : completion >= 50
-                      ? "bg-amber-500"
-                      : "bg-muted-foreground/40"
-              }`}
-              style={{ width: `${completion}%` }}
-            />
-          </div>
-
-          {/* Inline criteria checkmarks */}
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-            {criteria.map((c) => (
-              <div key={c.label} className="flex items-center gap-1.5 text-xs">
-                {c.met ? (
-                  <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
-                ) : (
-                  <div className="w-3 h-3 rounded-full border border-muted-foreground/30 shrink-0" />
-                )}
-                <span
-                  className={
-                    c.met ? "text-foreground" : "text-muted-foreground"
-                  }
-                >
-                  {c.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ---- Thesis Summary Stats ---- */}
-      <Card className="surface-1">
-        <CardContent className="p-4 space-y-3">
-          {/* Stats grid: Chapters, Sections, Words, References, Est. Read Time */}
-          {stats && (
-            <div className="grid grid-cols-5 gap-2">
-              {[
-                {
-                  value: stats.chapters,
-                  label: "Chapters",
-                  icon: BookOpen,
-                },
-                { value: stats.sections, label: "Sections", icon: FileText },
-                {
-                  value: stats.words.toLocaleString(),
-                  label: "Words",
-                  icon: FileText,
-                },
-                {
-                  value: stats.references,
-                  label: "References",
-                  icon: GraduationCap,
-                },
-                {
-                  value: `~${stats.readTime}m`,
-                  label: "Est. Read Time",
-                  icon: Clock,
-                },
-              ].map((s) => (
+      {/* Lint Results */}
+      {lintResult && lintResult.all.length > 0 && (
+        <Card
+          className={cn(
+            "border-border/50",
+            lintResult.hasErrors
+              ? "border-destructive/50 bg-destructive/5"
+              : "bg-card/50"
+          )}
+        >
+          <CardHeader className="pb-2 pt-3 px-4">
+            <CardTitle className="text-xs font-semibold flex items-center gap-2">
+              {lintResult.hasErrors ? (
+                <AlertCircle className="w-3.5 h-3.5 text-destructive" />
+              ) : lintResult.warnings.length > 0 ? (
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+              ) : (
+                <Info className="w-3.5 h-3.5 text-muted-foreground" />
+              )}
+              Lint Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-3">
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {lintResult.all.map((issue) => (
                 <div
-                  key={s.label}
-                  className="text-center p-2.5 rounded-lg bg-secondary/50"
+                  key={issue.id}
+                  className="flex items-start gap-2 text-xs"
                 >
-                  <p className="text-lg font-bold">{s.value}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {s.label}
-                  </p>
+                  {issue.severity === "error" ? (
+                    <AlertCircle className="w-3 h-3 text-destructive mt-0.5 shrink-0" />
+                  ) : issue.severity === "warning" ? (
+                    <AlertTriangle className="w-3 h-3 text-amber-500 mt-0.5 shrink-0" />
+                  ) : (
+                    <Info className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
+                  )}
+                  <span className="text-muted-foreground">
+                    {issue.message}
+                    {issue.line && (
+                      <span className="ml-1 font-mono text-[10px]">
+                        (line {issue.line})
+                      </span>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>
-          )}
-
-          <Separator />
-
-          {/* Metadata summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
-            <div className="flex justify-between py-1">
-              <span className="text-muted-foreground">Template</span>
-              <span className="font-medium">
-                {templateInfo?.icon} {templateInfo?.name}
-              </span>
-            </div>
-            {thesis?.metadata.title && (
-              <div className="flex justify-between py-1">
-                <span className="text-muted-foreground">Title</span>
-                <span className="font-medium truncate max-w-[200px] ml-4 text-right">
-                  {thesis.metadata.title}
-                </span>
-              </div>
-            )}
-            {thesis?.metadata.author && (
-              <div className="flex justify-between py-1">
-                <span className="text-muted-foreground">Author</span>
-                <span className="font-medium">{thesis.metadata.author}</span>
-              </div>
-            )}
-            {thesis?.metadata.university && (
-              <div className="flex justify-between py-1">
-                <span className="text-muted-foreground">University</span>
-                <span className="font-medium truncate max-w-[200px] ml-4 text-right">
-                  {thesis.metadata.university}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Chapter breakdown: simple text list */}
-          {chapterBreakdown.length > 0 && (
-            <>
-              <Separator />
-              <div className="space-y-1.5">
-                <h4 className="text-xs font-medium text-muted-foreground">
-                  Chapters
-                </h4>
-                <div className="space-y-1">
-                  {chapterBreakdown.map((ch) => (
-                    <div
-                      key={ch.number}
-                      className="flex items-center justify-between text-xs py-1"
-                    >
-                      <span className="text-muted-foreground truncate max-w-[70%]">
-                        <span className="font-mono text-muted-foreground/50 mr-2">
-                          {ch.number}.
-                        </span>
-                        {ch.title}
-                      </span>
-                      <span className="font-mono text-muted-foreground shrink-0">
-                        {ch.words.toLocaleString()} words
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ---- Generate Button + Success Checkmark ---- */}
-      <div className="flex flex-col items-center gap-3">
-        <AnimatePresence>
-          {showSuccess && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: [0, 1.2, 1] }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              className="flex items-center justify-center"
-            >
-              <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg">
-                <Check
-                  className="w-5 h-5 text-white"
-                  strokeWidth={3}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {!generatedLatex ? (
-          <Button
-            onClick={generateThesis}
-            disabled={isGenerating}
-            className="gap-2 px-10 py-7 text-base font-semibold rounded-xl"
-            size="lg"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Generating LaTeX...
-              </>
-            ) : (
-              <>
-                <Code className="w-5 h-5" />
-                Generate LaTeX Code
-              </>
-            )}
-          </Button>
-        ) : (
-          <div className="w-full max-w-2xl space-y-3">
-            {/* Primary: Download .tex */}
-            <Button
-              onClick={downloadLatex}
-              className="w-full gap-2 py-5 text-base font-semibold rounded-xl"
-              size="lg"
-            >
-              <Download className="w-5 h-5" />
-              Download .tex File
-            </Button>
-
-            {/* Secondary: Copy Code + Download .bib + Regenerate */}
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button
-                onClick={copyToClipboard}
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-              >
-                {copied ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-                {copied ? "Copied!" : "Copy Code"}
-              </Button>
-              <Button
-                onClick={downloadBibtex}
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-              >
-                <FileDown className="w-3.5 h-3.5" />
-                Download .bib
-              </Button>
-              <Button
-                onClick={generateThesis}
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                disabled={isGenerating}
-              >
-                {isGenerating ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5" />
-                )}
-                Regenerate
-              </Button>
-            </div>
-
-            {/* Ghost: Export + Import */}
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button
-                onClick={handleExportProject}
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-muted-foreground"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                Export Project
-              </Button>
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-muted-foreground"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Import Project
-              </Button>
-            </div>
-
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleImportProject}
-              className="hidden"
-              aria-label="Import project file"
-            />
-
-            {importError && (
-              <p className="text-xs text-destructive text-center">
-                {importError}
-              </p>
-            )}
-          </div>
-        )}
-
-        {generationError && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-xs max-w-lg">
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>{generationError}</span>
-          </div>
-        )}
-      </div>
-
-      {/* ---- Export / Import (pre-generation) ---- */}
-      {!generatedLatex && (
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button
-            onClick={handleExportProject}
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            Export Project
-          </Button>
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Import Project
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            onChange={handleImportProject}
-            className="hidden"
-            aria-label="Import project file"
-          />
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* ---- Code Preview Tabs ---- */}
-      <AnimatePresence>
-        {generatedLatex && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-          >
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="code" className="gap-1.5 text-xs">
-                  <Code className="w-3.5 h-3.5" />
-                  LaTeX Code
-                </TabsTrigger>
-                <TabsTrigger
-                  value="instructions"
-                  className="gap-1.5 text-xs"
-                >
-                  <Lightbulb className="w-3.5 h-3.5" />
-                  How to Compile
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Code Tab */}
-              <TabsContent value="code" className="mt-3">
-                <Card className="overflow-hidden surface-1">
-                  {/* Simple header: line count + file size + copy */}
-                  <div className="flex items-center justify-between px-4 py-2 border-b bg-secondary/30">
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>{lineCount} lines</span>
-                      <span className="w-px h-3 bg-border" />
-                      <span>{formatFileSize(fileSizeBytes)}</span>
-                      <span className="w-px h-3 bg-border" />
-                      <span className="text-[10px] font-mono">.tex</span>
-                    </div>
-                    <Button
-                      onClick={copyCodeBlock}
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-[11px] gap-1"
-                    >
-                      {copiedCode ? (
-                        <Check className="w-3 h-3 text-emerald-500" />
-                      ) : (
-                        <Copy className="w-3 h-3" />
-                      )}
-                      {copiedCode ? "Copied!" : "Copy"}
-                    </Button>
-                  </div>
-                  <CardContent className="p-0">
-                    <ScrollArea className="max-h-[500px]">
-                      <div className="latex-code-block text-xs leading-relaxed overflow-x-auto flex">
-                        {/* Line Numbers */}
-                        <div
-                          className="shrink-0 py-4 pl-3 pr-2 text-right select-none border-r border-border/50 bg-secondary/20"
-                          aria-hidden="true"
-                        >
-                          {codeLines.map((_, i) => (
-                            <div
-                              key={i}
-                              className="text-[11px] leading-[1.7] text-muted-foreground/50 font-mono"
-                            >
-                              {i + 1}
-                            </div>
-                          ))}
-                        </div>
-                        {/* Code */}
-                        <pre className="flex-1 py-4 px-4 overflow-x-auto">
-                          <code
-                            dangerouslySetInnerHTML={{
-                              __html: highlightedCode,
-                            }}
-                          />
-                        </pre>
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* How to Compile Tab — Simplified */}
-              <TabsContent value="instructions" className="mt-3">
-                <Card className="surface-1">
-                  <CardContent className="p-5 space-y-5">
-                    {/* Overleaf Steps */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 text-primary" />
-                        <h3 className="text-sm font-semibold">
-                          Using Overleaf (Recommended)
-                        </h3>
-                      </div>
-                      <ol className="space-y-3 text-xs text-muted-foreground">
-                        {[
-                          {
-                            title: "Download the files",
-                            desc: 'Click "Download .tex File" above. If you have references, also download the .bib file.',
-                          },
-                          {
-                            title: "Go to Overleaf",
-                            desc: (
-                              <>
-                                Visit{" "}
-                                <a
-                                  href="https://www.overleaf.com"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary underline underline-offset-2"
-                                >
-                                  overleaf.com
-                                </a>{" "}
-                                and sign in (or create a free account).
-                              </>
-                            ),
-                          },
-                          {
-                            title: "Create a new project",
-                            desc: 'Click "New Project" then "Blank Project".',
-                          },
-                          {
-                            title: "Upload your files",
-                            desc: 'In the file tree sidebar, click the upload icon. Upload your .tex and .bib files.',
-                          },
-                          {
-                            title: "Set main file & compile",
-                            desc: 'Click the menu next to your .tex file and select "Set as main document". Then click "Recompile". Download your PDF.',
-                          },
-                        ].map((step, i) => (
-                          <li key={i} className="flex gap-3">
-                            <span className="shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
-                              {i + 1}
-                            </span>
-                            <div>
-                              <strong className="text-foreground">
-                                {step.title}
-                              </strong>
-                              <p className="mt-0.5">{step.desc}</p>
-                            </div>
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-
-                    <Separator />
-
-                    {/* Compiler Recommendations */}
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-semibold">
-                        Recommended Compilers
-                      </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {[
-                          {
-                            name: "pdfLaTeX",
-                            desc: "Most common, great for English",
-                          },
-                          {
-                            name: "XeLaTeX",
-                            desc: "Full Unicode & system fonts",
-                          },
-                          {
-                            name: "LuaLaTeX",
-                            desc: "Advanced scripting & Unicode",
-                          },
-                        ].map((c) => (
-                          <div
-                            key={c.name}
-                            className="p-3 rounded-lg border text-center"
-                          >
-                            <p className="text-xs font-medium">{c.name}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {c.desc}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </motion.div>
+      {/* Validation Warnings */}
+      {validationResult &&
+        validationResult.warnings &&
+        Object.keys(validationResult.warnings).length > 0 && (
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardHeader className="pb-2 pt-3 px-4">
+              <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                Suggestions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-3">
+              <div className="space-y-1.5">
+                {Object.values(validationResult.warnings).map((msg, i) => (
+                  <p key={i} className="text-xs text-muted-foreground">
+                    {msg}
+                  </p>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
-      </AnimatePresence>
 
-      {/* ---- Navigation ---- */}
-      <div className="flex justify-between pt-4 border-t">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={prevStep}
-          className="text-sm"
+      {/* Code Preview Tabs */}
+      {hasGenerated && (
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full"
         >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back
+          <div className="flex items-center justify-between mb-3">
+            <TabsList className="h-9">
+              <TabsTrigger value="tex" className="text-xs gap-1.5 px-3">
+                <FileText className="w-3.5 h-3.5" />
+                main.tex
+              </TabsTrigger>
+              <TabsTrigger value="bib" className="text-xs gap-1.5 px-3">
+                <BookOpen className="w-3.5 h-3.5" />
+                references.bib
+              </TabsTrigger>
+              <TabsTrigger
+                value="lint"
+                className="text-xs gap-1.5 px-3"
+                disabled={!lintResult || lintResult.all.length === 0}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                Lint
+                {lintResult && lintResult.all.length > 0 && (
+                  <Badge
+                    variant={
+                      lintResult.hasErrors ? "destructive" : "secondary"
+                    }
+                    className="ml-1 h-4 px-1 text-[9px]"
+                  >
+                    {lintResult.all.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground"
+                    onClick={() =>
+                      handleCopy(
+                        activeTab === "tex" ? latex : bib,
+                        activeTab === "tex" ? "LaTeX" : "BibTeX"
+                      )
+                    }
+                  >
+                    {copied ? (
+                      <Check className="w-3.5 h-3.5" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Copy to clipboard</TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+
+          <TabsContent value="tex" className="mt-0">
+            <div className="latex-code-block rounded-xl border border-border/50 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/50">
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  main.tex
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {latex.split("\n").length} lines
+                </span>
+              </div>
+              <div className="max-h-[500px] overflow-auto p-4">
+                <pre className="text-xs leading-relaxed whitespace-pre-wrap break-words">
+                  <code>{latex}</code>
+                </pre>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="bib" className="mt-0">
+            <div className="latex-code-block rounded-xl border border-border/50 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/50">
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  references.bib
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {bib.split("\n").length} lines
+                </span>
+              </div>
+              <div className="max-h-[500px] overflow-auto p-4">
+                <pre className="text-xs leading-relaxed whitespace-pre-wrap break-words">
+                  <code>{bib}</code>
+                </pre>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="lint" className="mt-0">
+            {lintResult && (
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  {lintResult.all.length === 0 ? (
+                    <div className="text-center py-8">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                      <p className="text-sm font-medium">All clear!</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        No issues found in your LaTeX code.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {lintResult.errors.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-semibold text-destructive mb-2 flex items-center gap-1.5">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            Errors ({lintResult.errors.length})
+                          </h4>
+                          <div className="space-y-1.5">
+                            {lintResult.errors.map((issue) => (
+                              <div
+                                key={issue.id}
+                                className="flex items-start gap-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20"
+                              >
+                                <code className="text-[10px] font-mono bg-destructive/10 text-destructive px-1 py-0.5 rounded shrink-0">
+                                  {issue.id}
+                                </code>
+                                <span className="text-xs">
+                                  {issue.message}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {lintResult.warnings.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-semibold text-amber-500 mb-2 flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            Warnings ({lintResult.warnings.length})
+                          </h4>
+                          <div className="space-y-1.5">
+                            {lintResult.warnings.map((issue) => (
+                              <div
+                                key={issue.id}
+                                className="flex items-start gap-2 p-2 rounded-lg bg-amber-500/5 border border-amber-500/20"
+                              >
+                                <code className="text-[10px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1 py-0.5 rounded shrink-0">
+                                  {issue.id}
+                                </code>
+                                <span className="text-xs">
+                                  {issue.message}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {lintResult.infos.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                            <Info className="w-3.5 h-3.5" />
+                            Info ({lintResult.infos.length})
+                          </h4>
+                          <div className="space-y-1.5">
+                            {lintResult.infos.map((issue) => (
+                              <div
+                                key={issue.id}
+                                className="flex items-start gap-2 p-2 rounded-lg bg-muted/50"
+                              >
+                                <code className="text-[10px] font-mono bg-muted px-1 py-0.5 rounded shrink-0">
+                                  {issue.id}
+                                </code>
+                                <span className="text-xs text-muted-foreground">
+                                  {issue.message}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
+
+      {/* Loading State */}
+      {isGenerating && (
+        <Card className="border-border/50">
+          <CardContent className="p-12 flex flex-col items-center justify-center">
+            <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
+            <p className="text-sm font-medium">Generating LaTeX...</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Building AST, running linter, validating output
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <Separator />
+
+      {/* Export Buttons */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Download className="w-4 h-4 text-primary" />
+          Download
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Button
+            onClick={handleExportZip}
+            className="gap-2 text-xs font-semibold"
+            size="lg"
+            disabled={isGenerating}
+          >
+            <FileDown className="w-4 h-4" />
+            Download ZIP
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExportTex}
+            className="gap-2 text-xs"
+            disabled={isGenerating}
+          >
+            <FileText className="w-4 h-4" />
+            main.tex only
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExportBib}
+            className="gap-2 text-xs"
+            disabled={isGenerating || thesis.references.length === 0}
+          >
+            <BookOpen className="w-4 h-4" />
+            references.bib only
+          </Button>
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          ZIP includes: main.tex + references.bib + README.md with compilation
+          instructions. Works on Overleaf, TeXStudio, or any LaTeX editor.
+        </p>
+      </div>
+
+      <Separator />
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between pt-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={prevStep}
+          className="gap-1.5 text-xs"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+          Format
         </Button>
         <Button
-          type="button"
-          variant="ghost"
-          onClick={goToHome}
-          className="text-sm gap-1.5 text-muted-foreground"
+          variant="outline"
+          size="sm"
+          onClick={handleGenerate}
+          className="gap-1.5 text-xs"
+          disabled={isGenerating}
         >
-          <RotateCcw className="w-3.5 h-3.5" />
-          Start New Thesis
+          <Sparkles className="w-3.5 h-3.5" />
+          Regenerate
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-// Inline icon component for stats
-function Clock({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  );
+// Simple confetti effect (client-side only)
+function triggerConfetti() {
+  if (typeof window === "undefined") return;
+  const colors = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"];
+  const container = document.createElement("div");
+  container.style.cssText =
+    "position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;";
+  document.body.appendChild(container);
+
+  for (let i = 0; i < 60; i++) {
+    const particle = document.createElement("div");
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const left = Math.random() * 100;
+    const delay = Math.random() * 500;
+    const duration = 1500 + Math.random() * 2000;
+    const size = 4 + Math.random() * 6;
+
+    particle.style.cssText = `
+      position:absolute;
+      left:${left}%;
+      top:-10px;
+      width:${size}px;
+      height:${size}px;
+      background:${color};
+      border-radius:${Math.random() > 0.5 ? "50%" : "2px"};
+      opacity:0.9;
+      animation:confetti-fall ${duration}ms ease-in ${delay}ms forwards;
+    `;
+    container.appendChild(particle);
+  }
+
+  // Add keyframes
+  if (!document.getElementById("confetti-style")) {
+    const style = document.createElement("style");
+    style.id = "confetti-style";
+    style.textContent = `
+      @keyframes confetti-fall {
+        0% { transform: translateY(0) rotate(0deg); opacity: 0.9; }
+        100% { transform: translateY(100vh) rotate(${360 + Math.random() * 360}deg); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  setTimeout(() => {
+    container.remove();
+  }, 4000);
 }

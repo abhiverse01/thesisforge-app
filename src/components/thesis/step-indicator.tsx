@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WIZARD_STEPS } from "@/lib/thesis-types";
-import { useThesisStore } from "@/lib/thesis-store";
+import { useThesisStore, type WizardStep } from "@/lib/thesis-store";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -18,9 +18,19 @@ import {
   Quote,
   Download,
   Check,
+  Settings,
 } from "lucide-react";
 
-const stepIcons = [FileText, UserRound, AlignLeft, BookOpen, Quote, Download];
+// 7 step icons: Template, Metadata, Abstract, Chapters, References, Format, Generate
+const stepIcons = [
+  FileText,
+  UserRound,
+  AlignLeft,
+  BookOpen,
+  Quote,
+  Settings,
+  Download,
+];
 
 const stepAbbreviations = [
   "Template",
@@ -28,25 +38,16 @@ const stepAbbreviations = [
   "Abstract",
   "Chapters",
   "Refs",
+  "Format",
   "Generate",
 ];
-
-function canNavigate(
-  selectedTemplate: string | null,
-  stepId: number,
-  currentStep: number
-): boolean {
-  if (stepId === 1) return true;
-  if (!selectedTemplate) return false;
-  return stepId <= currentStep;
-}
 
 interface StepIndicatorProps {
   className?: string;
 }
 
 export function StepIndicator({ className }: StepIndicatorProps) {
-  const { currentStep, selectedTemplate, setStep } = useThesisStore();
+  const { currentStep, selectedTemplate, canGoToStep, setStep } = useThesisStore();
 
   const totalSteps = WIZARD_STEPS.length;
   const completionPercent = Math.round(
@@ -59,8 +60,6 @@ export function StepIndicator({ className }: StepIndicatorProps) {
   );
 
   const tooltipSide = (index: number): "bottom" | "top" => {
-    if (index === 0) return "bottom";
-    if (index === totalSteps - 1) return "bottom";
     return "bottom";
   };
 
@@ -118,7 +117,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
             const Icon = stepIcons[index];
             const isCompleted = currentStep > step.id;
             const isCurrent = currentStep === step.id;
-            const canNav = canNavigate(selectedTemplate, step.id, currentStep);
+            const canNav = canGoToStep(step.id as WizardStep);
 
             return (
               <Tooltip key={step.id}>
@@ -127,7 +126,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                     type="button"
                     onClick={() => {
                       if (canNav) {
-                        setStep(step.id as 1 | 2 | 3 | 4 | 5 | 6);
+                        setStep(step.id as WizardStep);
                       }
                     }}
                     disabled={!canNav}
@@ -137,7 +136,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                       !canNav && "cursor-default opacity-60"
                     )}
                   >
-                    {/* Step circle — w-11 h-11 for better touch targets */}
+                    {/* Step circle */}
                     <motion.div
                       layout
                       initial={false}
@@ -241,7 +240,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
 
       {/* Mobile view */}
       <div className="md:hidden">
-        {/* "Step X of 6" label */}
+        {/* "Step X of 7" label */}
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold text-foreground">
             Step {currentStep} of {totalSteps}
@@ -267,7 +266,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
           {WIZARD_STEPS.map((step, index) => {
             const isCompleted = currentStep > step.id;
             const isCurrent = currentStep === step.id;
-            const canNav = canNavigate(selectedTemplate, step.id, currentStep);
+            const canNav = canGoToStep(step.id as WizardStep);
 
             return (
               <motion.button
@@ -275,7 +274,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                 type="button"
                 onClick={() => {
                   if (canNav) {
-                    setStep(step.id as 1 | 2 | 3 | 4 | 5 | 6);
+                    setStep(step.id as WizardStep);
                   }
                 }}
                 disabled={!canNav}
