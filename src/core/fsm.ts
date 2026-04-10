@@ -1,5 +1,6 @@
 // ============================================================
-// ThesisForge Core — Wizard Finite State Machine
+// ThesisForge Core — Wizard Finite State Machine (v2)
+// 6-step wizard: IDLE → TEMPLATE_SELECT → METADATA → CHAPTERS → REFERENCES → FORMAT → PREVIEW
 // Pure transition functions. No side effects in transitions.
 // ============================================================
 
@@ -7,7 +8,6 @@ export type WizardStateName =
   | 'IDLE'
   | 'TEMPLATE_SELECT'
   | 'METADATA'
-  | 'ABSTRACT'
   | 'CHAPTERS'
   | 'REFERENCES'
   | 'FORMAT'
@@ -23,32 +23,30 @@ export type WizardEvent =
 
 export interface WizardState {
   step: WizardStateName;
-  stepIndex: number; // 0-based index for progress calculation
+  stepIndex: number;
   data: Record<string, unknown>;
   errors: Record<string, string>;
   warnings: Record<string, string>;
 }
 
-// State ordering for progression
+// State ordering — 6 wizard steps (IDLE is state 0, not a user-facing step)
 export const STATE_ORDER: WizardStateName[] = [
   'IDLE',
   'TEMPLATE_SELECT',
   'METADATA',
-  'ABSTRACT',
   'CHAPTERS',
   'REFERENCES',
   'FORMAT',
   'PREVIEW',
 ];
 
+export const TOTAL_WIZARD_STEPS = 6;
+
 // Guard functions — return true if transition is allowed
 export interface TransitionGuards {
   templateSelected: (data: Record<string, unknown>) => boolean;
   metadataValid: (data: Record<string, unknown>) => boolean;
-  abstractValid: (data: Record<string, unknown>) => boolean;
   chaptersValid: (data: Record<string, unknown>) => boolean;
-  referencesValid: (data: Record<string, unknown>) => boolean;
-  formatValid: (data: Record<string, unknown>) => boolean;
 }
 
 const defaultGuards: TransitionGuards = {
@@ -59,13 +57,10 @@ const defaultGuards: TransitionGuards = {
     return !!(meta.title && typeof meta.title === 'string' && meta.title.trim() &&
                meta.author && typeof meta.author === 'string' && meta.author.trim());
   },
-  abstractValid: () => true, // Abstract is optional, warnings only
   chaptersValid: (data) => {
     const chapters = data.chapters as unknown[] | undefined;
     return !!chapters && Array.isArray(chapters) && chapters.length > 0;
   },
-  referencesValid: () => true, // References are optional
-  formatValid: () => true, // Format has sensible defaults
 };
 
 // ============================================================
@@ -92,7 +87,7 @@ export function transition(
 
       const nextStepName = STATE_ORDER[currentIdx + 1];
 
-      // Apply guards
+      // Apply guards only for blocking steps
       switch (state.step) {
         case 'TEMPLATE_SELECT':
           if (!guards.templateSelected(state.data)) {
@@ -106,14 +101,11 @@ export function transition(
           if (!guards.metadataValid(state.data)) {
             return {
               ...state,
-              errors: {
-                ...state.errors,
-                _step: 'Title and author name are required to continue.',
-              },
+              errors: { _step: 'Title and author name are required to continue.' },
             };
           }
           break;
-        // Abstract, chapters, references, format — allow NEXT (warnings don't block)
+        // Chapters, references, format — allow NEXT (warnings don't block)
       }
 
       return {
@@ -166,7 +158,6 @@ export function transition(
     }
 
     case 'SAVE':
-      // Save is a side-effect handled externally; state stays the same
       return state;
 
     case 'RESET':
@@ -184,10 +175,11 @@ export function transition(
 }
 
 /**
- * Get the progress percentage (0-100) based on current step.
+ * Get progress percentage (0-100) based on current step.
+ * 6 wizard steps: step 1 = 0%, step 6 = 100%
  */
 export function getProgressPercentage(stepIndex: number): number {
-  const totalSteps = STATE_ORDER.length - 1; // Exclude IDLE
+  const totalSteps = TOTAL_WIZARD_STEPS;
   return Math.round((stepIndex / totalSteps) * 100);
 }
 
@@ -210,9 +202,8 @@ export function isStepReachable(
   const currentIdx = STATE_ORDER.indexOf(currentStep);
   const targetIdx = STATE_ORDER.indexOf(targetStep);
 
-  if (targetIdx <= currentIdx) return true; // Can always go back
+  if (targetIdx <= currentIdx) return true;
 
-  // Check all intermediate guards
   for (let i = currentIdx + 1; i <= targetIdx; i++) {
     const stepName = STATE_ORDER[i];
     switch (stepName) {
