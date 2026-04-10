@@ -56,9 +56,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
     [currentStep, totalSteps]
   );
 
-  const tooltipSide = (index: number): "bottom" | "top" => {
-    return "bottom";
-  };
+  const tooltipSide = "bottom" as const;
 
   return (
     <nav
@@ -205,9 +203,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                     </span>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent
-                  side={tooltipSide(index)}
-                  sideOffset={8}
+                <TooltipContent side={tooltipSide}
                   className="text-center max-w-[200px]"
                 >
                   <div className="flex items-center justify-center gap-1.5 mb-0.5">

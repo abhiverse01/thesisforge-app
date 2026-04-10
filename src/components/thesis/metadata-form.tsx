@@ -43,6 +43,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { countWords } from "@/utils/word-count";
 import {
   Tooltip,
   TooltipContent,
@@ -137,7 +138,7 @@ export function MetadataForm() {
 
   // Abstract word count with template-aware limit
   const abstractWordLimit = ABSTRACT_WORD_LIMITS[thesis.type] || 300;
-  const abstractWordCount = thesis.abstract.trim() ? thesis.abstract.trim().split(/\s+/).filter(Boolean).length : 0;
+  const abstractWordCount = countWords(thesis.abstract || '');
 
   // Auto-fill suggestions
   const handleSuggestUniversity = () => {

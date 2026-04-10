@@ -343,7 +343,25 @@ export function Homepage() {
 
   useEffect(() => {
     setMounted(true);
-    setHasSavedState(!!localStorage.getItem("thesisforge_state"));
+    // Check IndexedDB (not localStorage) for saved drafts
+    if (typeof window !== 'undefined' && window.indexedDB) {
+      const req = window.indexedDB.open('ThesisForgeDB');
+      req.onsuccess = () => {
+        const db = req.result;
+        try {
+          const tx = db.transaction('drafts', 'readonly');
+          const store = tx.objectStore('drafts');
+          const getReq = store.get('__current__');
+          getReq.onsuccess = () => {
+            setHasSavedState(!!getReq.result?.data);
+          };
+          getReq.onerror = () => setHasSavedState(false);
+        } catch {
+          setHasSavedState(false);
+        }
+      };
+      req.onerror = () => setHasSavedState(false);
+    }
   }, []);
 
   const heroRef = useRef<HTMLElement>(null);
@@ -507,21 +525,34 @@ export function Homepage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8, duration: 0.4 }}
                 onClick={() => {
-                  const saved = localStorage.getItem("thesisforge_state");
-                  if (saved) {
-                    try {
-                      const parsed = JSON.parse(saved);
-                      if (parsed.thesis && parsed.selectedTemplate) {
-                        useThesisStore.setState({
-                          thesis: parsed.thesis,
-                          selectedTemplate: parsed.selectedTemplate,
-                          currentStep: parsed.currentStep,
-                          wizardStarted: true,
-                        });
+                  // Load from IndexedDB (not localStorage)
+                  if (typeof window !== 'undefined' && window.indexedDB) {
+                    const req = window.indexedDB.open('ThesisForgeDB');
+                    req.onsuccess = () => {
+                      const db = req.result;
+                      try {
+                        const tx = db.transaction('drafts', 'readonly');
+                        const store = tx.objectStore('drafts');
+                        const getReq = store.get('__current__');
+                        getReq.onsuccess = () => {
+                          const record = getReq.result;
+                          if (record?.data) {
+                            const validTypes = ['bachelor', 'master', 'phd', 'report'];
+                            const templateId = validTypes.includes(record.templateId) ? record.templateId : null;
+                            const step = typeof record.wizardStep === 'number' && record.wizardStep >= 1 && record.wizardStep <= 6 ? record.wizardStep : 1;
+                            useThesisStore.setState({
+                              thesis: record.data,
+                              selectedTemplate: templateId,
+                              currentStep: step as 1 | 2 | 3 | 4 | 5 | 6,
+                              wizardStarted: true,
+                            });
+                          }
+                        };
+                      } catch {
+                        // ignore errors
                       }
-                    } catch {
-                      // ignore corrupted state
-                    }
+                    };
+                    req.onerror = () => {};
                   }
                 }}
                 className="group inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/5"

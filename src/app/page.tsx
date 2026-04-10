@@ -30,6 +30,7 @@ import {
   Keyboard,
   Sparkles,
   FileDown,
+  Loader2,
   FileUp,
   Menu,
   BrainCircuit,
@@ -417,7 +418,7 @@ export default function Home() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedTemplate, nextStep, prevStep, wizardStarted, currentStep]);
+  }, [selectedTemplate, nextStep, prevStep, wizardStarted, currentStep, canGoNext, thesis]);
 
   // ================================================================
   // Intelligence Panel — Feed data to scheduler on step/data change
@@ -898,7 +899,7 @@ export default function Home() {
                 <div className={cn(
                   showPanelInline && "grid gap-5",
                   showPanelInline
-                    ? "grid-cols-1 max-[900px]:grid-cols-[1fr_320px]"
+                    ? "grid-cols-1 lg:grid-cols-[1fr_320px]"
                     : ""
                 )}>
                   {/* Step Content */}
@@ -925,7 +926,7 @@ export default function Home() {
                         animate={{ opacity: 1, width: 320 }}
                         exit={{ opacity: 0, width: 0 }}
                         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                        className="hidden max-[900px]:block overflow-hidden"
+                        className="hidden lg:block overflow-hidden"
                       >
                         <div className="sticky top-[calc(3.5rem+1.5rem)] max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl border border-border/60 bg-card/50 shadow-lg">
                           <IntelligencePanel
@@ -1010,11 +1011,18 @@ export default function Home() {
                   ) : (
                     <Button
                       size="sm"
+                      onClick={handleExport}
                       className="text-xs gap-1.5 font-semibold"
-                      disabled={false}
+                      disabled={isGenerating}
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      Export
+                      {isGenerating ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <>
+                          <Download className="w-3.5 h-3.5" />
+                          Export
+                        </>
+                      )}
                     </Button>
                   )}
                 </div>

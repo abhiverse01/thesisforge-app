@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { debounce } from "@/utils/debounce";
+import { countWords, formatWordCount } from "@/utils/word-count";
 import {
   Dialog,
   DialogContent,
@@ -48,15 +49,7 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
-// FIX(ZONE-6D): Debounced word count — prevents UI freeze on large inputs.
-// countWords() runs synchronously and blocks the input event for 400ms+ on
-// 100K-word pastes. Now deferred via requestIdleCallback.
-function countWords(text: string): number {
-  if (!text || !text.trim()) return 0;
-  return text.trim().split(/\s+/).filter(Boolean).length;
-}
-
-// Create a stable debounced word counter
+// countWords is now imported from @/utils/word-count (CJK-aware)
 const debouncedWordCountCallback = debounce((text: string, callback: (count: number) => void) => {
   // Use requestIdleCallback for non-blocking computation
   if (typeof requestIdleCallback !== 'undefined') {
@@ -796,6 +789,19 @@ export function ChapterEditor() {
           </Reorder.Group>
         )}
 
+        {/* Add Chapter Button — visible after list */}
+        <div className="mt-4 flex justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addChapter}
+            className="gap-1.5 text-xs border-dashed"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Chapter
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -35,6 +35,7 @@ import { generateLatex, generateBibtexFile } from "@/lib/latex-generator";
 import { lintLatex, lintSummary, type LintResult } from "@/core/linter";
 import { exportThesis, exportTexOnly, exportBibOnly } from "@/core/export";
 import { validateAll, type ValidationResult } from "@/core/validators";
+import { countWords } from "@/utils/word-count";
 
 const fadeVariants = {
   initial: { opacity: 0, y: 8 },
@@ -61,11 +62,15 @@ export function GeneratePreview() {
   const [exportSuccess, setExportSuccess] = useState(false);
   const confettiShown = useRef(false);
 
-  // Auto-generate on mount
+  // Auto-generate on mount and when thesis changes
+  const initialGenerated = useRef(false);
   useEffect(() => {
     if (!thesis || isGenerating) return;
+    // Skip first render to avoid double-generation with handleGenerate on mount
+    if (initialGenerated.current) return;
+    initialGenerated.current = true;
     handleGenerate();
-  }, []);
+  }, [thesis, isGenerating]);
 
   const handleGenerate = useCallback(async () => {
     if (!thesis) return;
@@ -188,24 +193,17 @@ export function GeneratePreview() {
 
   if (!thesis) return null;
 
-  // Word count stats
-  const totalWords = thesis.chapters
-    .reduce(
-      (sum, ch) =>
-        sum +
-        (ch.content?.trim().split(/\s+/).filter((w) => w).length || 0) +
-        ch.subSections.reduce(
-          (ss, s) =>
-            ss +
-            (s.content?.trim().split(/\s+/).filter((w) => w).length || 0),
-          0
-        ),
+  // Word count stats (CJK-aware)
+  const totalWords = thesis.chapters.reduce(
+    (sum, ch) =>
+      sum + countWords(ch.content || '') +
+      ch.subSections.reduce(
+        (ss, s) => ss + countWords(s.content || ''),
+        0
+      ),
       0
-    );
-  const abstractWords = thesis.abstract
-    .trim()
-    .split(/\s+/)
-    .filter((w) => w).length;
+  );
+  const abstractWords = countWords(thesis.abstract || '');
 
   return (
     <motion.div
