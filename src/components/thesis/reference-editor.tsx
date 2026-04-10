@@ -33,13 +33,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  Sparkles,
   Plus,
   Trash2,
   ChevronRight,
   ChevronLeft,
   ChevronDown,
-  ChevronUp,
   Quote,
   BookOpen,
   FileText,
@@ -50,18 +48,14 @@ import {
   HelpCircle,
   Upload,
   ArrowDownAZ,
-  ArrowUpZA,
   Search,
   Copy,
-  AlertTriangle,
-  Undo2,
   X,
-  Check,
 } from "lucide-react";
 import type { ReferenceType, ThesisReference } from "@/lib/thesis-types";
 
 // ============================================================
-// Reference type configuration with colors for stripes & badges
+// Reference type configuration
 // ============================================================
 
 const refTypeConfig: Record<
@@ -72,7 +66,6 @@ const refTypeConfig: Record<
     icon: React.ElementType;
     color: string;
     bgColor: string;
-    badgeBg: string;
   }
 > = {
   article: {
@@ -81,7 +74,6 @@ const refTypeConfig: Record<
     icon: FileText,
     color: "text-sky-500",
     bgColor: "bg-sky-500",
-    badgeBg: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950 dark:text-sky-300 dark:border-sky-800",
   },
   book: {
     label: "Book",
@@ -89,8 +81,6 @@ const refTypeConfig: Record<
     icon: BookOpen,
     color: "text-emerald-500",
     bgColor: "bg-emerald-500",
-    badgeBg:
-      "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
   },
   inproceedings: {
     label: "Conference",
@@ -98,8 +88,6 @@ const refTypeConfig: Record<
     icon: Library,
     color: "text-violet-500",
     bgColor: "bg-violet-500",
-    badgeBg:
-      "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-800",
   },
   techreport: {
     label: "Tech Report",
@@ -107,8 +95,6 @@ const refTypeConfig: Record<
     icon: FlaskConical,
     color: "text-amber-500",
     bgColor: "bg-amber-500",
-    badgeBg:
-      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
   },
   thesis: {
     label: "Thesis",
@@ -116,8 +102,6 @@ const refTypeConfig: Record<
     icon: GraduationCap,
     color: "text-rose-500",
     bgColor: "bg-rose-500",
-    badgeBg:
-      "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800",
   },
   online: {
     label: "Online Source",
@@ -125,8 +109,6 @@ const refTypeConfig: Record<
     icon: Globe,
     color: "text-cyan-500",
     bgColor: "bg-cyan-500",
-    badgeBg:
-      "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950 dark:text-cyan-300 dark:border-cyan-800",
   },
   misc: {
     label: "Other",
@@ -134,34 +116,22 @@ const refTypeConfig: Record<
     icon: HelpCircle,
     color: "text-gray-500",
     bgColor: "bg-gray-500",
-    badgeBg:
-      "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700",
   },
 };
 
 // ============================================================
-// Sort options
+// Sort options (3 max)
 // ============================================================
 
-type SortOrder = "default" | "year-asc" | "year-desc" | "author" | "type" | "title";
+type SortOrder = "default" | "year-desc" | "author";
 
 const SORT_OPTIONS: { value: SortOrder; label: string }[] = [
   { value: "default", label: "Order added" },
-  { value: "year-asc", label: "Year (oldest first)" },
   { value: "year-desc", label: "Year (newest first)" },
   { value: "author", label: "Author A\u2013Z" },
-  { value: "type", label: "Reference type" },
-  { value: "title", label: "Title A\u2013Z" },
 ];
 
-const SORT_CYCLE: SortOrder[] = [
-  "default",
-  "year-desc",
-  "year-asc",
-  "author",
-  "type",
-  "title",
-];
+const SORT_CYCLE: SortOrder[] = ["default", "year-desc", "author"];
 
 // ============================================================
 // BibTeX & plain-text import parsers
@@ -175,11 +145,8 @@ function parseBibTeXEntries(text: string): ThesisReference[] {
   for (const entry of entries) {
     const typeMatch = entry.match(/@(\w+)/);
     const bibType = typeMatch?.[1]?.toLowerCase() ?? "";
-
-    // Strip the @type{key, prefix to isolate fields
     const content = entry.replace(/@\w+\{[^,]*,?\s*/, "");
 
-    // Extract fields: field = {value} or field = "value" or field = number
     const fieldRegex =
       /(\w+)\s*=\s*(?:\{([^}]*)\}|"([^"]*)"|(\d[\d,]*))/g;
     const fields: Record<string, string> = {};
@@ -190,13 +157,9 @@ function parseBibTeXEntries(text: string): ThesisReference[] {
       if (key && value) fields[key] = value;
     }
 
-    // Map BibTeX type to ReferenceType
     let type: ReferenceType = "article";
     if (bibType === "book") type = "book";
-    else if (
-      bibType === "inproceedings" ||
-      bibType === "conference"
-    )
+    else if (bibType === "inproceedings" || bibType === "conference")
       type = "inproceedings";
     else if (bibType === "techreport" || bibType === "tech")
       type = "techreport";
@@ -259,7 +222,6 @@ function parsePlainLines(text: string): ThesisReference[] {
       if (doi) remaining = remaining.replace(doi, "");
       if (year) remaining = remaining.replace(year, "");
 
-      // Try quoted title
       const titleMatch = remaining.match(
         /["\u201c\u201d]([^\u201c\u201d"]+)["\u201d\u201c]|'([^']+)'/,
       );
@@ -307,14 +269,8 @@ function parseImportText(text: string): ThesisReference[] {
 // ============================================================
 
 function isYearValid(year: string): boolean {
-  if (!year) return true; // empty is ok
+  if (!year) return true;
   return /^\d{4}$/.test(year);
-}
-
-function isDoiValid(value: string): boolean {
-  if (!value) return true;
-  if (value.startsWith("http://") || value.startsWith("https://")) return true;
-  return /^10\.\d{4,}\/\S+$/.test(value);
 }
 
 // ============================================================
@@ -329,7 +285,6 @@ export function ReferenceEditor() {
     updateReference,
     bulkImportReferences,
     undoDeleteReference,
-    lastDeletedReference,
     nextStep,
     prevStep,
   } = useThesisStore();
@@ -341,8 +296,6 @@ export function ReferenceEditor() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [bulkImportText, setBulkImportText] = useState("");
   const [showBulkImport, setShowBulkImport] = useState(false);
-  const [importPreview, setImportPreview] = useState<ThesisReference[]>([]);
-  const [showImportPreview, setShowImportPreview] = useState(false);
   const [expandedRefId, setExpandedRefId] = useState<string | null>(null);
 
   // ----- Derived data (safe even when thesis is null) -----
@@ -381,11 +334,6 @@ export function ReferenceEditor() {
   const sortedRefs = useMemo(() => {
     const refs = [...filteredRefs];
     switch (sortOrder) {
-      case "year-asc":
-        return refs.sort(
-          (a, b) =>
-            parseInt(a.year || "0") - parseInt(b.year || "0"),
-        );
       case "year-desc":
         return refs.sort(
           (a, b) =>
@@ -395,36 +343,10 @@ export function ReferenceEditor() {
         return refs.sort((a, b) =>
           (a.authors || "").localeCompare(b.authors || ""),
         );
-      case "type":
-        return refs.sort(
-          (a, b) =>
-            a.type.localeCompare(b.type) ||
-            (a.year || "").localeCompare(b.year || ""),
-        );
-      case "title":
-        return refs.sort((a, b) =>
-          (a.title || "").localeCompare(b.title || ""),
-        );
       default:
         return refs;
     }
   }, [filteredRefs, sortOrder]);
-
-  // Duplicate detection map: refId → duplicate ref
-  const duplicateMap = useMemo(() => {
-    const map = new Map<string, ThesisReference>();
-    for (const ref of references) {
-      if (!ref.title?.trim() || !ref.year?.trim()) continue;
-      const dup = references.find(
-        (r) =>
-          r.id !== ref.id &&
-          r.title?.trim() === ref.title.trim() &&
-          r.year?.trim() === ref.year?.trim(),
-      );
-      if (dup) map.set(ref.id, dup);
-    }
-    return map;
-  }, [references]);
 
   // Current sort label
   const sortLabel =
@@ -434,9 +356,6 @@ export function ReferenceEditor() {
   if (!thesis) return null;
 
   // ----- Handlers -----
-  const findDuplicate = (refId: string): ThesisReference | null =>
-    duplicateMap.get(refId) ?? null;
-
   const handleDuplicate = (ref: ThesisReference) => {
     const copy: ThesisReference = {
       ...ref,
@@ -446,26 +365,14 @@ export function ReferenceEditor() {
     bulkImportReferences([copy]);
   };
 
-  const handleParsePreview = () => {
+  const handleBulkImport = () => {
     if (!bulkImportText.trim()) return;
     const parsed = parseImportText(bulkImportText);
-    setImportPreview(parsed);
-    setShowImportPreview(true);
-  };
-
-  const handleConfirmImport = () => {
-    bulkImportReferences(importPreview);
-    setBulkImportText("");
-    setShowBulkImport(false);
-    setShowImportPreview(false);
-    setImportPreview([]);
-  };
-
-  const handleCancelImport = () => {
-    setBulkImportText("");
-    setShowBulkImport(false);
-    setShowImportPreview(false);
-    setImportPreview([]);
+    if (parsed.length > 0) {
+      bulkImportReferences(parsed);
+      setBulkImportText("");
+      setShowBulkImport(false);
+    }
   };
 
   const handleSortCycle = () => {
@@ -478,10 +385,12 @@ export function ReferenceEditor() {
     setExpandedRefId(null);
   };
 
-  const handleDeleteReference = (id: string) => {
+  const handleDeleteReference = (id: string, title: string) => {
     removeReference(id);
     setDeleteConfirm(null);
     if (expandedRefId === id) setExpandedRefId(null);
+
+    // Toast undo is sufficient — no banner needed
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -502,7 +411,7 @@ export function ReferenceEditor() {
         className="text-center space-y-2"
       >
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-          <Sparkles className="w-3.5 h-3.5" />
+          <FileText className="w-3.5 h-3.5" />
           Step {WIZARD_STEPS[4].id} of {WIZARD_STEPS.length}
         </div>
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
@@ -515,7 +424,7 @@ export function ReferenceEditor() {
       </motion.div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* ---------- Action Row 1: Buttons + Search ---------- */}
+        {/* ---------- Action Row: Buttons + Search ---------- */}
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             type="button"
@@ -545,7 +454,7 @@ export function ReferenceEditor() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8 pr-7 h-8 text-xs"
-              placeholder="Search by title, author, or year\u2026"
+              placeholder="Search by title, author, or year..."
             />
             {searchQuery && (
               <button
@@ -557,26 +466,19 @@ export function ReferenceEditor() {
               </button>
             )}
           </div>
-
-          {/* Count badge */}
-          <Badge variant="secondary" className="text-[10px] font-medium shrink-0">
-            {searchQuery.trim()
-              ? `${sortedRefs.length} of ${references.length}`
-              : `${references.length} reference${references.length !== 1 ? "s" : ""}`}
-          </Badge>
         </div>
 
-        {/* ---------- Action Row 2: Type pills + Sort + Compact toggle ---------- */}
+        {/* ---------- Type pills + Sort + Compact toggle ---------- */}
         {references.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap min-h-[28px]">
-            {/* Type distribution pills */}
+            {/* Type distribution pills (small, muted) */}
             {activeTypes.map(([type, count]) => {
               const cfg = refTypeConfig[type];
               return (
                 <Badge
                   key={type}
-                  variant="outline"
-                  className={`text-[10px] gap-1 ${cfg.badgeBg}`}
+                  variant="secondary"
+                  className="text-[10px] gap-1"
                 >
                   {count} {cfg.shortLabel}
                   {count !== 1 ? "s" : ""}
@@ -586,7 +488,7 @@ export function ReferenceEditor() {
 
             <div className="flex-1" />
 
-            {/* Sort controls */}
+            {/* Sort controls (3 options) */}
             {references.length > 1 && (
               <>
                 <Badge
@@ -606,13 +508,7 @@ export function ReferenceEditor() {
                         className="h-7 w-7 p-0"
                         onClick={handleSortCycle}
                       >
-                        {sortOrder === "year-asc" ? (
-                          <ArrowDownAZ className="w-3.5 h-3.5" />
-                        ) : sortOrder === "year-desc" ? (
-                          <ArrowUpZA className="w-3.5 h-3.5" />
-                        ) : (
-                          <ArrowDownAZ className="w-3.5 h-3.5" />
-                        )}
+                        <ArrowDownAZ className="w-3.5 h-3.5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
@@ -652,36 +548,7 @@ export function ReferenceEditor() {
           </div>
         )}
 
-        {/* ---------- Undo delete banner ---------- */}
-        <AnimatePresence>
-          {lastDeletedReference && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-              className="flex items-center gap-2 p-3 rounded-lg border text-sm bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:border-amber-800"
-            >
-              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span className="text-amber-800 dark:text-amber-200 text-xs truncate">
-                Reference &ldquo;{lastDeletedReference.title || "Untitled"}
-                &rdquo; was deleted.
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="ml-auto h-7 text-xs gap-1 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900 shrink-0"
-                onClick={undoDeleteReference}
-              >
-                <Undo2 className="w-3 h-3" />
-                Undo
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ---------- Bulk Import Panel ---------- */}
+        {/* ---------- Bulk Import Panel (simple one-step) ---------- */}
         <AnimatePresence>
           {showBulkImport && (
             <motion.div
@@ -695,131 +562,37 @@ export function ReferenceEditor() {
                   <h3 className="text-sm font-semibold">
                     Bulk Import References
                   </h3>
-
-                  {!showImportPreview ? (
-                    <>
-                      <Textarea
-                        value={bulkImportText}
-                        onChange={(e) => setBulkImportText(e.target.value)}
-                        className="text-xs min-h-[120px] font-mono"
-                        placeholder={`Paste references here. Supports BibTeX or one-per-line:\n\n@article{smith2024,\n  author = {Smith, J.},\n  title = {A Great Paper},\n  journal = {Nature},\n  year = {2024}\n}\n\nDoe, J., "Data Science Handbook", Springer, 2023`}
-                      />
-                      <p className="text-[10px] text-muted-foreground">
-                        Paste BibTeX entries or plain-text lines (one reference
-                        per line). BibTeX is auto-detected and parsed for type,
-                        authors, title, journal, year, and DOI.
-                      </p>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                          onClick={() => setShowBulkImport(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="text-xs"
-                          disabled={!bulkImportText.trim()}
-                          onClick={handleParsePreview}
-                        >
-                          <Search className="w-3.5 h-3.5 mr-1" />
-                          Parse &amp; Preview
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* Import Preview */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Check className="w-4 h-4 text-emerald-500" />
-                          <span className="text-xs font-medium">
-                            Parsed{" "}
-                            <strong>{importPreview.length}</strong>{" "}
-                            reference
-                            {importPreview.length !== 1 ? "s" : ""}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="ml-auto h-7 text-[10px]"
-                            onClick={() => setShowImportPreview(false)}
-                          >
-                            Edit
-                          </Button>
-                        </div>
-
-                        {importPreview.length === 0 ? (
-                          <p className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
-                            No valid references found. Make sure each entry has
-                            at least a title or author.
-                          </p>
-                        ) : (
-                          <ScrollArea className="max-h-48">
-                            <div className="space-y-1.5 pr-2">
-                              {importPreview.map((ref, idx) => {
-                                const cfg = refTypeConfig[ref.type];
-                                const TypeIcon = cfg.icon;
-                                return (
-                                  <div
-                                    key={`${ref.id}-${idx}`}
-                                    className="flex items-center gap-2 text-xs p-2 rounded-md bg-muted/50"
-                                  >
-                                    <TypeIcon
-                                      className={`w-3.5 h-3.5 ${cfg.color} shrink-0`}
-                                    />
-                                    <span className="truncate flex-1">
-                                      <span className="font-medium">
-                                        {ref.authors || "Unknown"}
-                                      </span>
-                                      {ref.authors ? " \u2014 " : ""}
-                                      <span>
-                                        {ref.title || "Untitled"}
-                                      </span>
-                                      {ref.year && (
-                                        <span className="text-muted-foreground">
-                                          {" "}
-                                          ({ref.year})
-                                        </span>
-                                      )}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </ScrollArea>
-                        )}
-                      </div>
-
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                          onClick={handleCancelImport}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="text-xs"
-                          disabled={importPreview.length === 0}
-                          onClick={handleConfirmImport}
-                        >
-                          <Plus className="w-3.5 h-3.5 mr-1" />
-                          Import {importPreview.length} reference
-                          {importPreview.length !== 1 ? "s" : ""}
-                        </Button>
-                      </div>
-                    </>
-                  )}
+                  <Textarea
+                    value={bulkImportText}
+                    onChange={(e) => setBulkImportText(e.target.value)}
+                    className="text-xs min-h-[120px] font-mono"
+                    placeholder={`Paste references here. Supports BibTeX or one-per-line:\n\n@article{smith2024,\n  author = {Smith, J.},\n  title = {A Great Paper},\n  journal = {Nature},\n  year = {2024}\n}\n\nDoe, J., "Data Science Handbook", Springer, 2023`}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Paste BibTeX entries or plain-text lines (one reference per
+                    line). BibTeX is auto-detected.
+                  </p>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => setShowBulkImport(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="text-xs"
+                      disabled={!bulkImportText.trim()}
+                      onClick={handleBulkImport}
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Import
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -828,100 +601,66 @@ export function ReferenceEditor() {
 
         {/* ---------- References List ---------- */}
         <ScrollArea className="max-h-[calc(100vh-460px)]">
-          <div className="space-y-3 pr-3">
+          <div className="space-y-2 pr-3">
             {references.length === 0 ? (
-              /* ---- Empty state with guide ---- */
+              /* ---- Empty state (clean) ---- */
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <Card className="border-dashed">
-                  <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
-                    <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center">
-                      <Quote className="w-8 h-8 text-primary/30" />
-                    </div>
-                    <div className="text-center max-w-md space-y-2">
-                      <h3 className="text-sm font-semibold">
-                        No references yet
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        Start building your bibliography. Add references manually
-                        or bulk import from BibTeX and plain text.
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={addReference}
-                        className="gap-1.5"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Reference
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowBulkImport(true)}
-                        className="gap-1.5"
-                      >
-                        <Upload className="w-4 h-4" />
-                        Bulk Import
-                      </Button>
-                    </div>
-
-                    {/* Example BibTeX */}
-                    <div className="w-full max-w-md mt-2">
-                      <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-                        Example BibTeX entries
-                      </p>
-                      <pre className="text-[10px] font-mono text-muted-foreground bg-muted/50 rounded-lg p-3 overflow-x-auto leading-relaxed whitespace-pre-wrap">
-{`@article{smith2024,
-  author = {Smith, J. and Doe, A.},
-  title = {Machine Learning Applications},
-  journal = {Nature},
-  year = {2024}
-}
-
-@book{johnson2023,
-  author = {Johnson, R.},
-  title = {Data Science Handbook},
-  publisher = {Springer},
-  year = {2023}
-}`}
-                      </pre>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="flex flex-col items-center justify-center py-16 space-y-3">
+                  <Quote className="w-8 h-8 text-muted-foreground/30" />
+                  <div className="text-center max-w-xs space-y-1">
+                    <h3 className="text-sm font-semibold">
+                      No references yet
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Add references manually or bulk import from BibTeX.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={addReference}
+                      className="gap-1.5"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Reference
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowBulkImport(true)}
+                      className="gap-1.5"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Bulk Import
+                    </Button>
+                  </div>
+                </div>
               </motion.div>
             ) : sortedRefs.length === 0 ? (
               /* ---- No search results ---- */
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
+                className="flex flex-col items-center justify-center py-10 space-y-2"
               >
-                <Card className="border-dashed">
-                  <CardContent className="flex flex-col items-center justify-center py-10 space-y-2">
-                    <Search className="w-8 h-8 text-muted-foreground/30" />
-                    <p className="text-sm font-medium text-muted-foreground">
-                      No matching references
-                    </p>
-                    <p className="text-xs text-muted-foreground/70">
-                      No references match &ldquo;{searchQuery}&rdquo;. Try a
-                      different search term.
-                    </p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="mt-1 text-xs"
-                      onClick={() => setSearchQuery("")}
-                    >
-                      Clear search
-                    </Button>
-                  </CardContent>
-                </Card>
+                <Search className="w-6 h-6 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">
+                  No matching references
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setSearchQuery("")}
+                >
+                  Clear search
+                </Button>
               </motion.div>
             ) : (
               /* ---- Reference cards ---- */
@@ -929,12 +668,10 @@ export function ReferenceEditor() {
                 {sortedRefs.map((ref, index) => {
                   const typeConfig = refTypeConfig[ref.type];
                   const TypeIcon = typeConfig.icon;
-                  const duplicate = findDuplicate(ref.id);
                   const isExpanded =
                     !compactView || expandedRefId === ref.id;
                   const yearValid = isYearValid(ref.year);
                   const doiValue = ref.doi || ref.url || "";
-                  const doiValid = isDoiValid(doiValue);
 
                   return (
                     <motion.div
@@ -950,225 +687,160 @@ export function ReferenceEditor() {
                           <div className="flex">
                             {/* Left color stripe */}
                             <div
-                              className={`w-1.5 shrink-0 self-stretch ${typeConfig.bgColor}`}
+                              className={`w-1 shrink-0 self-stretch ${typeConfig.bgColor}`}
                             />
 
-                            <div className="p-4 space-y-0 flex-1 min-w-0">
+                            <div className="p-3 sm:p-4 flex-1 min-w-0">
                               {/* ---- Reference Header ---- */}
                               <div className="flex items-center gap-2 sm:gap-3">
                                 {/* Number badge */}
-                                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                                  <span className="text-xs font-bold text-muted-foreground">
+                                <div className="w-6 h-6 rounded bg-secondary flex items-center justify-center shrink-0">
+                                  <span className="text-[10px] font-bold text-muted-foreground">
                                     {index + 1}
                                   </span>
                                 </div>
+
+                                {/* Type badge (small) */}
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[9px] shrink-0 gap-1"
+                                >
+                                  <TypeIcon
+                                    className={`w-2.5 h-2.5 ${typeConfig.color}`}
+                                  />
+                                  {typeConfig.shortLabel}
+                                </Badge>
 
                                 {/* Title + Author */}
                                 <button
                                   type="button"
                                   className="flex-1 min-w-0 text-left"
-                                  onClick={() => {
-                                    if (compactView) {
-                                      setExpandedRefId(
-                                        expandedRefId === ref.id
-                                          ? null
-                                          : ref.id,
-                                      );
-                                    } else {
-                                      setExpandedRefId(
-                                        expandedRefId === ref.id
-                                          ? null
-                                          : ref.id,
-                                      );
-                                    }
-                                  }}
+                                  onClick={() =>
+                                    setExpandedRefId(
+                                      expandedRefId === ref.id
+                                        ? null
+                                        : ref.id,
+                                    )
+                                  }
                                 >
                                   <p className="text-sm font-medium truncate leading-snug">
                                     {ref.title || "Untitled Reference"}
-                                    {ref.title?.endsWith(" (Copy)") && (
-                                      <span className="text-muted-foreground font-normal">
-                                        {" "}
-                                        (Copy)
-                                      </span>
-                                    )}
                                   </p>
                                   <p className="text-[11px] text-muted-foreground truncate">
                                     {ref.authors || "No author"}
                                     {ref.year
                                       ? ` (${ref.year})`
                                       : ""}
-                                    {ref.journal && (
-                                      <span className="text-muted-foreground/60">
-                                        {" "}
-                                        &middot; {ref.journal}
-                                      </span>
-                                    )}
-                                    {ref.bookTitle && (
-                                      <span className="text-muted-foreground/60">
-                                        {" "}
-                                        &middot; {ref.bookTitle}
-                                      </span>
-                                    )}
                                   </p>
                                 </button>
 
-                                {/* Duplicate warning badge */}
-                                {duplicate && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[9px] gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800 shrink-0 hidden sm:inline-flex"
-                                  >
-                                    <AlertTriangle className="w-3 h-3" />
-                                    Duplicate
-                                  </Badge>
-                                )}
-
-                                {/* Type badge */}
-                                <Badge
-                                  variant="outline"
-                                  className="text-[9px] shrink-0 gap-1"
-                                >
-                                  <TypeIcon
-                                    className={`w-3 h-3 ${typeConfig.color}`}
-                                  />
-                                  {typeConfig.label}
-                                </Badge>
-
-                                {/* Expand / Collapse toggle */}
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 p-0 shrink-0"
-                                        onClick={() =>
-                                          setExpandedRefId(
-                                            isExpanded && compactView
-                                              ? null
-                                              : isExpanded && !compactView
-                                                ? ref.id
-                                                : ref.id,
-                                          )
-                                        }
-                                      >
-                                        <motion.div
-                                          animate={{
-                                            rotate: isExpanded ? 180 : 0,
-                                          }}
-                                          transition={{
-                                            duration: 0.2,
-                                          }}
+                                {/* Actions */}
+                                <div className="flex items-center gap-0.5 shrink-0">
+                                  {/* Duplicate */}
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 w-6 p-0 shrink-0 text-muted-foreground hover:text-foreground"
+                                          onClick={() =>
+                                            handleDuplicate(ref)
+                                          }
                                         >
-                                          <ChevronDown className="w-3.5 h-3.5" />
-                                        </motion.div>
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom">
-                                      <p>
-                                        {isExpanded
-                                          ? "Collapse"
-                                          : "Expand"}
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                          <Copy className="w-3 h-3" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="bottom">
+                                        <p>Duplicate reference</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
 
-                                {/* Duplicate button */}
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
+                                  {/* Delete */}
+                                  <Dialog
+                                    open={deleteConfirm === ref.id}
+                                    onOpenChange={(open) =>
+                                      setDeleteConfirm(
+                                        open ? ref.id : null,
+                                      )
+                                    }
+                                  >
+                                    <DialogTrigger asChild>
                                       <Button
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-foreground"
-                                        onClick={() =>
-                                          handleDuplicate(ref)
-                                        }
+                                        className="h-6 w-6 p-0 text-destructive hover:text-destructive shrink-0"
                                       >
-                                        <Copy className="w-3.5 h-3.5" />
+                                        <Trash2 className="w-3 h-3" />
                                       </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom">
-                                      <p>Duplicate reference</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <DialogHeader>
+                                        <DialogTitle>
+                                          Delete Reference
+                                        </DialogTitle>
+                                      </DialogHeader>
+                                      <p className="text-sm text-muted-foreground">
+                                        Are you sure you want to delete
+                                        &ldquo;{ref.title || "Untitled"}
+                                        &rdquo;?
+                                      </p>
+                                      <div className="flex justify-end gap-2 mt-4">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() =>
+                                            setDeleteConfirm(null)
+                                          }
+                                        >
+                                          Cancel
+                                        </Button>
+                                        <Button
+                                          variant="destructive"
+                                          size="sm"
+                                          onClick={() =>
+                                            handleDeleteReference(
+                                              ref.id,
+                                              ref.title || "",
+                                            )
+                                          }
+                                        >
+                                          Delete
+                                        </Button>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
 
-                                {/* Delete button */}
-                                <Dialog
-                                  open={deleteConfirm === ref.id}
-                                  onOpenChange={(open) =>
-                                    setDeleteConfirm(open ? ref.id : null)
-                                  }
-                                >
-                                  <DialogTrigger asChild>
+                                  {/* Expand / Collapse */}
+                                  <motion.div
+                                    animate={{
+                                      rotate: isExpanded ? 180 : 0,
+                                    }}
+                                    transition={{ duration: 0.2 }}
+                                  >
                                     <Button
                                       type="button"
                                       variant="ghost"
                                       size="sm"
-                                      className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
+                                      className="h-6 w-6 p-0 shrink-0"
+                                      onClick={() =>
+                                        setExpandedRefId(
+                                          expandedRefId === ref.id
+                                            ? null
+                                            : ref.id,
+                                        )
+                                      }
                                     >
-                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <ChevronDown className="w-3 h-3" />
                                     </Button>
-                                  </DialogTrigger>
-                                  <DialogContent>
-                                    <DialogHeader>
-                                      <DialogTitle>
-                                        Delete Reference
-                                      </DialogTitle>
-                                    </DialogHeader>
-                                    <p className="text-sm text-muted-foreground">
-                                      Are you sure you want to delete
-                                      &ldquo;{ref.title || "Untitled"}
-                                      &rdquo;?
-                                    </p>
-                                    <div className="flex justify-end gap-2 mt-4">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() =>
-                                          setDeleteConfirm(null)
-                                        }
-                                      >
-                                        Cancel
-                                      </Button>
-                                      <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() =>
-                                          handleDeleteReference(ref.id)
-                                        }
-                                      >
-                                        Delete
-                                      </Button>
-                                    </div>
-                                  </DialogContent>
-                                </Dialog>
+                                  </motion.div>
+                                </div>
                               </div>
 
-                              {/* ---- Duplicate inline warning (compact) ---- */}
-                              {duplicate && isExpanded && (
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0 }}
-                                  animate={{ opacity: 1, height: "auto" }}
-                                  exit={{ opacity: 0, height: 0 }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="flex items-center gap-2 mt-2 px-1">
-                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                                    <p className="text-[10px] text-amber-700 dark:text-amber-400">
-                                      A reference with the same title and year
-                                      already exists. Consider merging or
-                                      differentiating them.
-                                    </p>
-                                  </div>
-                                </motion.div>
-                              )}
-
-                              {/* ---- Animated Editor Fields ---- */}
+                              {/* ---- Editor Fields (expanded) ---- */}
                               <AnimatePresence initial={false}>
                                 {isExpanded && (
                                   <motion.div
@@ -1182,7 +854,7 @@ export function ReferenceEditor() {
                                     }}
                                     exit={{ height: 0, opacity: 0 }}
                                     transition={{
-                                      duration: 0.25,
+                                      duration: 0.2,
                                       ease: "easeInOut",
                                     }}
                                     className="overflow-hidden"
@@ -1396,7 +1068,7 @@ export function ReferenceEditor() {
                                           )}
                                         </div>
 
-                                        {/* Volume / Number / Pages (article, inproceedings) */}
+                                        {/* Volume / Pages (article, inproceedings) */}
                                         {(ref.type === "article" ||
                                           ref.type ===
                                             "inproceedings") && (
@@ -1446,7 +1118,7 @@ export function ReferenceEditor() {
                                           </>
                                         )}
 
-                                        {/* DOI / URL with validation */}
+                                        {/* DOI / URL (simplified — no validation errors) */}
                                         <div className="sm:col-span-2 space-y-1">
                                           <Label className="text-[10px] font-medium text-muted-foreground">
                                             DOI / URL
@@ -1472,19 +1144,8 @@ export function ReferenceEditor() {
                                               );
                                             }}
                                             placeholder="https://doi.org/10.1234/example or https://..."
-                                            className={`h-8 text-xs ${
-                                              !doiValid
-                                                ? "border-red-300 focus-visible:ring-red-300 dark:border-red-700"
-                                                : ""
-                                            }`}
+                                            className="h-8 text-xs"
                                           />
-                                          {doiValue && !doiValid && (
-                                            <p className="text-[10px] text-red-500">
-                                              Invalid format. Enter a DOI
-                                              (e.g. 10.XXXX/...) or a URL
-                                              starting with https://
-                                            </p>
-                                          )}
                                         </div>
 
                                         {/* Note */}

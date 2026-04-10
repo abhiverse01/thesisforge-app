@@ -24,6 +24,9 @@ import {
   Shield,
   Users,
   Globe,
+  ChevronRight,
+  ChevronDown,
+  Rocket,
 } from "lucide-react";
 
 // ============================================================
@@ -68,6 +71,7 @@ const useCases = [
     description: "Streamline your undergraduate thesis with the IMRAD structure and automatic formatting.",
     color: "from-blue-500/10 to-blue-600/5 dark:from-blue-400/10 dark:to-blue-500/5",
     iconBg: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    dotColor: "bg-blue-500",
   },
   {
     icon: BookOpen,
@@ -75,6 +79,7 @@ const useCases = [
     description: "Comprehensive graduate thesis support with extended abstract, literature review, and appendices.",
     color: "from-emerald-500/10 to-emerald-600/5 dark:from-emerald-400/10 dark:to-emerald-500/5",
     iconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    dotColor: "bg-emerald-500",
   },
   {
     icon: FlaskConical,
@@ -82,6 +87,7 @@ const useCases = [
     description: "Full doctoral dissertation template with front matter, multiple chapters, glossary, and listings.",
     color: "from-amber-500/10 to-amber-600/5 dark:from-amber-400/10 dark:to-amber-500/5",
     iconBg: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    dotColor: "bg-amber-500",
   },
   {
     icon: FileText,
@@ -89,6 +95,7 @@ const useCases = [
     description: "Concise research report template ideal for technical papers, lab reports, or project documentation.",
     color: "from-rose-500/10 to-rose-600/5 dark:from-rose-400/10 dark:to-rose-500/5",
     iconBg: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    dotColor: "bg-rose-500",
   },
 ];
 
@@ -165,63 +172,81 @@ const fadeUp = {
 };
 
 // ============================================================
-// Floating Shapes Configuration
+// Floating Shapes Configuration — 8 shapes, larger, softer
 // ============================================================
 
 const floatingShapes = [
   {
     shape: "circle" as const,
-    size: 18,
-    color: "oklch(0.488 0.217 264 / 0.12)",
-    x: "10%",
-    y: "20%",
+    size: 24,
+    color: "oklch(0.50 0.22 264 / 0.10)",
+    x: "8%",
+    y: "18%",
     anim: "floatShape1",
     delay: "0s",
   },
   {
     shape: "square" as const,
-    size: 14,
-    color: "oklch(0.60 0.18 305 / 0.10)",
-    x: "85%",
-    y: "15%",
+    size: 18,
+    color: "oklch(0.60 0.18 305 / 0.08)",
+    x: "88%",
+    y: "12%",
     anim: "floatShape2",
     delay: "1s",
   },
   {
     shape: "circle" as const,
-    size: 10,
-    color: "oklch(0.55 0.20 42 / 0.12)",
-    x: "75%",
-    y: "65%",
+    size: 14,
+    color: "oklch(0.55 0.20 42 / 0.10)",
+    x: "78%",
+    y: "68%",
     anim: "floatShape1",
     delay: "2s",
   },
   {
     shape: "square" as const,
-    size: 12,
-    color: "oklch(0.60 0.18 155 / 0.10)",
-    x: "15%",
-    y: "70%",
+    size: 16,
+    color: "oklch(0.60 0.18 155 / 0.08)",
+    x: "12%",
+    y: "72%",
     anim: "floatShape2",
     delay: "0.5s",
   },
   {
     shape: "circle" as const,
-    size: 8,
-    color: "oklch(0.488 0.217 264 / 0.08)",
-    x: "50%",
-    y: "10%",
+    size: 10,
+    color: "oklch(0.50 0.22 264 / 0.06)",
+    x: "48%",
+    y: "8%",
     anim: "floatShape1",
     delay: "1.5s",
   },
   {
     shape: "square" as const,
-    size: 16,
-    color: "oklch(0.65 0.19 305 / 0.08)",
-    x: "90%",
-    y: "45%",
+    size: 20,
+    color: "oklch(0.65 0.19 305 / 0.06)",
+    x: "92%",
+    y: "42%",
     anim: "floatShape2",
     delay: "0.8s",
+  },
+  {
+    shape: "circle" as const,
+    size: 12,
+    color: "oklch(0.55 0.18 155 / 0.09)",
+    x: "35%",
+    y: "85%",
+    anim: "floatShape1",
+    delay: "2.5s",
+  },
+  {
+    shape: "square" as const,
+    size: 11,
+    color: "oklch(0.50 0.15 42 / 0.09)",
+    x: "62%",
+    y: "22%",
+    anim: "floatShape2",
+    delay: "1.2s",
   },
 ];
 
@@ -262,41 +287,47 @@ function useCounter(target: number, inView: boolean, duration = 1500, special = 
 // Stat Counter Component
 // ============================================================
 
-function StatCounter({ stat, index }: { stat: typeof stats[number]; index: number }) {
+function StatCounter({ stat, index, isLast }: { stat: typeof stats[number]; index: number; isLast: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
   const count = useCounter(stat.value, isInView, 1500, stat.isSpecial);
 
   return (
-    <motion.div
-      ref={ref}
-      custom={index}
-      variants={fadeUp}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true }}
-      className="text-center p-4 sm:p-6"
-    >
-      <div className="text-3xl sm:text-4xl lg:text-5xl font-bold google-gradient-text mb-2">
-        {stat.isSpecial ? (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : {}}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            Zero
-          </motion.span>
-        ) : (
-          <>
-            {count}
-            {stat.suffix}
-          </>
-        )}
-      </div>
-      <p className="text-sm sm:text-base text-muted-foreground font-medium">
-        {stat.label}
-      </p>
-    </motion.div>
+    <div className="relative flex flex-col items-center">
+      {/* Divider between stats (not after last) */}
+      {!isLast && (
+        <div className="hidden sm:block absolute right-0 top-1/2 -translate-y-1/2 h-10 w-px bg-border/60" />
+      )}
+      <motion.div
+        ref={ref}
+        custom={index}
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        className="text-center p-4 sm:p-6"
+      >
+        <div className="text-3xl sm:text-4xl lg:text-5xl font-bold google-gradient-text mb-2">
+          {stat.isSpecial ? (
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={isInView ? { opacity: 1 } : {}}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              Zero
+            </motion.span>
+          ) : (
+            <>
+              {count}
+              {stat.suffix}
+            </>
+          )}
+        </div>
+        <p className="text-sm sm:text-base text-muted-foreground font-medium">
+          {stat.label}
+        </p>
+      </motion.div>
+    </div>
   );
 }
 
@@ -306,13 +337,20 @@ function StatCounter({ stat, index }: { stat: typeof stats[number]; index: numbe
 
 export function Homepage() {
   const { startWizard } = useThesisStore();
+  const [hasSavedState, setHasSavedState] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [showLearnMore, setShowLearnMore] = useState(false);
 
-  const hasSavedState =
-    typeof window !== "undefined" &&
-    !!localStorage.getItem("thesisforge_state");
+  useEffect(() => {
+    setMounted(true);
+    setHasSavedState(!!localStorage.getItem("thesisforge_state"));
+  }, []);
 
   const heroRef = useRef<HTMLElement>(null);
   const heroInView = useInView(heroRef, { once: true, margin: "-100px" });
+
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const ctaInView = useInView(ctaRef, { once: true, margin: "-80px" });
 
   const subtitleWords = [
     "Select", "a", "template,", "fill", "in", "your", "content,", "and",
@@ -369,7 +407,7 @@ export function Homepage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-            className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-8"
+            className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-8 text-balance"
           >
             Create Your Thesis{" "}
             <br className="hidden sm:block" />
@@ -386,22 +424,21 @@ export function Homepage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-12"
           >
-            {heroInView &&
-              subtitleWords.map((word, i) => (
-                <motion.span
-                  key={i}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.3,
-                    delay: 0.4 + i * 0.04,
-                    ease: "easeOut",
-                  }}
-                  className="inline-block mr-[0.25em]"
-                >
-                  {word}
-                </motion.span>
-              ))}
+            {subtitleWords.map((word, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, y: 8 }}
+                animate={mounted ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+                transition={{
+                  duration: 0.3,
+                  delay: mounted ? 0.4 + i * 0.04 : 0,
+                  ease: "easeOut",
+                }}
+                className="inline-block mr-[0.25em]"
+              >
+                {word}
+              </motion.span>
+            ))}
           </motion.p>
 
           {/* CTA Buttons */}
@@ -411,15 +448,49 @@ export function Homepage() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="flex flex-col items-center gap-4"
           >
+            {/* Primary CTA — larger, gradient bg */}
             <Button
               onClick={startWizard}
               size="lg"
-              className="h-14 px-10 rounded-xl text-base font-semibold gap-2 hover:scale-[1.02] transition-transform duration-200 surface-2 cta-pulse"
+              className="h-16 px-12 rounded-2xl text-base font-semibold gap-2.5 hover:scale-[1.03] transition-all duration-200 surface-2 cta-pulse google-gradient border-0 shadow-lg hover:shadow-xl"
             >
               <Zap className="w-5 h-5" />
               Get Started — It&apos;s Free
               <ArrowRight className="w-5 h-5" />
             </Button>
+
+            {/* Secondary ghost CTA */}
+            <button
+              onClick={() => setShowLearnMore((v) => !v)}
+              className="group inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 px-6 py-2.5 rounded-xl hover:bg-muted/50"
+            >
+              {showLearnMore ? (
+                <>
+                  Show Less
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </>
+              ) : (
+                <>
+                  Learn More
+                  <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+                </>
+              )}
+            </button>
+
+            {/* Learn more collapsed content */}
+            {showLearnMore && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden w-full max-w-md"
+              >
+                <p className="text-sm text-muted-foreground leading-relaxed mt-2 px-4 py-3 rounded-xl bg-muted/40 border border-border/50">
+                  ThesisForge generates <strong className="text-foreground font-medium">compilable LaTeX code</strong> from your inputs. 
+                  It supports Bachelor&apos;s, Master&apos;s, PhD, and Research Report formats with full BibTeX bibliography support.
+                </p>
+              </motion.div>
+            )}
 
             {hasSavedState && (
               <motion.button
@@ -464,7 +535,7 @@ export function Homepage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {stats.map((stat, i) => (
-              <StatCounter key={stat.label} stat={stat} index={i} />
+              <StatCounter key={stat.label} stat={stat} index={i} isLast={i === stats.length - 1} />
             ))}
           </div>
         </div>
@@ -482,10 +553,10 @@ export function Homepage() {
             transition={{ duration: 0.5 }}
             className="text-center mb-12"
           >
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3">
+            <h2 className="section-heading text-2xl sm:text-3xl mb-3">
               Everything you need
             </h2>
-            <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto">
+            <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto text-pretty">
               From template selection to LaTeX export, ThesisForge handles the entire thesis creation pipeline.
             </p>
           </motion.div>
@@ -495,16 +566,18 @@ export function Homepage() {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true }}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5"
           >
             {features.map((feature) => (
               <motion.div key={feature.title} variants={item}>
                 <Card className="h-full card-hover group relative overflow-hidden border-border/50 bg-card/50 hover:bg-card transition-all duration-300">
+                  {/* Subtle gradient border on hover */}
+                  <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ring-1 ring-primary/20" />
                   {/* Subtle gradient on hover */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-primary/5 via-transparent to-primary/[0.02] pointer-events-none" />
-                  <CardContent className="relative p-5 sm:p-6">
+                  <CardContent className="relative p-6">
                     <div className="flex items-start gap-4">
-                      <div className="shrink-0 mt-0.5 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <div className="shrink-0 mt-0.5 w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                         <feature.icon className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -541,10 +614,10 @@ export function Homepage() {
             transition={{ duration: 0.5 }}
             className="text-center mb-12"
           >
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3">
+            <h2 className="section-heading text-2xl sm:text-3xl mb-3">
               Perfect for
             </h2>
-            <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto">
+            <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto text-pretty">
               Tailored templates for every academic level and use case.
             </p>
           </motion.div>
@@ -554,21 +627,25 @@ export function Homepage() {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true }}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5"
           >
             {useCases.map((useCase) => (
               <motion.div key={useCase.title} variants={item}>
                 <Card className={`h-full card-hover group border-border/50 bg-gradient-to-br ${useCase.color} transition-all duration-300`}>
-                  <CardContent className="p-5 sm:p-6">
+                  <CardContent className="p-6">
                     <div className="flex items-start gap-4">
-                      <div className={`shrink-0 mt-0.5 w-10 h-10 rounded-lg ${useCase.iconBg} flex items-center justify-center`}>
-                        <useCase.icon className="w-5 h-5" />
+                      <div className="shrink-0 mt-0.5 w-11 h-11 rounded-xl flex items-center justify-center relative">
+                        {/* Colored dot badge indicating template type */}
+                        <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ${useCase.dotColor} ring-2 ring-background`} />
+                        <div className={`w-11 h-11 rounded-xl ${useCase.iconBg} flex items-center justify-center`}>
+                          <useCase.icon className="w-5 h-5" />
+                        </div>
                       </div>
                       <div>
                         <h3 className="text-sm font-semibold mb-1">
                           {useCase.title}
                         </h3>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
+                        <p className="text-xs text-muted-foreground leading-relaxed text-pretty">
                           {useCase.description}
                         </p>
                       </div>
@@ -593,10 +670,10 @@ export function Homepage() {
             transition={{ duration: 0.5 }}
             className="text-center mb-14"
           >
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3">
+            <h2 className="section-heading text-2xl sm:text-3xl mb-3">
               How it works
             </h2>
-            <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto">
+            <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto text-pretty">
               Three simple steps to a polished, compilable thesis.
             </p>
           </motion.div>
@@ -608,8 +685,8 @@ export function Homepage() {
             viewport={{ once: true }}
             className="relative"
           >
-            {/* Connecting line (desktop) */}
-            <div className="hidden sm:block absolute top-16 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20" />
+            {/* Connecting line (desktop) — dashed */}
+            <div className="hidden sm:block absolute top-16 left-[20%] right-[20%] h-0.5 border-t-2 border-dashed border-primary/20" />
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-6">
               {steps.map((step, idx) => (
@@ -619,7 +696,7 @@ export function Homepage() {
                   className="text-center relative"
                 >
                   {/* Step number circle */}
-                  <div className="relative inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground font-bold text-xl mb-5 ring-4 ring-primary/10">
+                  <div className="relative inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground font-bold text-xl mb-5 ring-4 ring-primary/10 z-10">
                     {step.step}
                   </div>
                   {/* Step icon */}
@@ -627,9 +704,17 @@ export function Homepage() {
                     <step.icon className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <h3 className="text-sm font-semibold mb-1.5">{step.title}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed max-w-[200px] mx-auto">
+                  <p className="text-xs text-muted-foreground leading-relaxed max-w-[200px] mx-auto text-pretty">
                     {step.desc}
                   </p>
+
+                  {/* Arrow between steps (desktop only) */}
+                  {idx < 2 && (
+                    <div className="hidden sm:flex absolute -right-3 top-[3.25rem] z-20 w-6 h-6 items-center justify-center rounded-full bg-background border border-border/60">
+                      <ChevronRight className="w-3.5 h-3.5 text-primary/60" />
+                    </div>
+                  )}
+
                   {/* Arrow (mobile) */}
                   {idx < 2 && (
                     <div className="sm:hidden text-muted-foreground/30 text-2xl mt-4">
@@ -659,9 +744,9 @@ export function Homepage() {
               <motion.div
                 key={badge.title}
                 variants={item}
-                className="flex items-center gap-3 p-4 rounded-xl bg-card/50 border border-border/50"
+                className="flex items-center gap-3 p-5 rounded-xl bg-card/50 border border-border/50"
               >
-                <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <div className="shrink-0 w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
                   <badge.icon className="w-5 h-5 text-primary" />
                 </div>
                 <div>
@@ -675,9 +760,53 @@ export function Homepage() {
       </section>
 
       {/* ============================================================ */}
+      {/* Final CTA Section */}
+      {/* ============================================================ */}
+      <section ref={ctaRef} className="py-16 sm:py-24 relative overflow-hidden">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 pointer-events-none opacity-40" aria-hidden="true">
+          <div className="absolute inset-0 bg-pattern" />
+        </div>
+
+        <div className="relative max-w-2xl mx-auto px-4 sm:px-6 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={ctaInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            {/* Icon */}
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/10 mb-6">
+              <Rocket className="w-7 h-7 text-primary" />
+            </div>
+
+            <h2 className="section-heading text-2xl sm:text-3xl lg:text-4xl mb-4 text-pretty">
+              Ready to create your thesis?
+            </h2>
+            <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto leading-relaxed mb-8 text-pretty">
+              Join thousands of students who trust ThesisForge to generate professional LaTeX code in minutes — no LaTeX experience needed.
+            </p>
+
+            <Button
+              onClick={startWizard}
+              size="lg"
+              className="h-14 px-10 rounded-2xl text-base font-semibold gap-2.5 hover:scale-[1.03] transition-all duration-200 surface-2 cta-pulse google-gradient border-0 shadow-lg hover:shadow-xl"
+            >
+              <Zap className="w-5 h-5" />
+              Start Writing Now
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+
+            <p className="text-xs text-muted-foreground/60 mt-4">
+              Free forever · No sign-up · Works offline
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
       {/* Developer Credit */}
       {/* ============================================================ */}
-      <section className="py-10">
+      <section className="py-10 border-t">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <div className="inline-flex items-center gap-2 text-xs text-muted-foreground mb-2">
             <Users className="w-3.5 h-3.5" />
@@ -687,8 +816,12 @@ export function Homepage() {
             <strong className="text-foreground font-semibold">
               Abhishek Shah
             </strong>
+            {/* Version badge */}
+            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-mono font-medium bg-muted/80 text-muted-foreground border border-border/50">
+              v1.0
+            </span>
           </p>
-          <div className="flex items-center justify-center gap-3 mt-2">
+          <div className="flex items-center justify-center gap-3 mt-2 flex-wrap">
             <a
               href="mailto:abhishek.aimarine@gmail.com"
               className="text-[11px] text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"

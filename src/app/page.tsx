@@ -27,9 +27,6 @@ import {
   FileDown,
   FileUp,
   Menu,
-  ArrowUp,
-  Check,
-  Loader2,
 } from "lucide-react";
 import {
   Tooltip,
@@ -55,53 +52,29 @@ import {
 import { cn } from "@/lib/utils";
 
 // ============================================================
-// Animation Variants
+// Animation Variants — Simple fade + slight slide
 // ============================================================
 
-// Page-level transition between homepage and wizard
-const pageVariants = {
-  initial: { opacity: 0, y: 12, scale: 0.995 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -12, scale: 0.995 },
+const fadeVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
 };
 
-const pageTransition = {
-  duration: 0.4,
+const fadeTransition = {
+  duration: 0.25,
   ease: [0.22, 1, 0.36, 1] as const,
-};
-
-// Step transitions with directional sliding
-const getStepVariants = (direction: "forward" | "backward") => ({
-  enter: {
-    x: direction === "forward" ? 60 : -60,
-    opacity: 0,
-    scale: 0.98,
-  },
-  center: { x: 0, opacity: 1, scale: 1 },
-  exit: {
-    x: direction === "forward" ? -40 : 40,
-    opacity: 0,
-    scale: 0.98,
-  },
-});
-
-const stepTransition = {
-  duration: 0.35,
-  ease: [0.22, 1, 0.36, 1] as const,
-};
-
-// Step indicator entrance animation
-const stepIndicatorVariants = {
-  initial: { opacity: 0, y: -8, scale: 0.98 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -8, scale: 0.98 },
 };
 
 // ============================================================
 // Step Navigation Data
 // ============================================================
 
-const STEP_NAV: { step: WizardStep; name: string; description: string }[] = [
+const STEP_NAV: {
+  step: WizardStep;
+  name: string;
+  description: string;
+}[] = [
   { step: 1, name: "Template", description: "Choose thesis type" },
   { step: 2, name: "Metadata", description: "Title, author, info" },
   { step: 3, name: "Abstract", description: "Write your abstract" },
@@ -111,7 +84,7 @@ const STEP_NAV: { step: WizardStep; name: string; description: string }[] = [
 ];
 
 // ============================================================
-// Konami Code: ↑↑↓↓←→←→BA
+// Konami Code
 // ============================================================
 
 const KONAMI_CODE = [
@@ -126,29 +99,6 @@ const KONAMI_CODE = [
   "KeyB",
   "KeyA",
 ];
-
-// ============================================================
-// Save Status Indicator (extracted component)
-// ============================================================
-
-function SaveStatusDot({
-  saveState,
-}: {
-  saveState: "idle" | "saving" | "saved";
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-full transition-colors duration-300 shrink-0 w-2 h-2",
-        saveState === "saving"
-          ? "bg-amber-500 animate-pulse"
-          : saveState === "saved"
-            ? "bg-emerald-500"
-            : "bg-muted-foreground/30"
-      )}
-    />
-  );
-}
 
 // ============================================================
 // Main Component
@@ -181,31 +131,10 @@ export default function Home() {
   const [showGoHomeConfirm, setShowGoHomeConfirm] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // ---- UI states ----
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
-    "idle"
-  );
-  const [trackedStep, setTrackedStep] = useState(currentStep);
-  const [showBackToTop, setShowBackToTop] = useState(false);
-
-  // Derive step direction from currentStep vs trackedStep (setState-during-render
-  // is a supported React pattern for deriving state from props).
-  const stepDirection: "forward" | "backward" =
-    currentStep !== trackedStep
-      ? currentStep > trackedStep
-        ? "forward"
-        : "backward"
-      : "forward";
-  if (currentStep !== trackedStep) {
-    setTrackedStep(currentStep);
-  }
-
   // ---- Refs ----
   const konamiBuffer = useRef<string[]>([]);
   const isFirstRender = useRef(true);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const saveCompleteRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSaveToastRef = useRef(0);
   const deletedChapterShownRef = useRef(false);
   const deletedRefShownRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -242,19 +171,12 @@ export default function Home() {
   }, []);
 
   // ================================================================
-  // Auto-save with debounce, save indicator, and toast
+  // Auto-save — silent, no toast, no indicator
   // ================================================================
   useEffect(() => {
     if (!wizardStarted || !thesis) return;
 
-    // Defer the "saving" indicator to next frame to avoid synchronous
-    // setState in effect body (lint rule react-hooks/set-state-in-effect)
-    const showSavingFrame = requestAnimationFrame(() => {
-      setSaveState("saving");
-    });
-
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    if (saveCompleteRef.current) clearTimeout(saveCompleteRef.current);
 
     saveTimeoutRef.current = setTimeout(() => {
       const state = useThesisStore.getState();
@@ -268,28 +190,11 @@ export default function Home() {
             wizardStarted: state.wizardStarted,
           })
         );
-        setSaveState("saved");
-
-        // Debounced toast — don't spam (min 4s between toasts)
-        const now = Date.now();
-        if (now - lastSaveToastRef.current > 4000) {
-          toast.success("Progress saved", {
-            duration: 1500,
-            description: "Auto-saved to browser",
-          });
-          lastSaveToastRef.current = now;
-        }
-
-        saveCompleteRef.current = setTimeout(() => {
-          setSaveState("idle");
-        }, 2500);
       }
     }, 800);
 
     return () => {
-      cancelAnimationFrame(showSavingFrame);
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      if (saveCompleteRef.current) clearTimeout(saveCompleteRef.current);
     };
   }, [thesis, currentStep, wizardStarted]);
 
@@ -337,29 +242,6 @@ export default function Home() {
   }, [lastDeletedReference, undoDeleteReference]);
 
   // ================================================================
-  // Listen for code copy events from generate step
-  // ================================================================
-  useEffect(() => {
-    const handleCopy = () => {
-      toast.success("Copied to clipboard", { duration: 2000 });
-    };
-    window.addEventListener("thesisforge:code-copied", handleCopy);
-    return () => window.removeEventListener("thesisforge:code-copied", handleCopy);
-  }, []);
-
-  // ================================================================
-  // Scroll handler for "Back to Top" button (threshold: 300px)
-  // ================================================================
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 300);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // ================================================================
   // Keyboard Shortcuts + Konami Code
   // ================================================================
   useEffect(() => {
@@ -377,7 +259,6 @@ export default function Home() {
         konamiBuffer.current = [];
       }
 
-      // Don't trigger shortcuts when typing in inputs/textareas
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
@@ -512,39 +393,11 @@ export default function Home() {
     }
   };
 
-  const stepVariants = getStepVariants(stepDirection);
-
   // ================================================================
-  // Mobile menu items (shared between Sheet and header)
+  // Mobile menu items
   // ================================================================
   const mobileMenuItems = (
     <nav className="space-y-0.5">
-      {/* Save indicator (mobile) */}
-      {wizardStarted && thesis && (
-        <div className="flex items-center gap-1.5 px-3 py-2">
-          <SaveStatusDot saveState={saveState} />
-          <span
-            className={cn(
-              "text-xs transition-all duration-300 whitespace-nowrap",
-              saveState === "saving"
-                ? "text-amber-600 dark:text-amber-400 font-medium"
-                : saveState === "saved"
-                  ? "text-emerald-600 dark:text-emerald-400 font-medium"
-                  : "text-muted-foreground/60"
-            )}
-          >
-            {saveState === "saving"
-              ? "Saving\u2026"
-              : saveState === "saved"
-                ? "All changes saved"
-                : "Auto-save on"}
-          </span>
-        </div>
-      )}
-      {wizardStarted && thesis && (
-        <div className="h-px bg-border/60 mx-2 mb-2" />
-      )}
-
       {wizardStarted && (
         <>
           <button
@@ -565,7 +418,9 @@ export default function Home() {
           >
             <HomeIcon className="w-4 h-4 shrink-0" />
             <span>
-              {currentStep === 1 ? "Back to Homepage" : "Return to Templates"}
+              {currentStep === 1
+                ? "Back to Homepage"
+                : "Return to Templates"}
             </span>
           </button>
 
@@ -649,64 +504,24 @@ export default function Home() {
         />
 
         {/* ============================================================ */}
-        {/* HEADER */}
+        {/* HEADER — Clean, no save indicator */}
         {/* ============================================================ */}
         <header className="sticky top-0 z-50 border-b bg-background/85 backdrop-blur-xl surface-1">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-            {/* Left: Logo + brand */}
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+            {/* Left: Logo */}
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
                 <FileText className="w-4 h-4 text-primary-foreground" />
               </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm font-bold tracking-tight leading-none">
-                  ThesisForge
-                </span>
-                <span className="text-[10px] text-muted-foreground leading-none mt-0.5 hidden sm:block truncate">
-                  {wizardStarted
-                    ? "Instant LaTeX Thesis Creator"
-                    : "Create LaTeX theses effortlessly"}
-                </span>
-              </div>
+              <span className="text-sm font-bold tracking-tight">
+                ThesisForge
+              </span>
             </div>
 
-            {/* Right: Desktop action buttons (hidden on mobile) */}
+            {/* Right: Desktop actions */}
             <div className="items-center gap-1 hidden sm:flex shrink-0">
-              {/* Save state indicator in header */}
-              {wizardStarted && thesis && (
-                <div className="flex items-center mr-1.5">
-                  <div
-                    className={cn(
-                      "w-1.5 h-1.5 rounded-full transition-colors duration-300",
-                      saveState === "saving"
-                        ? "bg-amber-500 animate-pulse"
-                        : saveState === "saved"
-                          ? "bg-emerald-500"
-                          : "bg-muted-foreground/30"
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      "text-[10px] ml-1 transition-all duration-300 whitespace-nowrap",
-                      saveState === "saving"
-                        ? "text-amber-600 dark:text-amber-400 font-medium"
-                        : saveState === "saved"
-                          ? "text-emerald-600 dark:text-emerald-400 font-medium"
-                          : "text-transparent"
-                    )}
-                  >
-                    {saveState === "saving"
-                      ? "Saving\u2026"
-                      : saveState === "saved"
-                        ? "Saved"
-                        : "\u200B"}
-                  </span>
-                </div>
-              )}
-
               {wizardStarted && (
                 <>
-                  {/* Templates / Home button */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -727,7 +542,7 @@ export default function Home() {
                         )}
                       >
                         <HomeIcon className="w-3.5 h-3.5" />
-                        <span className="hidden lg:inline">Templates</span>
+                        <span className="hidden lg:inline">Home</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
@@ -739,7 +554,6 @@ export default function Home() {
                     </TooltipContent>
                   </Tooltip>
 
-                  {/* New Thesis / Reset button */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -749,18 +563,16 @@ export default function Home() {
                         className="text-xs gap-1.5 text-muted-foreground h-8"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
-                        <span className="hidden lg:inline">New Thesis</span>
+                        <span className="hidden lg:inline">
+                          New Thesis
+                        </span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
-                      <p>Start over from the beginning</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        Clears all current data
-                      </p>
+                      <p>Start a new thesis</p>
                     </TooltipContent>
                   </Tooltip>
 
-                  {/* Export button */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -773,11 +585,10 @@ export default function Home() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
-                      <p>Export project as JSON</p>
+                      <p>Export project</p>
                     </TooltipContent>
                   </Tooltip>
 
-                  {/* Import button */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -790,13 +601,12 @@ export default function Home() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
-                      <p>Import project from JSON</p>
+                      <p>Import project</p>
                     </TooltipContent>
                   </Tooltip>
                 </>
               )}
 
-              {/* Keyboard shortcuts */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -809,14 +619,13 @@ export default function Home() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                  <p>Keyboard shortcuts</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    Press <span className="kbd">?</span>
+                  <p>
+                    Shortcuts{" "}
+                    <span className="kbd ml-1">?</span>
                   </p>
                 </TooltipContent>
               </Tooltip>
 
-              {/* Theme toggle */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -833,31 +642,38 @@ export default function Home() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                  <p>Toggle {theme === "dark" ? "light" : "dark"} mode</p>
+                  <p>
+                    Toggle {theme === "dark" ? "light" : "dark"} mode
+                  </p>
                 </TooltipContent>
               </Tooltip>
             </div>
 
-            {/* Mobile: Save dot + Hamburger (visible on mobile only) */}
-            <div className="flex sm:hidden items-center gap-2 shrink-0">
-              {/* Mini save indicator dot */}
-              {wizardStarted && thesis && (
-                <SaveStatusDot saveState={saveState} />
-              )}
-              {/* Hamburger menu */}
-              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            {/* Mobile: Hamburger only */}
+            <div className="flex sm:hidden items-center shrink-0">
+              <Sheet
+                open={mobileMenuOpen}
+                onOpenChange={setMobileMenuOpen}
+              >
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <Menu className="w-4.5 h-4.5" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                  >
+                    <Menu className="w-4 h-4" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[280px] pt-6 px-3">
+                <SheetContent
+                  side="right"
+                  className="w-[280px] pt-6 px-3"
+                >
                   <SheetHeader className="px-2 pb-4 border-b">
                     <SheetTitle className="flex items-center gap-2 text-sm font-semibold">
                       <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
                         <FileText className="w-3 h-3 text-primary-foreground" />
                       </div>
-                      ThesisForge Menu
+                      ThesisForge
                     </SheetTitle>
                   </SheetHeader>
                   <div className="mt-4">{mobileMenuItems}</div>
@@ -875,49 +691,49 @@ export default function Home() {
             {!wizardStarted ? (
               <motion.div
                 key="homepage"
-                variants={pageVariants}
+                variants={fadeVariants}
                 initial="initial"
                 animate="animate"
                 exit="exit"
-                transition={pageTransition}
+                transition={fadeTransition}
               >
                 <Homepage />
               </motion.div>
             ) : (
               <motion.div
                 key="wizard"
-                variants={pageVariants}
+                variants={fadeVariants}
                 initial="initial"
                 animate="animate"
                 exit="exit"
-                transition={pageTransition}
-                className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6"
+                transition={fadeTransition}
+                className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6"
               >
                 {/* Step Indicator */}
                 <AnimatePresence mode="wait">
                   {selectedTemplate && (
                     <motion.div
-                      variants={stepIndicatorVariants}
+                      key="step-indicator"
+                      variants={fadeVariants}
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                      transition={fadeTransition}
                     >
                       <StepIndicator />
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {/* Step Content with directional transitions */}
-                <AnimatePresence mode="wait" custom={stepDirection}>
+                {/* Step Content — simple fade transition */}
+                <AnimatePresence mode="wait">
                   <motion.div
                     key={currentStep}
-                    custom={stepDirection}
-                    variants={stepVariants}
-                    initial="enter"
-                    animate="center"
+                    variants={fadeVariants}
+                    initial="initial"
+                    animate="animate"
                     exit="exit"
-                    transition={stepTransition}
+                    transition={fadeTransition}
                   >
                     {renderStep()}
                   </motion.div>
@@ -928,70 +744,41 @@ export default function Home() {
         </main>
 
         {/* ============================================================ */}
-        {/* FOOTER — Polished, compact, with auto-save status */}
+        {/* FOOTER — Compact: tagline + developer credit */}
         {/* ============================================================ */}
         <footer className="border-t mt-auto bg-background/60 backdrop-blur-sm">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3">
-            {/* Main row */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-              {/* Left: workflow hint + save status */}
-              <div className="flex items-center gap-3 text-center sm:text-left">
-                <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
-                  Paste content &rarr;{" "}
-                  <code className="text-[9px] bg-secondary/50 px-1 py-0.5 rounded font-mono">
-                    .tex
-                  </code>{" "}
-                  &rarr; Compile &rarr; PDF
-                </p>
-                {/* Auto-save status in footer (desktop only) */}
-                {wizardStarted && thesis && (
-                  <div className="hidden sm:flex items-center gap-1.5 pl-3 border-l border-border/50">
-                    {saveState === "saving" ? (
-                      <Loader2 className="w-3 h-3 text-amber-500 animate-spin" />
-                    ) : saveState === "saved" ? (
-                      <Check className="w-3 h-3 text-emerald-500" />
-                    ) : null}
-                    <span
-                      className={cn(
-                        "text-[10px] transition-all duration-300 whitespace-nowrap",
-                        saveState === "saving"
-                          ? "text-amber-600 dark:text-amber-400 font-medium"
-                          : saveState === "saved"
-                            ? "text-emerald-600 dark:text-emerald-400 font-medium"
-                            : "text-muted-foreground/40"
-                      )}
-                    >
-                      {saveState === "saving"
-                        ? "Saving\u2026"
-                        : saveState === "saved"
-                          ? "All changes saved"
-                          : "Auto-save on"}
-                    </span>
-                  </div>
-                )}
-              </div>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-1.5">
+              {/* Tagline */}
+              <p className="text-[10px] text-muted-foreground/50 text-center sm:text-left">
+                Paste content &rarr;{" "}
+                <code className="text-[9px] bg-secondary/50 px-1 py-0.5 rounded font-mono">
+                  .tex
+                </code>{" "}
+                &rarr; Compile &rarr; PDF
+              </p>
 
-              {/* Right: Developer credit — social card style */}
+              {/* Developer credit */}
               <div className="flex items-center gap-2">
                 <a
                   href="https://abhishekshah.vercel.app"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 group"
+                  className="flex items-center gap-1.5 group"
                 >
-                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <span className="text-[8px] font-bold text-primary">
+                  <div className="w-4 h-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-[7px] font-bold text-primary">
                       AS
                     </span>
                   </div>
-                  <span className="text-[11px] font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                  <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
                     Abhishek Shah
                   </span>
                 </a>
-                <div className="w-px h-3.5 bg-border/60" />
+                <div className="w-px h-3 bg-border/40" />
                 <a
                   href="mailto:abhishek.aimarine@gmail.com"
-                  className="text-[10px] text-muted-foreground/60 hover:text-primary transition-colors inline-flex items-center"
+                  className="text-muted-foreground/40 hover:text-primary transition-colors inline-flex items-center"
                   title="abhishek.aimarine@gmail.com"
                 >
                   <Mail className="w-3 h-3" />
@@ -1000,7 +787,7 @@ export default function Home() {
                   href="https://abhishekshah.vercel.app"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[10px] text-muted-foreground/60 hover:text-primary transition-colors inline-flex items-center"
+                  className="text-muted-foreground/40 hover:text-primary transition-colors inline-flex items-center"
                   title="Portfolio"
                 >
                   <ExternalLink className="w-3 h-3" />
@@ -1009,10 +796,9 @@ export default function Home() {
             </div>
 
             {/* Brand line */}
-            <div className="mt-2 pt-2 border-t border-border/40 flex items-center justify-center">
-              <span className="text-[9px] text-muted-foreground/30">
-                <span className="font-semibold">ThesisForge</span>
-                {" "}by{" "}
+            <div className="mt-1.5 pt-1.5 border-t border-border/30 flex items-center justify-center">
+              <span className="text-[9px] text-muted-foreground/25">
+                <span className="font-semibold">ThesisForge</span> by{" "}
                 <a
                   href="https://abhishekshah.vercel.app"
                   target="_blank"
@@ -1020,59 +806,27 @@ export default function Home() {
                   className="hover:text-primary transition-colors underline underline-offset-1 decoration-muted-foreground/10 hover:decoration-primary"
                 >
                   Abhishek Shah
-                </a>
-                {" "}&middot; &copy; {new Date().getFullYear()}
+                </a>{" "}
+                &middot; &copy; {new Date().getFullYear()}
               </span>
             </div>
           </div>
         </footer>
 
         {/* ============================================================ */}
-        {/* BACK TO TOP floating button */}
-        {/* ============================================================ */}
-        <AnimatePresence>
-          {showBackToTop && wizardStarted && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.8, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 10 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              onClick={() =>
-                window.scrollTo({ top: 0, behavior: "smooth" })
-              }
-              className="fixed bottom-20 right-4 sm:right-6 z-40 w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl flex items-center justify-center transition-shadow"
-              aria-label="Back to top"
-            >
-              <ArrowUp className="w-4 h-4" />
-            </motion.button>
-          )}
-        </AnimatePresence>
-
-        {/* ============================================================ */}
-        {/* DIALOGS */}
+        {/* DIALOGS — Clean, no icons in headers */}
         {/* ============================================================ */}
 
-        {/* ---- Keyboard Shortcuts Dialog ---- */}
+        {/* ---- Keyboard Shortcuts ---- */}
         <Dialog open={showShortcuts} onOpenChange={setShowShortcuts}>
-          <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden border-border/60 shadow-xl">
-            <div className="p-5 pb-0">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2.5 text-base">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Keyboard className="w-4 h-4 text-primary" />
-                  </div>
-                  Keyboard Shortcuts
-                </DialogTitle>
-                <DialogDescription className="sr-only">
-                  List of all available keyboard shortcuts for navigating
-                  the thesis wizard
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-            <div className="px-5 pb-5 pt-3 space-y-1">
-              {/* Shortcut rows */}
+          <DialogContent className="sm:max-w-md rounded-xl">
+            <DialogHeader>
+              <DialogTitle>Keyboard Shortcuts</DialogTitle>
+              <DialogDescription className="sr-only">
+                List of available keyboard shortcuts
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1">
               {[
                 { label: "Go to next step", keys: ["Ctrl", "\u2192"] },
                 { label: "Go to previous step", keys: ["Ctrl", "\u2190"] },
@@ -1110,9 +864,9 @@ export default function Home() {
                         key={s.step}
                         onClick={() => handleGoToStep(s.step)}
                         className={cn(
-                          "px-2 py-2.5 rounded-lg text-center transition-all duration-150",
+                          "px-2 py-2.5 rounded-lg text-center transition-colors",
                           currentStep === s.step
-                            ? "bg-primary text-primary-foreground shadow-sm"
+                            ? "bg-primary text-primary-foreground"
                             : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground"
                         )}
                       >
@@ -1127,121 +881,85 @@ export default function Home() {
                   </div>
                 </>
               )}
-
-              {/* Footer hint */}
-              <div className="border-t pt-2.5 mt-2">
-                <p className="text-[10px] text-muted-foreground/50 italic px-3">
-                  Your progress is auto-saved to local storage. Come back
-                  anytime.
-                </p>
-              </div>
             </div>
           </DialogContent>
         </Dialog>
 
-        {/* ---- Go Home Confirmation Dialog ---- */}
+        {/* ---- Go Home Confirmation ---- */}
         <Dialog
           open={showGoHomeConfirm}
           onOpenChange={setShowGoHomeConfirm}
         >
-          <DialogContent className="sm:max-w-sm rounded-2xl p-0 overflow-hidden border-border/60 shadow-xl">
-            <div className="p-5 pb-0">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2.5 text-base">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <HomeIcon className="w-4 h-4 text-primary" />
-                  </div>
-                  Return to Homepage?
-                </DialogTitle>
-                <DialogDescription className="text-sm text-muted-foreground leading-relaxed pt-1">
-                  You&apos;ll be taken back to the homepage. Your thesis data
-                  will be preserved and can be resumed anytime via the
-                  &quot;Resume saved draft&quot; button.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-            <div className="px-5 pb-5 pt-4">
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowGoHomeConfirm(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleGoHome}
-                  className="gap-1.5"
-                >
-                  <HomeIcon className="w-3.5 h-3.5" />
-                  Go to Homepage
-                </Button>
-              </DialogFooter>
-            </div>
+          <DialogContent className="sm:max-w-sm rounded-xl">
+            <DialogHeader>
+              <DialogTitle>Return to Homepage?</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
+                Your thesis data will be preserved and can be resumed anytime
+                via the &quot;Resume saved draft&quot; button.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowGoHomeConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleGoHome}
+                className="gap-1.5"
+              >
+                Go to Homepage
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* ---- Reset Confirmation Dialog ---- */}
+        {/* ---- Reset Confirmation ---- */}
         <Dialog
           open={showResetConfirm}
           onOpenChange={setShowResetConfirm}
         >
-          <DialogContent className="sm:max-w-sm rounded-2xl p-0 overflow-hidden border-border/60 shadow-xl">
-            <div className="p-5 pb-0">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2.5 text-base">
-                  <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-                    <RotateCcw className="w-4 h-4 text-destructive" />
-                  </div>
-                  Start New Thesis?
-                </DialogTitle>
-                <DialogDescription className="text-sm text-muted-foreground leading-relaxed pt-1">
-                  This will permanently clear all your current thesis data and
-                  saved drafts. This action cannot be undone.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-            <div className="px-5 pb-5 pt-4">
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowResetConfirm(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleReset}
-                  className="gap-1.5"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Reset Everything
-                </Button>
-              </DialogFooter>
-            </div>
+          <DialogContent className="sm:max-w-sm rounded-xl">
+            <DialogHeader>
+              <DialogTitle>Start New Thesis?</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
+                This will permanently clear all your current thesis data and
+                saved drafts. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowResetConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleReset}
+                className="gap-1.5"
+              >
+                Reset Everything
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* ---- Easter Egg Dialog ---- */}
+        {/* ---- Easter Egg ---- */}
         <Dialog open={showEasterEgg} onOpenChange={setShowEasterEgg}>
-          <DialogContent className="sm:max-w-sm rounded-2xl p-0 overflow-hidden border-border/60 shadow-xl">
-            <div className="p-5 pb-0">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2.5 text-base">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                  </div>
-                  You found the secret!
-                </DialogTitle>
-                <DialogDescription className="sr-only">
-                  Easter egg — secret dialog for discovering the Konami code
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-            <div className="px-5 pb-5 pt-3 space-y-3">
+          <DialogContent className="sm:max-w-sm rounded-xl">
+            <DialogHeader>
+              <DialogTitle>You found the secret!</DialogTitle>
+              <DialogDescription className="sr-only">
+                Easter egg dialog
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Hey there! You discovered the hidden Konami Code easter egg.
               </p>
@@ -1256,17 +974,8 @@ export default function Home() {
                 >
                   Abhishek Shah
                 </a>
-                . Every pixel, every transition, every line of code was
-                designed to make creating LaTeX theses effortless.
+                .
               </p>
-              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                <p className="text-[11px] text-primary font-medium leading-relaxed">
-                  Fun fact: This app generates clean, compilable LaTeX that
-                  works perfectly in Overleaf, TeXStudio, and any other LaTeX
-                  editor.
-                </p>
-              </div>
-              {/* Konami sequence display */}
               <div className="flex items-center justify-center gap-1 pt-1">
                 {[
                   "\u2191",
@@ -1280,15 +989,12 @@ export default function Home() {
                   "B",
                   "A",
                 ].map((key, i) => (
-                  <motion.span
+                  <span
                     key={i}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.08 }}
                     className="w-6 h-6 rounded bg-muted text-[10px] font-mono font-bold text-muted-foreground flex items-center justify-center"
                   >
                     {key}
-                  </motion.span>
+                  </span>
                 ))}
               </div>
             </div>

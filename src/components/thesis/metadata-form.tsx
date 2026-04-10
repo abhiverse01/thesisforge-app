@@ -30,28 +30,18 @@ import {
   Calendar,
   MapPin,
   Heart,
-  MessageSquare,
   ChevronRight,
   ChevronLeft,
   Settings,
   Check,
   CalendarIcon,
   Wand2,
-  Eye,
   Type,
-  AlignJustify,
-  FileText,
-  ListTree,
   Puzzle,
   GraduationCap,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   Tooltip,
   TooltipContent,
@@ -97,58 +87,30 @@ const COMMON_LOCATIONS = [
 
 function FieldCheck({ filled }: { filled: boolean }) {
   return (
-    <AnimatePresence>
-      {filled && (
-        <motion.span
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 500, damping: 25 }}
-          className="inline-flex items-center justify-center"
-        >
-          <Check className="w-3.5 h-3.5 text-emerald-500" />
-        </motion.span>
-      )}
-    </AnimatePresence>
-  );
-}
-
-function SectionProgress({
-  completed,
-  total,
-}: {
-  completed: number;
-  total: number;
-}) {
-  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="ml-auto text-[11px] font-medium tabular-nums px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
-          {completed}/{total}{" "}
-          <span className="hidden sm:inline">fields</span>
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>{pct}% complete</TooltipContent>
-    </Tooltip>
+    <span
+      className={`inline-flex items-center justify-center w-3.5 h-3.5 shrink-0 transition-opacity duration-200 ${
+        filled ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      <Check className="w-3 h-3 text-emerald-500" />
+    </span>
   );
 }
 
 export function MetadataForm() {
   const { thesis, updateMetadata, nextStep, prevStep, updateOptions } =
     useThesisStore();
-  const [showPreview, setShowPreview] = useState(false);
   const [suggestedUniversities, setSuggestedUniversities] = useState<
     string[]
   >([]);
   const [suggestedLocations, setSuggestedLocations] = useState<string[]>([]);
 
   const _metadata = thesis?.metadata;
-  const _options = thesis?.options;
 
   // --- Completion tracking (hooks before conditional return) ---
   const requiredFieldsFilled = useMemo(() => {
-    if (!_metadata) return { checks: {}, total: 0, filled: 0, allFilled: false };
+    if (!_metadata)
+      return { checks: {}, total: 0, filled: 0, allFilled: false };
     const checks = {
       title: !!_metadata.title.trim(),
       author: !!_metadata.author.trim(),
@@ -157,53 +119,14 @@ export function MetadataForm() {
       date: !!_metadata.submissionDate,
       location: !!_metadata.location.trim(),
     };
-    const total = Object.keys(checks).length as (keyof typeof checks)[];
-    const filled = total.filter((k) => checks[k]).length;
-    return { checks, total: total.length, filled, allFilled: filled === total.length };
-  }, [_metadata]);
-
-  // Section progress counters
-  const titleProgress = useMemo(() => {
-    if (!_metadata) return { completed: 0, total: 2 };
-    let c = 0;
-    if (_metadata.title.trim()) c++;
-    if (_metadata.subtitle.trim()) c++;
-    return { completed: c, total: 2 };
-  }, [_metadata]);
-
-  const authorProgress = useMemo(() => {
-    if (!_metadata) return { completed: 0, total: 2 };
-    let c = 0;
-    if (_metadata.author.trim()) c++;
-    if (_metadata.authorId.trim()) c++;
-    return { completed: c, total: 2 };
-  }, [_metadata]);
-
-  const institutionProgress = useMemo(() => {
-    if (!_metadata) return { completed: 0, total: 3 };
-    let c = 0;
-    if (_metadata.university.trim()) c++;
-    if (_metadata.faculty.trim()) c++;
-    if (_metadata.department.trim()) c++;
-    return { completed: c, total: 3 };
-  }, [_metadata]);
-
-  const supervisorProgress = useMemo(() => {
-    if (!_metadata) return { completed: 0, total: 3 };
-    let c = 0;
-    if (_metadata.supervisor.trim()) c++;
-    if (_metadata.supervisorTitle) c++;
-    if (_metadata.coSupervisor.trim()) c++;
-    return { completed: c, total: 3 };
-  }, [_metadata]);
-
-  const dateProgress = useMemo(() => {
-    if (!_metadata) return { completed: 0, total: 3 };
-    let c = 0;
-    if (_metadata.submissionDate) c++;
-    if (_metadata.graduationDate) c++;
-    if (_metadata.location.trim()) c++;
-    return { completed: c, total: 3 };
+    const keys = Object.keys(checks) as (keyof typeof checks)[];
+    const filled = keys.filter((k) => checks[k]).length;
+    return {
+      checks,
+      total: keys.length,
+      filled,
+      allFilled: filled === keys.length,
+    };
   }, [_metadata]);
 
   if (!thesis) return null;
@@ -212,43 +135,33 @@ export function MetadataForm() {
 
   // Auto-fill suggestions
   const handleSuggestUniversity = () => {
+    const pool = [...COMMON_UNIVERSITIES].sort(() => 0.5 - Math.random());
     if (metadata.university.trim()) {
       const query = metadata.university.toLowerCase();
       const matches = COMMON_UNIVERSITIES.filter((u) =>
         u.toLowerCase().includes(query)
       );
-      if (matches.length > 0) {
-        setSuggestedUniversities(matches.slice(0, 5));
-      } else {
-        setSuggestedUniversities(
-          COMMON_UNIVERSITIES.sort(() => 0.5 - Math.random()).slice(0, 5)
-        );
-      }
-    } else {
       setSuggestedUniversities(
-        COMMON_UNIVERSITIES.sort(() => 0.5 - Math.random()).slice(0, 5)
+        matches.length > 0 ? matches.slice(0, 5) : pool.slice(0, 5)
       );
+    } else {
+      setSuggestedUniversities(pool.slice(0, 5));
     }
     setSuggestedLocations([]);
   };
 
   const handleSuggestLocation = () => {
+    const pool = [...COMMON_LOCATIONS].sort(() => 0.5 - Math.random());
     if (metadata.location.trim()) {
       const query = metadata.location.toLowerCase();
       const matches = COMMON_LOCATIONS.filter((l) =>
         l.toLowerCase().includes(query)
       );
-      if (matches.length > 0) {
-        setSuggestedLocations(matches.slice(0, 5));
-      } else {
-        setSuggestedLocations(
-          COMMON_LOCATIONS.sort(() => 0.5 - Math.random()).slice(0, 5)
-        );
-      }
-    } else {
       setSuggestedLocations(
-        COMMON_LOCATIONS.sort(() => 0.5 - Math.random()).slice(0, 5)
+        matches.length > 0 ? matches.slice(0, 5) : pool.slice(0, 5)
       );
+    } else {
+      setSuggestedLocations(pool.slice(0, 5));
     }
     setSuggestedUniversities([]);
   };
@@ -258,18 +171,10 @@ export function MetadataForm() {
     nextStep();
   };
 
-  // Format date for preview
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return "Not set";
-    try {
-      return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-      });
-    } catch {
-      return dateStr;
-    }
-  };
+  const requiredPct =
+    requiredFieldsFilled.total > 0
+      ? (requiredFieldsFilled.filled / requiredFieldsFilled.total) * 100
+      : 0;
 
   return (
     <div className="space-y-6">
@@ -291,47 +196,41 @@ export function MetadataForm() {
           Fill in your thesis details. This information will appear on the title
           page and in the document metadata.
         </p>
-        {/* Overall required fields progress */}
-        <motion.div
-          className="flex items-center justify-center gap-2 pt-1"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div className="flex-1 max-w-[200px] h-1.5 rounded-full bg-secondary overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-emerald-500"
-              animate={{
-                width: `${(requiredFieldsFilled.filled / requiredFieldsFilled.total) * 100}%`,
-              }}
-              transition={{ duration: 0.4 }}
-            />
-          </div>
-          <span className="text-[11px] text-muted-foreground font-medium tabular-nums">
-            {requiredFieldsFilled.filled}/{requiredFieldsFilled.total} required
-          </span>
-        </motion.div>
+      </motion.div>
+
+      {/* Subtle progress bar below header */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="space-y-1"
+      >
+        <div className="h-1 rounded-full bg-secondary overflow-hidden">
+          <motion.div
+            className="h-full rounded-full bg-emerald-500"
+            animate={{ width: `${requiredPct}%` }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground text-center tabular-nums">
+          {requiredFieldsFilled.filled}/{requiredFieldsFilled.total} required
+          fields completed
+        </p>
       </motion.div>
 
       <form onSubmit={handleSubmit}>
-        <ScrollArea className="max-h-[calc(100vh-420px)] px-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-4">
-            {/* Title & Subtitle */}
+        <ScrollArea className="max-h-[calc(100vh-440px)] px-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
+            {/* ---- Title & Subtitle ---- */}
             <Card className="md:col-span-2">
               <CardHeader className="pb-3">
-                <div className="flex items-center">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-primary" />
-                    Thesis Title
-                  </CardTitle>
-                  <SectionProgress
-                    completed={titleProgress.completed}
-                    total={titleProgress.total}
-                  />
-                </div>
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-primary" />
+                  Thesis Title
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1.5">
+              <CardContent className="space-y-2">
+                <div className="space-y-2">
                   <Label
                     htmlFor="title"
                     className="text-xs font-medium flex items-center gap-1.5"
@@ -348,7 +247,7 @@ export function MetadataForm() {
                     className="text-sm"
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label
                     htmlFor="subtitle"
                     className="text-xs font-medium flex items-center gap-1.5"
@@ -369,22 +268,16 @@ export function MetadataForm() {
               </CardContent>
             </Card>
 
-            {/* Author Info */}
+            {/* ---- Author Info ---- */}
             <Card>
               <CardHeader className="pb-3">
-                <div className="flex items-center">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <User className="w-4 h-4 text-primary" />
-                    Author Information
-                  </CardTitle>
-                  <SectionProgress
-                    completed={authorProgress.completed}
-                    total={authorProgress.total}
-                  />
-                </div>
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <User className="w-4 h-4 text-primary" />
+                  Author Information
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1.5">
+              <CardContent className="space-y-2">
+                <div className="space-y-2">
                   <Label
                     htmlFor="author"
                     className="text-xs font-medium flex items-center gap-1.5"
@@ -401,7 +294,7 @@ export function MetadataForm() {
                     className="text-sm"
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label
                     htmlFor="authorId"
                     className="text-xs font-medium flex items-center gap-1.5"
@@ -422,22 +315,16 @@ export function MetadataForm() {
               </CardContent>
             </Card>
 
-            {/* Institution */}
+            {/* ---- Institution ---- */}
             <Card>
               <CardHeader className="pb-3">
-                <div className="flex items-center">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Building className="w-4 h-4 text-primary" />
-                    Institution
-                  </CardTitle>
-                  <SectionProgress
-                    completed={institutionProgress.completed}
-                    total={institutionProgress.total}
-                  />
-                </div>
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Building className="w-4 h-4 text-primary" />
+                  Institution
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1.5">
+              <CardContent className="space-y-2">
+                <div className="space-y-2">
                   <Label
                     htmlFor="university"
                     className="text-xs font-medium flex items-center gap-1.5"
@@ -465,10 +352,10 @@ export function MetadataForm() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          className="shrink-0 h-9 w-9"
+                          className="shrink-0 h-8 w-8"
                           onClick={handleSuggestUniversity}
                         >
-                          <Wand2 className="w-3.5 h-3.5 text-amber-500" />
+                          <Wand2 className="w-3 h-3 text-muted-foreground" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Suggest university</TooltipContent>
@@ -499,7 +386,7 @@ export function MetadataForm() {
                     )}
                   </AnimatePresence>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label
                     htmlFor="faculty"
                     className="text-xs font-medium flex items-center gap-1.5"
@@ -515,7 +402,7 @@ export function MetadataForm() {
                     className="text-sm"
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label
                     htmlFor="department"
                     className="text-xs font-medium flex items-center gap-1.5"
@@ -536,24 +423,18 @@ export function MetadataForm() {
               </CardContent>
             </Card>
 
-            {/* Supervisors */}
+            {/* ---- Supervisors ---- */}
             <Card className="md:col-span-2">
               <CardHeader className="pb-3">
-                <div className="flex items-center">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <User className="w-4 h-4 text-primary" />
-                    Supervisors
-                  </CardTitle>
-                  <SectionProgress
-                    completed={supervisorProgress.completed}
-                    total={supervisorProgress.total}
-                  />
-                </div>
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <User className="w-4 h-4 text-primary" />
+                  Supervisors
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
+                  <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label
                         htmlFor="supervisor"
                         className="text-xs font-medium flex items-center gap-1.5"
@@ -572,7 +453,7 @@ export function MetadataForm() {
                         className="text-sm"
                       />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label
                         htmlFor="supervisorTitle"
                         className="text-xs font-medium"
@@ -603,8 +484,8 @@ export function MetadataForm() {
                       </Select>
                     </div>
                   </div>
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
+                  <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label
                         htmlFor="coSupervisor"
                         className="text-xs font-medium flex items-center gap-1.5"
@@ -622,7 +503,7 @@ export function MetadataForm() {
                         className="text-sm"
                       />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label
                         htmlFor="coSupervisorTitle"
                         className="text-xs font-medium"
@@ -657,22 +538,16 @@ export function MetadataForm() {
               </CardContent>
             </Card>
 
-            {/* Date & Location */}
+            {/* ---- Date & Location ---- */}
             <Card>
               <CardHeader className="pb-3">
-                <div className="flex items-center">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-primary" />
-                    Date & Location
-                  </CardTitle>
-                  <SectionProgress
-                    completed={dateProgress.completed}
-                    total={dateProgress.total}
-                  />
-                </div>
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  Date & Location
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1.5">
+              <CardContent className="space-y-2">
+                <div className="space-y-2">
                   <Label
                     htmlFor="submissionDate"
                     className="text-xs font-medium flex items-center gap-1.5"
@@ -694,7 +569,7 @@ export function MetadataForm() {
                     />
                   </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label
                     htmlFor="graduationDate"
                     className="text-xs font-medium flex items-center gap-1.5"
@@ -715,7 +590,7 @@ export function MetadataForm() {
                     />
                   </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label
                     htmlFor="location"
                     className="text-xs font-medium flex items-center gap-1.5"
@@ -743,10 +618,10 @@ export function MetadataForm() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          className="shrink-0 h-9 w-9"
+                          className="shrink-0 h-8 w-8"
                           onClick={handleSuggestLocation}
                         >
-                          <Wand2 className="w-3.5 h-3.5 text-amber-500" />
+                          <Wand2 className="w-3 h-3 text-muted-foreground" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Suggest location</TooltipContent>
@@ -780,7 +655,7 @@ export function MetadataForm() {
               </CardContent>
             </Card>
 
-            {/* Dedication & Acknowledgment */}
+            {/* ---- Dedication & Acknowledgment ---- */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -789,9 +664,15 @@ export function MetadataForm() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">Include Dedication</Label>
+                <div className="flex items-center justify-between gap-3">
+                  <Label
+                    htmlFor="switch-dedication"
+                    className="text-xs font-medium cursor-pointer"
+                  >
+                    Include Dedication
+                  </Label>
                   <Switch
+                    id="switch-dedication"
                     checked={options.includeDedication}
                     onCheckedChange={(checked) =>
                       updateOptions({ includeDedication: checked })
@@ -802,15 +683,11 @@ export function MetadataForm() {
                   {options.includeDedication && (
                     <motion.div
                       key="dedication"
-                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                      animate={{
-                        opacity: 1,
-                        height: "auto",
-                        marginTop: 4,
-                      }}
-                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                      transition={{ duration: 0.25, ease: "easeInOut" }}
-                      style={{ overflow: "hidden" }}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
                     >
                       <Textarea
                         placeholder="e.g., To my parents, for their unwavering support..."
@@ -826,11 +703,15 @@ export function MetadataForm() {
 
                 <Separator />
 
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">
+                <div className="flex items-center justify-between gap-3">
+                  <Label
+                    htmlFor="switch-ack"
+                    className="text-xs font-medium cursor-pointer"
+                  >
                     Include Acknowledgment
                   </Label>
                   <Switch
+                    id="switch-ack"
                     checked={options.includeAcknowledgment}
                     onCheckedChange={(checked) =>
                       updateOptions({ includeAcknowledgment: checked })
@@ -841,15 +722,11 @@ export function MetadataForm() {
                   {options.includeAcknowledgment && (
                     <motion.div
                       key="acknowledgment"
-                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                      animate={{
-                        opacity: 1,
-                        height: "auto",
-                        marginTop: 4,
-                      }}
-                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                      transition={{ duration: 0.25, ease: "easeInOut" }}
-                      style={{ overflow: "hidden" }}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
                     >
                       <Textarea
                         placeholder="I would like to express my gratitude to..."
@@ -865,7 +742,7 @@ export function MetadataForm() {
               </CardContent>
             </Card>
 
-            {/* Document Options — Organized into sub-groups */}
+            {/* ---- Document Options ---- */}
             <Card className="md:col-span-2">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -873,15 +750,15 @@ export function MetadataForm() {
                   Document Options
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-5">
+              <CardContent className="space-y-0">
                 {/* Formatting sub-group */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <Type className="w-3.5 h-3.5" />
+                <div className="space-y-3 pb-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Type className="w-3 h-3" />
                     Formatting
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="space-y-1.5">
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="space-y-2">
                       <Label className="text-xs font-medium">Font Size</Label>
                       <Select
                         value={options.fontSize}
@@ -895,14 +772,16 @@ export function MetadataForm() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="10pt">10pt — Compact</SelectItem>
-                          <SelectItem value="11pt">11pt — Standard</SelectItem>
-                          <SelectItem value="12pt">12pt — Large</SelectItem>
+                          <SelectItem value="10pt">10pt -- Compact</SelectItem>
+                          <SelectItem value="11pt">11pt -- Standard</SelectItem>
+                          <SelectItem value="12pt">12pt -- Large</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Line Spacing</Label>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium">
+                        Line Spacing
+                      </Label>
                       <Select
                         value={options.lineSpacing}
                         onValueChange={(val) =>
@@ -921,8 +800,10 @@ export function MetadataForm() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Page Margins</Label>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium">
+                        Page Margins
+                      </Label>
                       <Select
                         value={options.marginSize}
                         onValueChange={(val) =>
@@ -938,15 +819,19 @@ export function MetadataForm() {
                           <SelectItem value="narrow">
                             Narrow (0.75&quot;)
                           </SelectItem>
-                          <SelectItem value="normal">Normal (1&quot;)</SelectItem>
+                          <SelectItem value="normal">
+                            Normal (1&quot;)
+                          </SelectItem>
                           <SelectItem value="wide">
                             Wide (1.25&quot;)
                           </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Paper Size</Label>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium">
+                        Paper Size
+                      </Label>
                       <Select
                         value={options.paperSize}
                         onValueChange={(val) =>
@@ -959,9 +844,11 @@ export function MetadataForm() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="a4paper">A4 (210 × 297mm)</SelectItem>
+                          <SelectItem value="a4paper">
+                            A4 (210 x 297mm)
+                          </SelectItem>
                           <SelectItem value="letterpaper">
-                            US Letter (8.5 × 11&quot;)
+                            US Letter (8.5 x 11&quot;)
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -972,14 +859,16 @@ export function MetadataForm() {
                 <Separator />
 
                 {/* Academic sub-group */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <GraduationCap className="w-3.5 h-3.5" />
+                <div className="space-y-3 py-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <GraduationCap className="w-3 h-3" />
                     Academic
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Citation Style</Label>
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium">
+                        Citation Style
+                      </Label>
                       <Select
                         value={options.citationStyle}
                         onValueChange={(val) =>
@@ -1000,7 +889,7 @@ export function MetadataForm() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label className="text-xs font-medium">TOC Depth</Label>
                       <Select
                         value={String(options.tocDepth)}
@@ -1012,19 +901,23 @@ export function MetadataForm() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="1">1 — Chapters only</SelectItem>
-                          <SelectItem value="2">2 — Sections</SelectItem>
-                          <SelectItem value="3">3 — Subsections</SelectItem>
-                          <SelectItem value="4">4 — Sub-subsections</SelectItem>
+                          <SelectItem value="1">1 -- Chapters only</SelectItem>
+                          <SelectItem value="2">2 -- Sections</SelectItem>
+                          <SelectItem value="3">3 -- Subsections</SelectItem>
+                          <SelectItem value="4">4 -- Sub-subsections</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="flex items-end pb-0.5">
-                      <div className="flex items-center justify-between w-full">
-                        <Label className="text-xs font-medium">
+                      <div className="flex items-center justify-between w-full gap-3">
+                        <Label
+                          htmlFor="switch-numbering"
+                          className="text-xs font-medium cursor-pointer"
+                        >
                           Per-Chapter Numbering
                         </Label>
                         <Switch
+                          id="switch-numbering"
                           checked={options.figureNumbering === "per-chapter"}
                           onCheckedChange={(checked) =>
                             updateOptions({
@@ -1045,39 +938,51 @@ export function MetadataForm() {
                 <Separator />
 
                 {/* Features sub-group */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <Puzzle className="w-3.5 h-3.5" />
+                <div className="space-y-3 pt-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Puzzle className="w-3 h-3" />
                     Features
-                  </div>
+                  </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-medium">
+                    <div className="flex items-center justify-between gap-3">
+                      <Label
+                        htmlFor="switch-appendices"
+                        className="text-xs font-medium cursor-pointer"
+                      >
                         Include Appendices
                       </Label>
                       <Switch
+                        id="switch-appendices"
                         checked={options.includeAppendices}
                         onCheckedChange={(checked) =>
                           updateOptions({ includeAppendices: checked })
                         }
                       />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-medium">
+                    <div className="flex items-center justify-between gap-3">
+                      <Label
+                        htmlFor="switch-listings"
+                        className="text-xs font-medium cursor-pointer"
+                      >
                         Include Code Listings
                       </Label>
                       <Switch
+                        id="switch-listings"
                         checked={options.includeListings}
                         onCheckedChange={(checked) =>
                           updateOptions({ includeListings: checked })
                         }
                       />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-medium">
+                    <div className="flex items-center justify-between gap-3">
+                      <Label
+                        htmlFor="switch-glossary"
+                        className="text-xs font-medium cursor-pointer"
+                      >
                         Include Glossary
                       </Label>
                       <Switch
+                        id="switch-glossary"
                         checked={options.includeGlossary}
                         onCheckedChange={(checked) =>
                           updateOptions({ includeGlossary: checked })
@@ -1088,121 +993,31 @@ export function MetadataForm() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Preview Title Page */}
-            <Card className="md:col-span-2">
-              <Collapsible open={showPreview} onOpenChange={setShowPreview}>
-                <CardHeader className="pb-3">
-                  <CollapsibleTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex items-center w-full text-left group"
-                    >
-                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                        <Eye className="w-4 h-4 text-primary" />
-                        Preview Title Page
-                      </CardTitle>
-                      <motion.div
-                        animate={{ rotate: showPreview ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="ml-auto"
-                      >
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                      </motion.div>
-                    </button>
-                  </CollapsibleTrigger>
-                </CardHeader>
-                <CollapsibleContent>
-                  <CardContent>
-                    <div className="border rounded-lg bg-white dark:bg-zinc-950 p-6 sm:p-8 max-w-lg mx-auto shadow-sm">
-                      <div className="text-center space-y-4">
-                        {metadata.university && (
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
-                            {metadata.university}
-                          </p>
-                        )}
-                        {metadata.faculty && (
-                          <p className="text-[11px] text-muted-foreground">
-                            {metadata.faculty}
-                            {metadata.department
-                              ? ` — ${metadata.department}`
-                              : ""}
-                          </p>
-                        )}
-                        <div className="my-6">
-                          <h3 className="text-lg sm:text-xl font-bold leading-tight">
-                            {metadata.title || "Your Thesis Title"}
-                          </h3>
-                          {metadata.subtitle && (
-                            <p className="text-sm text-muted-foreground mt-1 italic">
-                              {metadata.subtitle}
-                            </p>
-                          )}
-                        </div>
-                        <div className="space-y-1 text-xs text-muted-foreground">
-                          <p>
-                            <span className="font-medium text-foreground">
-                              {metadata.author || "Author Name"}
-                            </span>
-                          </p>
-                          {metadata.authorId && (
-                            <p>Student ID: {metadata.authorId}</p>
-                          )}
-                          <div className="pt-2 space-y-0.5">
-                            {metadata.supervisor && (
-                              <p>
-                                Supervisor: {metadata.supervisorTitle}{" "}
-                                {metadata.supervisor}
-                              </p>
-                            )}
-                            {metadata.coSupervisor && (
-                              <p>
-                                Co-Supervisor: {metadata.coSupervisorTitle}{" "}
-                                {metadata.coSupervisor}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="pt-4 text-xs text-muted-foreground space-y-0.5">
-                          <p>{formatDate(metadata.submissionDate)}</p>
-                          {metadata.location && <p>{metadata.location}</p>}
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-center text-[11px] text-muted-foreground mt-2">
-                      This is a simplified preview. The final LaTeX output will
-                      follow your institution&apos;s title page template.
-                    </p>
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
           </div>
         </ScrollArea>
 
         {/* Navigation */}
-        <div className="flex justify-between pt-4 border-t">
+        <div className="flex items-center justify-between pt-4 border-t">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
+            size="sm"
             onClick={prevStep}
-            className="text-sm"
+            className="text-muted-foreground"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
             Back
           </Button>
-          <Button type="submit" className="text-sm">
+          <Button type="submit" size="sm">
             {requiredFieldsFilled.allFilled ? (
               <>
-                <Check className="w-4 h-4 mr-1" />
+                <Check className="w-4 h-4 mr-1.5" />
                 Continue
               </>
             ) : (
-              <>
-                Continue
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </>
+              "Continue"
             )}
+            <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </div>
       </form>

@@ -22,7 +22,16 @@ import {
 
 const stepIcons = [FileText, UserRound, AlignLeft, BookOpen, Quote, Download];
 
-function canNavigation(
+const stepAbbreviations = [
+  "Template",
+  "Metadata",
+  "Abstract",
+  "Chapters",
+  "Refs",
+  "Generate",
+];
+
+function canNavigate(
   selectedTemplate: string | null,
   stepId: number,
   currentStep: number
@@ -44,11 +53,16 @@ export function StepIndicator({ className }: StepIndicatorProps) {
     ((currentStep - 1) / (totalSteps - 1)) * 100
   );
 
-  // Accurate progress line: percentage between first circle center (0%) and last circle center (100%)
   const progressPercent = useMemo(
     () => ((currentStep - 1) / (totalSteps - 1)) * 100,
     [currentStep, totalSteps]
   );
+
+  const tooltipSide = (index: number): "bottom" | "top" => {
+    if (index === 0) return "bottom";
+    if (index === totalSteps - 1) return "bottom";
+    return "bottom";
+  };
 
   return (
     <nav
@@ -57,15 +71,16 @@ export function StepIndicator({ className }: StepIndicatorProps) {
     >
       {/* Desktop view */}
       <div className="hidden md:block">
-        {/* Completion percentage label */}
-        <div className="flex items-center justify-between mb-3 px-1">
+        {/* Completion label with mini progress bar */}
+        <div className="flex items-center justify-between mb-4 px-1">
           <p className="text-xs font-medium text-muted-foreground">
             Progress
           </p>
-          <div className="flex items-center gap-2">
-            <div className="h-1.5 w-20 rounded-full bg-border overflow-hidden">
+          <div className="flex items-center gap-2.5">
+            <div className="h-1.5 w-24 rounded-full bg-primary/15 overflow-hidden">
               <motion.div
                 className="h-full rounded-full bg-primary"
+                layout
                 initial={false}
                 animate={{ width: `${completionPercent}%` }}
                 transition={{ type: "spring", stiffness: 200, damping: 25 }}
@@ -73,10 +88,10 @@ export function StepIndicator({ className }: StepIndicatorProps) {
             </div>
             <motion.span
               key={completionPercent}
-              initial={{ scale: 1.15, color: "var(--primary)" }}
-              animate={{ scale: 1, color: "var(--muted-foreground)" }}
-              transition={{ duration: 0.4 }}
-              className="text-xs font-semibold tabular-nums min-w-[36px] text-right"
+              initial={{ scale: 1.1 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              className="text-xs font-bold tabular-nums min-w-[36px] text-right text-foreground"
             >
               {completionPercent}%
             </motion.span>
@@ -85,24 +100,25 @@ export function StepIndicator({ className }: StepIndicatorProps) {
 
         {/* Step circles with connecting line */}
         <div className="relative flex items-start justify-between">
-          {/* Background line — spans center of first to center of last circle */}
+          {/* Background line */}
           <div
-            className="absolute top-[20px] left-[20px] right-[20px] h-[2px] bg-border rounded-full"
+            className="absolute top-[22px] left-[22px] right-[22px] h-[3px] bg-primary/15 rounded-full"
           />
-          {/* Animated progress line — same positioning, width based on progress */}
+          {/* Animated progress line */}
           <motion.div
-            className="absolute top-[20px] left-[20px] h-[2px] bg-primary rounded-full origin-left"
+            className="absolute top-[22px] left-[22px] h-[3px] bg-primary rounded-full origin-left"
+            layout
             initial={false}
             animate={{ scaleX: progressPercent / 100 }}
             transition={{ type: "spring", stiffness: 180, damping: 22 }}
-            style={{ width: "calc(100% - 40px)" }}
+            style={{ width: "calc(100% - 44px)" }}
           />
 
           {WIZARD_STEPS.map((step, index) => {
             const Icon = stepIcons[index];
             const isCompleted = currentStep > step.id;
             const isCurrent = currentStep === step.id;
-            const canNav = canNavigation(selectedTemplate, step.id, currentStep);
+            const canNav = canNavigate(selectedTemplate, step.id, currentStep);
 
             return (
               <Tooltip key={step.id}>
@@ -116,16 +132,17 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                     }}
                     disabled={!canNav}
                     className={cn(
-                      "flex flex-col items-center relative z-10 group outline-none w-[40px]",
+                      "flex flex-col items-center relative z-10 group outline-none",
                       canNav && "cursor-pointer",
-                      !canNav && "cursor-default"
+                      !canNav && "cursor-default opacity-60"
                     )}
                   >
-                    {/* Step circle */}
+                    {/* Step circle — w-11 h-11 for better touch targets */}
                     <motion.div
+                      layout
                       initial={false}
                       animate={{
-                        scale: isCurrent ? 1.15 : 1,
+                        scale: isCurrent ? 1.12 : 1,
                       }}
                       transition={{
                         type: "spring",
@@ -133,14 +150,14 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                         damping: 20,
                       }}
                       className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors duration-300 relative",
+                        "w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors duration-300 relative",
                         isCompleted
                           ? "border-primary bg-primary text-primary-foreground"
                           : isCurrent
-                            ? "border-primary bg-primary text-primary-foreground step-active"
+                            ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                             : canNav
-                              ? "border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-primary/5"
-                              : "border-border bg-card text-muted-foreground/40"
+                              ? "border-muted-foreground/30 bg-card text-muted-foreground hover:border-primary/40 hover:bg-primary/5"
+                              : "border-border bg-muted/30 text-muted-foreground/40"
                       )}
                     >
                       <AnimatePresence mode="wait">
@@ -155,31 +172,30 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                               stiffness: 500,
                               damping: 15,
                             }}
+                            className="flex items-center justify-center"
                           >
-                            <Check className="w-4 h-4" strokeWidth={3} />
+                            <Check className="w-5 h-5" strokeWidth={3} />
                           </motion.span>
                         ) : (
                           <motion.span
-                            key="icon"
+                            key="step-content"
                             initial={{ scale: 0.5, opacity: 0.5 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.5, opacity: 0.5 }}
                             transition={{ duration: 0.2 }}
+                            className="flex flex-col items-center leading-none"
                           >
-                            <Icon className="w-4 h-4" />
+                            <span className="text-[9px] font-bold tracking-wider opacity-60">
+                              {step.id}
+                            </span>
+                            <Icon className="w-4 h-4 mt-px" />
                           </motion.span>
                         )}
                       </AnimatePresence>
                     </motion.div>
 
                     {/* Step label */}
-                    <motion.span
-                      initial={false}
-                      animate={{
-                        opacity: isCurrent ? 1 : 0.55,
-                        y: isCurrent ? 0 : 0,
-                      }}
-                      transition={{ duration: 0.3 }}
+                    <span
                       className={cn(
                         "text-[11px] font-medium mt-2 text-center max-w-[72px] leading-tight transition-colors duration-300",
                         isCurrent
@@ -190,31 +206,30 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                       )}
                     >
                       {step.name}
-                    </motion.span>
+                    </span>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-center">
-                  <div className="flex items-center gap-1.5">
+                <TooltipContent
+                  side={tooltipSide(index)}
+                  sideOffset={8}
+                  className="text-center max-w-[200px]"
+                >
+                  <div className="flex items-center justify-center gap-1.5 mb-0.5">
                     <span className="text-xs font-semibold">
-                      {step.id}. {step.name}
+                      Step {step.id}: {step.name}
                     </span>
                     {isCompleted && (
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                        ✓ Completed
+                        Completed
                       </span>
                     )}
                     {isCurrent && (
                       <span className="text-[10px] text-primary font-medium">
-                        → In Progress
-                      </span>
-                    )}
-                    {!isCompleted && !isCurrent && (
-                      <span className="text-[10px] text-muted-foreground font-medium">
-                        ○ Upcoming
+                        In Progress
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
                     {step.description}
                   </p>
                 </TooltipContent>
@@ -224,37 +239,38 @@ export function StepIndicator({ className }: StepIndicatorProps) {
         </div>
       </div>
 
-      {/* Mobile view — Enhanced with step name abbreviations */}
+      {/* Mobile view */}
       <div className="md:hidden">
-        {/* Mobile progress bar */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-primary"
-              initial={false}
-              animate={{ width: `${completionPercent}%` }}
-              transition={{ type: "spring", stiffness: 200, damping: 25 }}
-            />
-          </div>
-          <motion.span
-            key={`mob-${completionPercent}`}
-            initial={{ scale: 1.1 }}
-            animate={{ scale: 1 }}
-            className="text-[10px] font-semibold text-primary tabular-nums"
-          >
+        {/* "Step X of 6" label */}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-semibold text-foreground">
+            Step {currentStep} of {totalSteps}
+          </span>
+          <span className="text-[10px] font-medium text-primary tabular-nums">
             {completionPercent}%
-          </motion.span>
+          </span>
         </div>
 
-        {/* Step name tabs — scrollable on mobile */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+        {/* Mobile progress bar */}
+        <div className="h-1 rounded-full bg-primary/15 overflow-hidden mb-3">
+          <motion.div
+            className="h-full rounded-full bg-primary"
+            layout
+            initial={false}
+            animate={{ width: `${completionPercent}%` }}
+            transition={{ type: "spring", stiffness: 200, damping: 25 }}
+          />
+        </div>
+
+        {/* Step number tabs — scrollable row with abbreviated names */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
           {WIZARD_STEPS.map((step, index) => {
             const isCompleted = currentStep > step.id;
             const isCurrent = currentStep === step.id;
-            const canNav = canNavigation(selectedTemplate, step.id, currentStep);
+            const canNav = canNavigate(selectedTemplate, step.id, currentStep);
 
             return (
-              <button
+              <motion.button
                 key={step.id}
                 type="button"
                 onClick={() => {
@@ -263,34 +279,47 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                   }
                 }}
                 disabled={!canNav}
+                layout
+                whileTap={canNav ? { scale: 0.96 } : undefined}
                 className={cn(
-                  "flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-300 outline-none",
+                  "flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-medium transition-all duration-200 outline-none",
                   isCurrent &&
                     "bg-primary text-primary-foreground shadow-sm",
                   isCompleted &&
                     !isCurrent &&
-                    "bg-primary/10 text-primary hover:bg-primary/15",
+                    "bg-primary/10 text-primary",
                   !isCurrent &&
                     !isCompleted &&
                     canNav &&
-                    "bg-muted text-muted-foreground hover:bg-muted/80",
-                  !isCurrent && !isCompleted && !canNav && "bg-muted text-muted-foreground/50"
+                    "bg-muted text-muted-foreground",
+                  !isCurrent && !isCompleted && !canNav && "bg-muted/50 text-muted-foreground/40"
                 )}
               >
-                {isCompleted ? (
-                  <Check className="w-3 h-3 flex-shrink-0" strokeWidth={3} />
-                ) : (
-                  <span className="w-3 h-3 flex-shrink-0 flex items-center justify-center text-[9px] font-bold opacity-60">
-                    {step.id}
-                  </span>
-                )}
-                <span className="whitespace-nowrap">{step.name}</span>
-              </button>
+                <span
+                  className={cn(
+                    "w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0",
+                    isCurrent
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : isCompleted
+                        ? "bg-primary/20 text-primary"
+                        : "bg-muted-foreground/10 text-muted-foreground"
+                  )}
+                >
+                  {isCompleted ? (
+                    <Check className="w-3 h-3" strokeWidth={3} />
+                  ) : (
+                    step.id
+                  )}
+                </span>
+                <span className="whitespace-nowrap">
+                  {stepAbbreviations[index]}
+                </span>
+              </motion.button>
             );
           })}
         </div>
 
-        {/* Current step info */}
+        {/* Current step description */}
         <AnimatePresence mode="wait">
           <motion.p
             key={currentStep}
@@ -300,7 +329,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
             transition={{ duration: 0.2 }}
             className="text-center text-[11px] text-muted-foreground font-medium mt-2"
           >
-            Step {currentStep} of {totalSteps} — {WIZARD_STEPS[currentStep - 1].description}
+            {WIZARD_STEPS[currentStep - 1].description}
           </motion.p>
         </AnimatePresence>
       </div>

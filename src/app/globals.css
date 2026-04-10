@@ -44,19 +44,23 @@
 }
 
 /* ============================================================
-   Google Material Design-Inspired Light Theme
+   Light Theme — Warmer, More Inviting
    ============================================================ */
 :root {
   --radius: 0.75rem;
-  --background: oklch(0.987 0.001 247);
+
+  /* Warmer white background */
+  --background: oklch(0.990 0.002 80);
   --foreground: oklch(0.131 0.013 260);
-  --card: oklch(1 0 0);
+
+  /* Pure white cards with very subtle warm tint */
+  --card: oklch(0.998 0.001 80);
   --card-foreground: oklch(0.131 0.013 260);
-  --popover: oklch(1 0 0);
+  --popover: oklch(0.998 0.001 80);
   --popover-foreground: oklch(0.131 0.013 260);
 
-  /* Google Blue primary */
-  --primary: oklch(0.488 0.217 264);
+  /* Primary — slightly more vibrant blue */
+  --primary: oklch(0.50 0.22 264);
   --primary-foreground: oklch(1 0 0);
 
   /* Secondary — soft blue-grey */
@@ -77,10 +81,10 @@
   /* Borders & inputs */
   --border: oklch(0.905 0.006 247);
   --input: oklch(0.905 0.006 247);
-  --ring: oklch(0.488 0.217 264);
+  --ring: oklch(0.50 0.22 264);
 
   /* Charts */
-  --chart-1: oklch(0.488 0.217 264);
+  --chart-1: oklch(0.50 0.22 264);
   --chart-2: oklch(0.60 0.18 155);
   --chart-3: oklch(0.65 0.19 305);
   --chart-4: oklch(0.55 0.20 42);
@@ -89,12 +93,12 @@
   /* Sidebar */
   --sidebar: oklch(0.98 0.002 247);
   --sidebar-foreground: oklch(0.131 0.013 260);
-  --sidebar-primary: oklch(0.488 0.217 264);
+  --sidebar-primary: oklch(0.50 0.22 264);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.95 0.01 247);
   --sidebar-accent-foreground: oklch(0.25 0.013 260);
   --sidebar-border: oklch(0.905 0.006 247);
-  --sidebar-ring: oklch(0.488 0.217 264);
+  --sidebar-ring: oklch(0.50 0.22 264);
 
   /* Google Surface elevation shadows */
   --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.05), 0 1px 3px 0 oklch(0 0 0 / 0.03);
@@ -104,25 +108,28 @@
 }
 
 /* ============================================================
-   Google Material Dark Theme
+   Dark Theme — Deeper, More Premium
    ============================================================ */
 .dark {
-  --background: oklch(0.117 0.013 260);
+  /* True dark background */
+  --background: oklch(0.105 0.015 260);
   --foreground: oklch(0.941 0.006 247);
-  --card: oklch(0.165 0.016 260);
+
+  /* Slightly lighter card surface */
+  --card: oklch(0.155 0.018 260);
   --card-foreground: oklch(0.941 0.006 247);
-  --popover: oklch(0.165 0.016 260);
+  --popover: oklch(0.155 0.018 260);
   --popover-foreground: oklch(0.941 0.006 247);
 
-  /* Google Blue — brighter for dark mode */
-  --primary: oklch(0.623 0.214 259);
-  --primary-foreground: oklch(0.117 0.013 260);
+  /* Brighter blue primary for better contrast */
+  --primary: oklch(0.65 0.22 259);
+  --primary-foreground: oklch(0.105 0.015 260);
 
   --secondary: oklch(0.215 0.018 260);
   --secondary-foreground: oklch(0.941 0.006 247);
 
   --muted: oklch(0.215 0.018 260);
-  --muted-foreground: oklch(0.648 0.013 247);
+  --muted-foreground: oklch(0.65 0.013 247);
 
   --accent: oklch(0.24 0.022 260);
   --accent-foreground: oklch(0.941 0.006 247);
@@ -131,22 +138,22 @@
 
   --border: oklch(0.28 0.02 260);
   --input: oklch(0.28 0.02 260);
-  --ring: oklch(0.623 0.214 259);
+  --ring: oklch(0.65 0.22 259);
 
-  --chart-1: oklch(0.623 0.214 259);
+  --chart-1: oklch(0.65 0.22 259);
   --chart-2: oklch(0.60 0.18 155);
   --chart-3: oklch(0.65 0.19 305);
   --chart-4: oklch(0.55 0.20 42);
   --chart-5: oklch(0.70 0.15 150);
 
-  --sidebar: oklch(0.145 0.016 260);
+  --sidebar: oklch(0.125 0.016 260);
   --sidebar-foreground: oklch(0.941 0.006 247);
-  --sidebar-primary: oklch(0.623 0.214 259);
-  --sidebar-primary-foreground: oklch(0.117 0.013 260);
+  --sidebar-primary: oklch(0.65 0.22 259);
+  --sidebar-primary-foreground: oklch(0.105 0.015 260);
   --sidebar-accent: oklch(0.24 0.022 260);
   --sidebar-accent-foreground: oklch(0.941 0.006 247);
   --sidebar-border: oklch(0.28 0.02 260);
-  --sidebar-ring: oklch(0.623 0.214 259);
+  --sidebar-ring: oklch(0.65 0.22 259);
 
   --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.2), 0 1px 3px 0 oklch(0 0 0 / 0.15);
   --shadow-md: 0 1px 3px 0 oklch(0 0 0 / 0.25), 0 4px 6px -1px oklch(0 0 0 / 0.2);
@@ -168,11 +175,35 @@
 }
 
 /* ============================================================
-   Custom Scrollbar — Google-style thin minimal
+   Subtle Warm Body Gradient — Light Theme
+   ============================================================ */
+@layer base {
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 0%, oklch(0.50 0.22 264 / 0.025) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, oklch(0.65 0.19 305 / 0.02) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 50% 50%, oklch(0.990 0.002 80) 0%, transparent 100%);
+  }
+}
+
+.dark body::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, oklch(0.65 0.22 259 / 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, oklch(0.65 0.19 305 / 0.025) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 50% 50%, oklch(0.105 0.015 260) 0%, transparent 100%);
+}
+
+/* ============================================================
+   Custom Scrollbar — 6px Round, Primary on Hover
    ============================================================ */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -181,24 +212,86 @@
 
 ::-webkit-scrollbar-thumb {
   background: oklch(0.78 0.01 247);
-  border-radius: 4px;
-  border: 2px solid transparent;
-  background-clip: content-box;
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.65 0.01 247);
-  background-clip: content-box;
+  background: oklch(0.50 0.22 264);
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: oklch(0.40 0.01 247);
-  background-clip: content-box;
+  background: oklch(0.35 0.015 260);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.50 0.01 247);
-  background-clip: content-box;
+  background: oklch(0.65 0.22 259);
+}
+
+/* ============================================================
+   Professional Micro-Interactions
+   ============================================================ */
+
+/* Button hover: scale + shadow */
+@layer base {
+  button:not(:disabled):hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px 0 oklch(0.50 0.22 264 / 0.15);
+  }
+
+  button:not(:disabled):active {
+    transform: scale(0.98);
+    box-shadow: 0 1px 2px 0 oklch(0.50 0.22 264 / 0.1);
+  }
+
+  .dark button:not(:disabled):hover {
+    box-shadow: 0 4px 12px 0 oklch(0.65 0.22 259 / 0.2);
+  }
+
+  .dark button:not(:disabled):active {
+    box-shadow: 0 1px 2px 0 oklch(0.65 0.22 259 / 0.15);
+  }
+}
+
+/* Smooth input focus rings */
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+  textarea:focus,
+  select:focus {
+    outline: 2px solid oklch(0.50 0.22 264);
+    outline-offset: 2px;
+    border-radius: calc(var(--radius) - 2px);
+  }
+
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+  .dark textarea:focus,
+  .dark select:focus {
+    outline-color: oklch(0.65 0.22 259);
+  }
+}
+
+/* Card hover lift effect */
+.card-hover {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Better select dropdown styling */
+@layer base {
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    padding-right: 2.5rem;
+  }
+
+  .dark select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  }
 }
 
 /* ============================================================
@@ -249,10 +342,10 @@
    ============================================================ */
 @keyframes stepPulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 oklch(0.488 0.217 264 / 0.25);
+    box-shadow: 0 0 0 0 oklch(0.50 0.22 264 / 0.25);
   }
   50% {
-    box-shadow: 0 0 0 10px oklch(0.488 0.217 264 / 0);
+    box-shadow: 0 0 0 10px oklch(0.50 0.22 264 / 0);
   }
 }
 
@@ -262,10 +355,10 @@
 
 @keyframes stepPulseDark {
   0%, 100% {
-    box-shadow: 0 0 0 0 oklch(0.623 0.214 259 / 0.25);
+    box-shadow: 0 0 0 0 oklch(0.65 0.22 259 / 0.25);
   }
   50% {
-    box-shadow: 0 0 0 10px oklch(0.623 0.214 259 / 0);
+    box-shadow: 0 0 0 10px oklch(0.65 0.22 259 / 0);
   }
 }
 
@@ -284,14 +377,14 @@
 .ripple {
   position: absolute;
   border-radius: 50%;
-  background: oklch(0.488 0.217 264 / 0.15);
+  background: oklch(0.50 0.22 264 / 0.15);
   transform: scale(0);
   animation: ripple-anim 0.6s linear;
   pointer-events: none;
 }
 
 .dark .ripple {
-  background: oklch(0.623 0.214 259 / 0.2);
+  background: oklch(0.65 0.22 259 / 0.2);
 }
 
 @keyframes ripple-anim {
@@ -325,7 +418,7 @@
    ============================================================ */
 .google-gradient {
   background: linear-gradient(135deg,
-    oklch(0.488 0.217 264) 0%,
+    oklch(0.50 0.22 264) 0%,
     oklch(0.55 0.20 280) 50%,
     oklch(0.60 0.18 305) 100%
   );
@@ -333,7 +426,7 @@
 
 .google-gradient-text {
   background: linear-gradient(135deg,
-    oklch(0.488 0.217 264) 0%,
+    oklch(0.50 0.22 264) 0%,
     oklch(0.55 0.20 280) 50%,
     oklch(0.60 0.18 305) 100%
   );
@@ -347,42 +440,60 @@
    ============================================================ */
 .bg-pattern {
   background-image:
-    radial-gradient(circle at 20% 50%, oklch(0.488 0.217 264 / 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 20% 50%, oklch(0.50 0.22 264 / 0.03) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, oklch(0.60 0.18 305 / 0.03) 0%, transparent 50%),
     radial-gradient(circle at 50% 80%, oklch(0.55 0.20 42 / 0.03) 0%, transparent 50%);
 }
 
 .dark .bg-pattern {
   background-image:
-    radial-gradient(circle at 20% 50%, oklch(0.623 0.214 259 / 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 20% 50%, oklch(0.65 0.22 259 / 0.04) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, oklch(0.65 0.19 305 / 0.04) 0%, transparent 50%),
     radial-gradient(circle at 50% 80%, oklch(0.55 0.20 42 / 0.04) 0%, transparent 50%);
 }
 
 /* ============================================================
-   Keyboard shortcut badge
+   Keyboard Shortcut Badge — 3D Realistic Key Effect
    ============================================================ */
 .kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
   font-family: 'Google Sans Mono', monospace;
   font-size: 10px;
-  font-weight: 500;
-  color: oklch(0.44 0.013 260);
-  background: oklch(0.96 0.005 247);
-  border: 1px solid oklch(0.88 0.01 247);
-  border-radius: 4px;
-  box-shadow: 0 1px 0 oklch(0 0 0 / 0.06);
+  font-weight: 600;
+  color: oklch(0.30 0.015 260);
+  background: linear-gradient(
+    to bottom,
+    oklch(0.985 0.002 80) 0%,
+    oklch(0.965 0.004 80) 100%
+  );
+  border: 1px solid oklch(0.88 0.008 80);
+  border-bottom-width: 2px;
+  border-bottom-color: oklch(0.82 0.01 80);
+  border-radius: 5px;
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.06),
+    inset 0 1px 0 oklch(1 0 0 / 0.8);
+  text-shadow: 0 0.5px 0 oklch(1 0 0 / 0.5);
 }
 
 .dark .kbd {
-  color: oklch(0.70 0.01 247);
-  background: oklch(0.22 0.02 260);
-  border-color: oklch(0.32 0.02 260);
+  color: oklch(0.80 0.01 247);
+  background: linear-gradient(
+    to bottom,
+    oklch(0.25 0.02 260) 0%,
+    oklch(0.20 0.018 260) 100%
+  );
+  border-color: oklch(0.35 0.022 260);
+  border-bottom-color: oklch(0.42 0.025 260);
+  box-shadow:
+    0 1px 3px oklch(0 0 0 / 0.3),
+    inset 0 1px 0 oklch(1 0 0 / 0.05);
+  text-shadow: none;
 }
 
 /* ============================================================
@@ -430,34 +541,40 @@
    Enhanced Focus Styles — Accessible & Google-like
    ============================================================ */
 :focus-visible {
-  outline: 2px solid oklch(0.488 0.217 264);
+  outline: 2px solid oklch(0.50 0.22 264);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
 .dark :focus-visible {
-  outline-color: oklch(0.623 0.214 259);
+  outline-color: oklch(0.65 0.22 259);
 }
 
 /* ============================================================
    Smooth Selection Color
    ============================================================ */
 ::selection {
-  background: oklch(0.488 0.217 264 / 0.2);
+  background: oklch(0.50 0.22 264 / 0.2);
   color: inherit;
 }
 
 /* ============================================================
-   Smooth Theme Transition
+   Smooth Theme Transition — 200ms ease-in-out
    ============================================================ */
-* {
-  transition-property: background-color, border-color;
-  transition-duration: 150ms;
+*,
+*::before,
+*::after {
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: ease-in-out;
 }
 
-.dark * {
-  transition-property: background-color, border-color;
-  transition-duration: 150ms;
+/* Exclude elements that need instant transitions or their own timing */
+input, textarea, select, video, canvas, img, [role="slider"],
+[style*="transition"], .no-theme-transition,
+.animate-in, .animate-fade, .animate-scale,
+[style*="animation"] {
+  transition-property: none;
 }
 
 /* ============================================================
@@ -523,7 +640,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    oklch(0.488 0.217 264 / 0.03),
+    oklch(0.50 0.22 264 / 0.03),
     transparent
   );
   transition: left 0.5s ease;
@@ -539,7 +656,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    oklch(0.623 0.214 259 / 0.04),
+    oklch(0.65 0.22 259 / 0.04),
     transparent
   );
 }
@@ -555,7 +672,7 @@
 }
 
 .dark .glass-card {
-  background: oklch(0.165 0.016 260 / 0.7);
+  background: oklch(0.155 0.018 260 / 0.7);
   border-color: oklch(0.28 0.02 260);
 }
 
@@ -563,8 +680,8 @@
    CTA Pulse Button Animation
    ============================================================ */
 @keyframes ctaPulse {
-  0%, 100% { box-shadow: 0 0 0 0 oklch(0.488 0.217 264 / 0.4); }
-  50% { box-shadow: 0 0 0 12px oklch(0.488 0.217 264 / 0); }
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.50 0.22 264 / 0.4); }
+  50% { box-shadow: 0 0 0 12px oklch(0.50 0.22 264 / 0); }
 }
 
 .dark .cta-pulse {
@@ -572,8 +689,8 @@
 }
 
 @keyframes ctaPulseDark {
-  0%, 100% { box-shadow: 0 0 0 0 oklch(0.623 0.214 259 / 0.4); }
-  50% { box-shadow: 0 0 0 12px oklch(0.623 0.214 259 / 0); }
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.65 0.22 259 / 0.4); }
+  50% { box-shadow: 0 0 0 12px oklch(0.65 0.22 259 / 0); }
 }
 
 .cta-pulse {
@@ -604,13 +721,68 @@
 }
 
 /* ============================================================
-   Card Hover Transition — Lift Effect
+   Section Heading — Professional Style
    ============================================================ */
-.card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.section-heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
-.card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+/* ============================================================
+   Animation Utility Classes
+   ============================================================ */
+
+/* Fade + slide up entrance */
+@keyframes animateIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: animateIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Simple fade */
+@keyframes animateFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade {
+  animation: animateFade 0.3s ease-in-out both;
+}
+
+/* Pop-in scale effect */
+@keyframes animateScale {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale {
+  animation: animateScale 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ============================================================
+   Responsive Text Utilities
+   ============================================================ */
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
 }
