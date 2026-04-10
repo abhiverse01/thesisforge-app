@@ -423,6 +423,8 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
         authors: '',
         title: '',
         year: '',
+        doi: '',
+        url: '',
       };
       return {
         thesis: { ...s.thesis, references: [...s.thesis.references, newRef] },

@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { cn } from "@/lib/utils";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { useThesisStore } from "@/lib/thesis-store";
 import { WIZARD_STEPS } from "@/lib/thesis-types";
@@ -12,8 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { debounce } from "@/utils/debounce";
-import { countWords, formatWordCount } from "@/utils/word-count";
+import { countWords } from "@/utils/word-count";
 import {
   Dialog,
   DialogContent,
@@ -27,13 +25,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Plus,
   Trash2,
   ChevronDown,
-  ChevronLeft,
   GripVertical,
   BookOpen,
   Pencil,
@@ -43,22 +39,46 @@ import {
   Maximize2,
   AlertTriangle,
   Check,
+  Bold,
+  Italic,
+  Quote,
+  DollarSign,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-// countWords is now imported from @/utils/word-count (CJK-aware)
-const debouncedWordCountCallback = debounce((text: string, callback: (count: number) => void) => {
-  // Use requestIdleCallback for non-blocking computation
-  if (typeof requestIdleCallback !== 'undefined') {
-    requestIdleCallback(() => callback(countWords(text)));
-  } else {
-    // Fallback for browsers without requestIdleCallback
-    setTimeout(() => callback(countWords(text)), 0);
+function wrapSelection(
+  textarea: HTMLTextAreaElement,
+  before: string,
+  after: string
+) {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const text = textarea.value;
+  const selected = text.slice(start, end) || "text";
+  const replacement = before + selected + after;
+
+  // Use the native setter to trigger React's onChange
+  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+    window.HTMLTextAreaElement.prototype,
+    "value"
+  )?.set;
+  if (nativeInputValueSetter) {
+    nativeInputValueSetter.call(textarea, text.slice(0, start) + replacement + text.slice(end));
   }
-}, 300);
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+
+  // Restore selection around the inserted content
+  requestAnimationFrame(() => {
+    textarea.focus();
+    textarea.setSelectionRange(
+      start + before.length,
+      start + before.length + selected.length
+    );
+  });
+}
 
 function chapterTotalWords(ch: ThesisChapter): number {
   return (
@@ -87,7 +107,7 @@ function SubSectionDeleteDialog({
       <DialogContent className="sm:max-w-[380px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <AlertTriangle className="w-4 h-4 text-[var(--color-text-warning)]" />
             Delete Section
           </DialogTitle>
         </DialogHeader>
@@ -135,7 +155,6 @@ function SubSectionCard({
 }: {
   sub: ThesisSubSection;
   index: number;
-  chapterId: string;
   chapterNumber: number;
   isEditing: boolean;
   onToggleEdit: () => void;
@@ -147,24 +166,25 @@ function SubSectionCard({
 
   return (
     <>
-      <motion.div
-        layout
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 10, height: 0 }}
-        transition={{ duration: 0.2 }}
-        className="rounded-lg border bg-card p-3 space-y-2 group"
+      <Reorder.Item
+        value={sub}
+        className="list-none"
       >
-        <div className="flex items-center gap-2">
-          {/* Drag handle */}
-          <Reorder.Item
-            value={sub}
-            className="list-none"
-          >
-            <GripVertical className="w-3.5 h-3.5 text-muted-foreground/30 cursor-grab shrink-0" />
-          </Reorder.Item>
+        <motion.div
+          layout
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 10, height: 0 }}
+          transition={{ duration: 0.2 }}
+          className="rounded-lg border bg-card p-3 space-y-2 group"
+        >
+          <div className="flex items-center gap-2">
+            {/* Drag handle */}
+            <div className="cursor-grab active:cursor-grabbing shrink-0">
+              <GripVertical className="w-3.5 h-3.5 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
+            </div>
 
-          <span className="text-[10px] font-mono text-muted-foreground shrink-0">
+          <span className="text-xs font-mono text-muted-foreground shrink-0">
             §{chapterNumber}.{index + 1}
           </span>
 
@@ -210,7 +230,8 @@ function SubSectionCard({
           className="text-sm min-h-[80px] resize-y leading-relaxed"
           placeholder="Write the content for this section..."
         />
-      </motion.div>
+        </motion.div>
+      </Reorder.Item>
 
       <SubSectionDeleteDialog
         open={deleteOpen}
@@ -367,31 +388,31 @@ export function ChapterEditor() {
       >
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
           <BookOpen className="w-3.5 h-3.5" />
-          Step {WIZARD_STEPS[3].id} of {WIZARD_STEPS.length}
+          Step {WIZARD_STEPS[2].id} of {WIZARD_STEPS.length}
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Write Your Content
+        <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+          Write Your Chapters
         </h2>
-        <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-          Organize and write each chapter of your thesis. Drag to reorder, click
-          to expand.
+        <p className="text-muted-foreground text-sm max-w-lg mx-auto leading-relaxed">
+          Write and organize each chapter of your thesis. Drag to reorder,
+          click to expand and edit sections.
         </p>
       </motion.div>
 
       {/* Simple stats line */}
       <div className="text-center text-xs text-muted-foreground">
         <span>
-          <strong className="text-foreground">{chapters.length}</strong>{" "}
+          <strong className="text-foreground tabular-nums">{chapters.length}</strong>{" "}
           chapter{chapters.length !== 1 ? "s" : ""}
         </span>
         <span className="mx-2">·</span>
         <span>
-          <strong className="text-foreground">{totalSubSections}</strong>{" "}
+          <strong className="text-foreground tabular-nums">{totalSubSections}</strong>{" "}
           section{totalSubSections !== 1 ? "s" : ""}
         </span>
         <span className="mx-2">·</span>
         <span>
-          <strong className="text-foreground">
+          <strong className="text-foreground tabular-nums">
             {totalWords.toLocaleString()}
           </strong>{" "}
           words
@@ -407,7 +428,7 @@ export function ChapterEditor() {
               variant="ghost"
               size="sm"
               onClick={allExpanded ? collapseAll : expandAll}
-              className="h-7 text-xs gap-1.5 text-muted-foreground"
+              className="h-7 text-xs gap-2 text-muted-foreground"
             >
               {allExpanded ? (
                 <>
@@ -436,9 +457,9 @@ export function ChapterEditor() {
             </div>
             <h3 className="text-sm font-semibold mb-1">No chapters yet</h3>
             <p className="text-xs text-muted-foreground max-w-[240px] mb-4">
-              Your thesis structure lives here. Add your first chapter to get started.
+              Your thesis structure lives here.
             </p>
-            <Button type="button" onClick={addChapter} size="sm" className="gap-1.5">
+            <Button type="button" onClick={addChapter} size="sm" className="gap-2">
               <Plus className="w-3.5 h-3.5" />
               Add first chapter
             </Button>
@@ -463,7 +484,7 @@ export function ChapterEditor() {
                   className="list-none"
                   layout
                 >
-                  <Card className="overflow-hidden">
+                  <Card className="overflow-hidden border-border focus-within:border-primary/30 focus-within:shadow-sm group">
                     {/* Chapter Header */}
                     <CardHeader
                       className="py-3 px-4 cursor-pointer hover:bg-secondary/30 transition-colors select-none"
@@ -471,11 +492,11 @@ export function ChapterEditor() {
                     >
                       <div className="flex items-center gap-2">
                         {/* Drag handle */}
-                        <GripVertical className="w-4 h-4 text-muted-foreground/40 shrink-0 cursor-grab" />
+                        <GripVertical className="w-4 h-4 text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 cursor-grab transition-colors" />
 
                         {/* Chapter number badge */}
                         <div className="w-6 h-6 rounded bg-primary flex items-center justify-center shrink-0">
-                          <span className="text-[10px] font-bold text-primary-foreground">
+                          <span className="text-xs font-semibold text-primary-foreground">
                             {chapter.number}
                           </span>
                         </div>
@@ -487,7 +508,7 @@ export function ChapterEditor() {
 
                         {/* Word count (simple muted badge) */}
                         {cw > 0 && (
-                          <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+                          <span className="text-xs text-muted-foreground font-mono tabular-nums shrink-0">
                             {cw.toLocaleString()} words
                           </span>
                         )}
@@ -562,7 +583,7 @@ export function ChapterEditor() {
                             <DialogContent className="sm:max-w-[400px]">
                               <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2 text-base">
-                                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                  <AlertTriangle className="w-4 h-4 text-[var(--color-text-warning)]" />
                                   Delete Chapter
                                 </DialogTitle>
                               </DialogHeader>
@@ -626,9 +647,9 @@ export function ChapterEditor() {
                               <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: "auto" }}
-                                className="space-y-1.5"
+                                className="space-y-2"
                               >
-                                <Label className="text-xs font-medium">
+                                <Label className="text-xs font-medium text-muted-foreground">
                                   Chapter Title
                                 </Label>
                                 <div className="flex gap-2">
@@ -657,14 +678,38 @@ export function ChapterEditor() {
                             )}
 
                             {/* Chapter Content */}
-                            <div className="space-y-1.5">
-                              <Label className="text-xs font-medium flex items-center gap-1.5">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-2">
                                 <BookOpen className="w-3 h-3" />
                                 Chapter Introduction
                                 <span className="text-muted-foreground font-normal">
                                   (optional)
                                 </span>
                               </Label>
+                              {/* Formatting toolbar */}
+                              <div className="flex items-center gap-0.5">
+                                {[
+                                  { icon: Bold, before: "\\textbf{", after: "}", label: "Bold" },
+                                  { icon: Italic, before: "\\textit{", after: "}", label: "Italic" },
+                                  { icon: Quote, before: "``", after: "''", label: "Quotes" },
+                                  { icon: DollarSign, before: "$", after: "$", label: "Math" },
+                                ].map(({ icon: Icon, before, after, label }) => (
+                                  <Button
+                                    key={label}
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      const textarea = e.currentTarget.closest('.space-y-2')?.querySelector('textarea') as HTMLTextAreaElement | null;
+                                      if (textarea) wrapSelection(textarea, before, after);
+                                    }}
+                                  >
+                                    <Icon className="w-3 h-3" />
+                                  </Button>
+                                ))}
+                              </div>
                               <Textarea
                                 value={chapter.content}
                                 onChange={(e) =>
@@ -684,7 +729,7 @@ export function ChapterEditor() {
                                   <motion.div
                                     initial={{ opacity: 0, y: 4 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium mt-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                    className="flex items-center gap-2 px-2 py-1 rounded-md text-xs font-medium mt-1 bg-[var(--color-fill-success)] text-[var(--color-text-success)]"
                                   >
                                     <Check className="w-3 h-3" />
                                     {currentMilestone.toLocaleString()} words
@@ -732,7 +777,6 @@ export function ChapterEditor() {
                                       key={sub.id}
                                       sub={sub}
                                       index={subIdx}
-                                      chapterId={chapter.id}
                                       chapterNumber={chapter.number}
                                       isEditing={
                                         editingSubSection?.chapterId ===
@@ -796,7 +840,7 @@ export function ChapterEditor() {
             variant="outline"
             size="sm"
             onClick={addChapter}
-            className="gap-1.5 text-xs border-dashed"
+            className="gap-2 text-xs border-dashed"
           >
             <Plus className="w-3.5 h-3.5" />
             Add Chapter

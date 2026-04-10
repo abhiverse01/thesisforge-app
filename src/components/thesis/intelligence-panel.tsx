@@ -7,7 +7,7 @@
 // structure balance, keywords, and reading time.
 // ============================================================
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -41,7 +41,7 @@ import {
   Quote,
   Clock,
   CircleDot,
-  Eye,
+  Wand2,
 } from 'lucide-react';
 import type {
   IntelligenceResults,
@@ -50,9 +50,8 @@ import type {
 } from '@/intelligence';
 import {
   intelligenceScheduler,
-  ALGORITHM_SCHEDULE,
 } from '@/intelligence/scheduler';
-import { countWords } from '@/intelligence/structureAnalyzer';
+import { applyAllHeuristicFixes } from '@/intelligence/latexHeuristics';
 import { useThesisStore } from '@/lib/thesis-store';
 
 // ============================================================
@@ -98,7 +97,7 @@ function CompletenessRing({ result }: { result: CompletenessResult | null }) {
               className="text-muted-foreground/40" strokeDasharray="0 220" strokeLinecap="round" />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-lg font-bold text-muted-foreground">--</span>
+            <span className="text-lg font-semibold text-muted-foreground">--</span>
           </div>
         </div>
         <span className="text-xs text-muted-foreground">Select a template to start</span>
@@ -113,10 +112,10 @@ function CompletenessRing({ result }: { result: CompletenessResult | null }) {
     result.score >= 90
       ? { stroke: 'var(--c-brand-600)', text: 'var(--c-brand-600)', label: 'Export ready' }
       : result.score >= 70
-        ? { stroke: '#1D9E75', text: '#1D9E75', label: 'Almost there' }
+        ? { stroke: 'var(--color-text-success)', text: 'var(--color-text-success)', label: 'Almost there' }
         : result.score >= 40
-          ? { stroke: '#BA7517', text: '#BA7517', label: 'In progress' }
-          : { stroke: '#E24B4A', text: '#E24B4A', label: 'Getting started' };
+          ? { stroke: 'var(--color-text-warning)', text: 'var(--color-text-warning)', label: 'In progress' }
+          : { stroke: 'var(--color-text-danger)', text: 'var(--color-text-danger)', label: 'Getting started' };
 
   return (
     <div className={`flex flex-col items-center gap-2 ${hasLeveledUp ? 'score-ring--levelup' : ''}`}>
@@ -134,7 +133,7 @@ function CompletenessRing({ result }: { result: CompletenessResult | null }) {
                   x: Math.cos((i / 8) * Math.PI * 2) * 40,
                   y: Math.sin((i / 8) * Math.PI * 2) * 40,
                 }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
+                transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
                 className="absolute top-1/2 left-1/2 w-2 h-2 rounded-sm"
                 style={{
                   backgroundColor: ['#7F77DD', '#1D9E75', '#BA7517', '#E24B4A', '#534AB7', '#0F6E56', '#854F0B', '#A32D2D'][i],
@@ -154,11 +153,11 @@ function CompletenessRing({ result }: { result: CompletenessResult | null }) {
             strokeLinecap="round"
             initial={false}
             animate={{ strokeDasharray: [`${progress} ${circumference}`] }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            transition={{ duration: 0.5, ease: [0.25, 1, 0.5, 1] }}
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-lg font-bold anim-count-up" style={{ color: scoreConfig.text }}>{result.score}</span>
+          <span className="text-lg font-semibold anim-count-up tabular-nums" style={{ color: scoreConfig.text }}>{result.score}</span>
         </div>
       </div>
       <span className="text-xs font-medium" style={{ color: scoreConfig.text }}>{scoreConfig.label}</span>
@@ -182,10 +181,10 @@ function IssueCard({
   onAction?: () => void;
 }) {
   const severityConfig = {
-    error: { icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/30' },
-    warning: { icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
-    suggestion: { icon: Lightbulb, color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
-    info: { icon: Info, color: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/30' },
+    error: { icon: AlertCircle, color: 'text-[var(--color-text-danger)]', bg: 'bg-red-500/10', border: 'border-red-500/30' },
+    warning: { icon: AlertTriangle, color: 'text-[var(--color-text-warning)]', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+    suggestion: { icon: Lightbulb, color: 'text-[var(--color-text-brand)]', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
+    info: { icon: Info, color: 'text-muted-foreground', bg: 'bg-gray-500/10', border: 'border-gray-500/30' },
   };
 
   const config = severityConfig[severity as keyof typeof severityConfig] || severityConfig.info;
@@ -235,7 +234,7 @@ function CollapsibleSection({
         <Icon className="w-4 h-4 text-muted-foreground" />
         <span className="flex-1 text-left">{title}</span>
         {badge !== undefined && badge > 0 && (
-          <Badge variant={badge > 0 ? 'destructive' : 'secondary'} className="text-xs px-1.5 py-0">
+          <Badge variant={badge > 0 ? 'destructive' : 'secondary'} className="text-xs px-2 py-0">
             {badge}
           </Badge>
         )}
@@ -272,11 +271,11 @@ function WordStatsSection({ results }: { results: IntelligenceResults }) {
       {/* Total stats */}
       <div className="grid grid-cols-2 gap-2">
         <div className="bg-muted/30 rounded-lg p-2 text-center">
-          <div className="text-lg font-bold text-foreground">{total.words.toLocaleString()}</div>
+          <div className="text-lg font-semibold text-foreground tabular-nums">{total.words.toLocaleString()}</div>
           <div className="text-xs text-muted-foreground">Total words</div>
         </div>
         <div className="bg-muted/30 rounded-lg p-2 text-center">
-          <div className="text-lg font-bold text-foreground">~{total.readingTime} min</div>
+          <div className="text-lg font-semibold text-foreground tabular-nums">~{total.readingTime} min</div>
           <div className="text-xs text-muted-foreground">Reading time</div>
         </div>
       </div>
@@ -286,8 +285,8 @@ function WordStatsSection({ results }: { results: IntelligenceResults }) {
         <div className="bg-muted/30 rounded-lg p-2">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs text-muted-foreground">Abstract</span>
-            <span className={`text-xs font-medium ${
-              total.abstractStatus === 'good' ? 'text-green-500' : 'text-amber-500'
+            <span className={`text-xs font-medium tabular-nums ${
+              total.abstractStatus === 'good' ? 'text-[var(--color-text-success)]' : 'text-[var(--color-text-warning)]'
             }`}>
               {total.abstractWords} words
               {total.abstractStatus !== 'good' && (
@@ -295,9 +294,9 @@ function WordStatsSection({ results }: { results: IntelligenceResults }) {
               )}
             </span>
           </div>
-          <div className="w-full bg-muted rounded-full h-1.5">
+          <div className="w-full bg-muted rounded-full h-2">
             <div
-              className={`h-1.5 rounded-full transition-all duration-500 ${
+              className={`h-2 rounded-full transition-[width] duration-500 ${
                 total.abstractStatus === 'good' ? 'bg-green-500' : 'bg-amber-500'
               }`}
               style={{ width: `${Math.min(100, (total.abstractWords / 300) * 100)}%` }}
@@ -307,15 +306,15 @@ function WordStatsSection({ results }: { results: IntelligenceResults }) {
       )}
 
       {/* Per-chapter word counts */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {readingStats.chapters.map((ch) => (
           <div key={ch.chapterId} className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground truncate max-w-[60%]" title={ch.chapterTitle}>
               {ch.chapterTitle}
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">{ch.words.toLocaleString()}</span>
-              <span className="text-muted-foreground/60">~{ch.readingTime}m</span>
+              <span className="text-muted-foreground tabular-nums">{ch.words.toLocaleString()}</span>
+              <span className="text-muted-foreground/60 tabular-nums">~{ch.readingTime}m</span>
             </div>
           </div>
         ))}
@@ -323,7 +322,7 @@ function WordStatsSection({ results }: { results: IntelligenceResults }) {
 
       {/* Long sentence warning */}
       {readingStats.longSentenceChapters.length > 0 && (
-        <div className="flex items-start gap-1.5 text-xs text-amber-500">
+        <div className="flex items-start gap-2 text-xs text-[var(--color-text-warning)]">
           <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
           <span>
             Consider shorter sentences in: {readingStats.longSentenceChapters.join(', ')}
@@ -338,6 +337,32 @@ function WordStatsSection({ results }: { results: IntelligenceResults }) {
 // Structure Balance Section
 // ============================================================
 
+function generateBalanceSuggestion(issue: { chapterTitle: string; direction: string; actualPct: number; idealPct: number }): string {
+  const title = issue.chapterTitle.toLowerCase();
+
+  if (issue.direction === 'over') {
+    if (title.includes('introduct') || title.includes('background') || title.includes('overview')) {
+      return `Consider moving background material from "${issue.chapterTitle}" to the Literature Review chapter to improve balance.`;
+    }
+    if (title.includes('method') || title.includes('approach')) {
+      return `"${issue.chapterTitle}" is large at ${issue.actualPct}%. Consider moving implementation details to an appendix.`;
+    }
+    return `"${issue.chapterTitle}" takes ${issue.actualPct}% of your thesis (${issue.idealPct}% ideal). Consider condensing or redistributing content.`;
+  }
+
+  if (issue.direction === 'under') {
+    if (title.includes('conclus') || title.includes('discussion') || title.includes('summary')) {
+      return `"${issue.chapterTitle}" is thin at ${issue.actualPct}%. Add implications, limitations, and future work sections.`;
+    }
+    if (title.includes('literature') || title.includes('review') || title.includes('related')) {
+      return `"${issue.chapterTitle}" is only ${issue.actualPct}% (ideal: ${issue.idealPct}%). Expand with more sources and critical analysis.`;
+    }
+    return `"${issue.chapterTitle}" is underrepresented at ${issue.actualPct}% vs ${issue.idealPct}% ideal. Consider adding more depth.`;
+  }
+
+  return `"${issue.chapterTitle}": ${issue.actualPct}% actual vs ${issue.idealPct}% ideal.`;
+}
+
 function StructureBalanceSection({ results }: { results: IntelligenceResults }) {
   if (!results.structure) return null;
 
@@ -350,10 +375,10 @@ function StructureBalanceSection({ results }: { results: IntelligenceResults }) 
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className={`text-2xl font-bold ${
-                (structure.balanceScore ?? 0) >= 80 ? 'text-green-500'
-                  : (structure.balanceScore ?? 0) >= 60 ? 'text-amber-500'
-                    : 'text-red-500'
+              <div className={`text-2xl font-semibold tabular-nums ${
+                (structure.balanceScore ?? 0) >= 80 ? 'text-[var(--color-text-success)]'
+                  : (structure.balanceScore ?? 0) >= 60 ? 'text-[var(--color-text-warning)]'
+                    : 'text-[var(--color-text-danger)]'
               }`}>
                 {structure.balanceScore ?? '--'}
               </div>
@@ -370,10 +395,10 @@ function StructureBalanceSection({ results }: { results: IntelligenceResults }) 
           <div className="text-xs text-muted-foreground">Structural balance</div>
           <div className="w-full bg-muted rounded-full h-2 mt-1">
             <motion.div
-              className={`h-2 rounded-full transition-all duration-500 ${
+              className={`h-2 rounded-full transition-[width] duration-500 ${
                 (structure.balanceScore ?? 0) >= 80 ? 'bg-green-500'
                   : (structure.balanceScore ?? 0) >= 60 ? 'bg-amber-500'
-                    : 'text-red-500 bg-red-500'
+                    : 'text-[var(--color-text-danger)] bg-red-500'
               }`}
               initial={{ width: 0 }}
               animate={{ width: `${structure.balanceScore ?? 0}%` }}
@@ -384,7 +409,7 @@ function StructureBalanceSection({ results }: { results: IntelligenceResults }) 
       </div>
 
       {/* Word count bars per chapter */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {structure.wordCounts.map((ch) => {
           const issue = structure.issues.find((i) => i.chapterId === ch.id);
           const pct = structure.totalWords > 0 ? (ch.words / structure.totalWords) * 100 : 0;
@@ -396,11 +421,11 @@ function StructureBalanceSection({ results }: { results: IntelligenceResults }) 
             <div key={ch.id}>
               <div className="flex items-center justify-between text-xs mb-0.5">
                 <span className="text-muted-foreground truncate max-w-[60%]">{ch.title}</span>
-                <span className="text-muted-foreground">{Math.round(pct)}% ({ch.words})</span>
+                <span className="text-muted-foreground tabular-nums">{Math.round(pct)}% ({ch.words})</span>
               </div>
-              <div className="w-full bg-muted rounded-full h-1.5">
+              <div className="w-full bg-muted rounded-full h-2">
                 <motion.div
-                  className={`h-1.5 rounded-full ${barColor}`}
+                  className={`h-2 rounded-full ${barColor}`}
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.min(100, pct * 4)}%` }}
                   transition={{ duration: 0.4 }}
@@ -413,16 +438,21 @@ function StructureBalanceSection({ results }: { results: IntelligenceResults }) 
 
       {/* Issues */}
       {structure.issues.length > 0 && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {structure.issues.slice(0, 3).map((issue, idx) => (
-            <div key={idx} className="flex items-start gap-1.5 text-xs">
-              <AlertTriangle className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${
-                issue.severity === 'high' ? 'text-red-500' : 'text-amber-500'
-              }`} />
-              <span className="text-muted-foreground">
-                <strong>{issue.chapterTitle}</strong> is {issue.direction}represented
-                ({issue.actualPct}% vs {issue.idealPct}% ideal)
-              </span>
+            <div key={idx} className="space-y-1">
+              <div className="flex items-start gap-2 text-xs">
+                <AlertTriangle className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${
+                  issue.severity === 'high' ? 'text-[var(--color-text-danger)]' : 'text-[var(--color-text-warning)]'
+                }`} />
+                <span className="text-muted-foreground">
+                  <strong>{issue.chapterTitle}</strong> is {issue.direction}represented
+                  ({issue.actualPct}% vs {issue.idealPct}% ideal)
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground/80 pl-5 italic">
+                {generateBalanceSuggestion(issue)}
+              </p>
             </div>
           ))}
         </div>
@@ -439,7 +469,7 @@ function KeywordsSection({ keywords }: { keywords: string[] }) {
   if (keywords.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-2">
       {keywords.map((kw, idx) => (
         <Badge key={idx} variant="secondary" className="text-xs font-normal">
           {kw}
@@ -454,9 +484,11 @@ function KeywordsSection({ keywords }: { keywords: string[] }) {
 // ============================================================
 
 function HeuristicsSection({ results }: { results: IntelligenceResults }) {
+  const { thesis, updateChapter } = useThesisStore();
+
   if (results.heuristics.size === 0) return null;
 
-  // Collect all findings, capped at 5 for display
+  // Collect all findings with fixes, capped at 5 for display
   const allFindings: Array<{ chapterId: string; finding: HeuristicFinding }> = [];
   for (const [chapterId, findings] of results.heuristics) {
     for (const finding of findings) {
@@ -464,16 +496,57 @@ function HeuristicsSection({ results }: { results: IntelligenceResults }) {
     }
   }
 
+  // Collect all fixable findings
+  const fixableFindings = allFindings.filter((item) => item.finding.fix !== null);
+
+  const handleFixAll = () => {
+    if (!thesis) return;
+
+    // Group fixable findings by chapter
+    const fixesByChapter = new Map<string, HeuristicFinding[]>();
+    for (const item of fixableFindings) {
+      const existing = fixesByChapter.get(item.chapterId) || [];
+      existing.push(item.finding);
+      fixesByChapter.set(item.chapterId, existing);
+    }
+
+    let totalFixed = 0;
+    for (const [chapterId, findings] of fixesByChapter) {
+      const chapter = thesis.chapters.find((ch) => ch.id === chapterId);
+      if (!chapter) continue;
+
+      // Use the pre-built applyAllHeuristicFixes function
+      const newContent = applyAllHeuristicFixes(chapter.content || '');
+      const newSubSections = chapter.subSections.map((ss) => ({
+        ...ss,
+        content: applyAllHeuristicFixes(ss.content || ''),
+      }));
+
+      updateChapter(chapterId, { content: newContent, subSections: newSubSections });
+
+      // Count fixable findings for this chapter
+      const chapterFixable = findings.filter((f) => f.fix !== null).length;
+      totalFixed += chapterFixable;
+    }
+
+    if (totalFixed > 0) {
+      toast.success(`Applied ${totalFixed} autofix${totalFixed > 1 ? 'es' : ''}`, {
+        description: 'LaTeX patterns have been corrected across all chapters.',
+        duration: 3000,
+      });
+    }
+  };
+
   // All-clear state: heuristic checks ran but found zero issues
   if (allFindings.length === 0) {
     return (
-      <div className="flex items-start gap-2 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-fill-success, oklch(0.95 0.03 155 / 0.3))' }}>
-        <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-text-success, oklch(0.50 0.15 155))' }} />
+      <div className="flex items-start gap-2 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-fill-success)' }}>
+        <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-text-success)' }} />
         <div>
-          <p className="text-xs font-medium" style={{ color: 'var(--color-text-success, oklch(0.40 0.12 155))' }}>
+          <p className="text-xs font-medium" style={{ color: 'var(--color-text-success)' }}>
             Clean LaTeX
           </p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary, oklch(0.55 0.01 260))' }}>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
             No issues found. This file should compile on first try.
           </p>
         </div>
@@ -490,7 +563,19 @@ function HeuristicsSection({ results }: { results: IntelligenceResults }) {
   const remaining = allFindings.length - 5;
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
+      {/* Fix all button */}
+      {fixableFindings.length > 0 && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full h-7 text-xs gap-2 border-dashed"
+          onClick={handleFixAll}
+        >
+          <Wand2 className="w-3 h-3" />
+          Fix all ({fixableFindings.length} fix{fixableFindings.length > 1 ? 'es' : ''})
+        </Button>
+      )}
       {displayFindings.map((item, idx) => (
         <IssueCard
           key={idx}
@@ -522,15 +607,15 @@ function CitationGraphSection({ results }: { results: IntelligenceResults }) {
       {/* Citation ratio */}
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">Citation coverage</span>
-        <span className={`text-sm font-medium ${
-          citationGraph.citationRatio >= 80 ? 'text-green-500'
-            : citationGraph.citationRatio >= 50 ? 'text-amber-500'
-              : 'text-red-500'
+        <span className={`text-sm font-medium tabular-nums ${
+          citationGraph.citationRatio >= 80 ? 'text-[var(--color-text-success)]'
+            : citationGraph.citationRatio >= 50 ? 'text-[var(--color-text-warning)]'
+              : 'text-[var(--color-text-danger)]'
         }`}>
           {citationGraph.citationRatio}%
         </span>
       </div>
-      <div className="text-xs text-muted-foreground">
+      <div className="text-xs text-muted-foreground tabular-nums">
         {citationGraph.totalCitations} of {citationGraph.totalReferences} references cited
       </div>
 
@@ -573,9 +658,9 @@ function CompletenessChecklist({ result }: { result: CompletenessResult | null }
       {/* Next recommended action */}
       {nextAction && (
         <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-lg p-2">
-          <Sparkles className="w-4 h-4 text-blue-500 shrink-0" />
+          <Sparkles className="w-4 h-4 text-[var(--color-text-brand)] shrink-0" />
           <div>
-            <div className="text-xs font-medium text-blue-500">Next recommended</div>
+            <div className="text-xs font-medium text-[var(--color-text-brand)]">Next recommended</div>
             <div className="text-xs text-muted-foreground">{nextAction.label}</div>
           </div>
         </div>
@@ -586,14 +671,14 @@ function CompletenessChecklist({ result }: { result: CompletenessResult | null }
         {result.breakdown.map((item, idx) => (
           <div key={idx} className="flex items-center gap-2 text-xs">
             {item.achieved ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-text-success)] shrink-0" />
             ) : (
               <CircleDot className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
             )}
             <span className={item.achieved ? 'text-muted-foreground' : 'text-foreground/70'}>
               {item.label}
             </span>
-            <span className="ml-auto text-muted-foreground/50">{item.weight}pts</span>
+            <span className="ml-auto text-muted-foreground/50 tabular-nums">{item.weight}pts</span>
           </div>
         ))}
       </div>
@@ -712,7 +797,7 @@ export default function IntelligencePanel({ isOpen, onClose, currentStep }: Inte
         <div className="flex items-center gap-2 min-w-0">
           {sidebarTitle === 'Intelligence' ? (
             <>
-              <Sparkles className="w-4 h-4 text-purple-500 shrink-0" />
+              <Sparkles className="w-4 h-4 text-[var(--c-brand-600,#534AB7)] shrink-0" />
               <h2 className="text-sm font-semibold">Intelligence</h2>
             </>
           ) : (
@@ -740,7 +825,7 @@ export default function IntelligencePanel({ isOpen, onClose, currentStep }: Inte
                 defaultOpen={true}
                 badge={activeIssues.filter((i) => i.severity === 'error').length || undefined}
               >
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {activeIssues.map((issue, idx) => (
                     <IssueCard
                       key={idx}

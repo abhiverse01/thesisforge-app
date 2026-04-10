@@ -58,21 +58,25 @@ export function assertLatexContract(tex: string, bib: string): LatexContractErro
 
   // Assertion 6: No raw unescaped special chars in text nodes
   // (These slip through if escapeLatex() was not called on user input)
+  // Skip comment lines (starting with %) — % is the comment character in LaTeX
+  const lines = tex.split('\n');
   const dangerousPattern = /(?<!\\)[&%$#_^~](?!\{)/g;
-  const dangerMatches = [...tex.matchAll(dangerousPattern)];
-  if (dangerMatches.length > 0) {
-    // Filter out matches inside comment lines
-    const realDangers = dangerMatches.filter(m => {
-      const lineStart = tex.lastIndexOf('\n', m.index) + 1;
-      const linePrefix = tex.slice(lineStart, m.index).trimStart();
-      return !linePrefix.startsWith('%');
-    });
-    if (realDangers.length > 0) {
-      errors.push({
-        code: 'E006',
-        message: `Unescaped special character(s): ${realDangers.map(m => `"${m[0]}" at offset ${m.index}`).slice(0, 3).join(', ')}`,
-      });
+  const realDangers: Array<{ char: string; offset: number; line: number }> = [];
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li].trimStart();
+    if (line.startsWith('%')) continue; // Skip comment lines
+    // Skip lines that are entirely LaTeX commands
+    if (line.startsWith('\\')) continue;
+    const matches = [...line.matchAll(dangerousPattern)];
+    for (const m of matches) {
+      realDangers.push({ char: m[0], offset: m.index, line: li + 1 });
     }
+  }
+  if (realDangers.length > 0) {
+    errors.push({
+      code: 'E006',
+      message: `Unescaped special character(s): ${realDangers.slice(0, 3).map(d => `"${d.char}" at line ${d.line}`).join(', ')}`,
+    });
   }
 
   // Assertion 7: Citation keys in \cite{} exist in .bib
@@ -91,7 +95,8 @@ export function assertLatexContract(tex: string, bib: string): LatexContractErro
   }
 
   // Assertion 9: \bibliography{} present when references exist
-  if (bib.trim().length > 0 && !tex.includes('\\bibliography{') && !tex.includes('\\begin{thebibliography}')) {
+  const bibHasEntries = /@\w+\{[^,]+,/.test(bib);
+  if (bibHasEntries && !tex.includes('\\bibliography{') && !tex.includes('\\begin{thebibliography}')) {
     errors.push({ code: 'E009', message: 'References exist but \\bibliography{} or thebibliography is missing from document.' });
   }
 

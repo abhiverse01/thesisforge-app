@@ -165,8 +165,54 @@ export function analyzeStructure(
     totalWords,
     wordCounts,
     issues,
+    suggestions: issues.map(generateBalanceSuggestion),
     balanceScore: computeBalanceScore(wordCounts, totalWords, profile),
   };
+}
+
+/**
+ * Generate a concrete, actionable suggestion for a structure issue.
+ * Returns a human-readable string specific to the flagged chapter.
+ */
+function generateBalanceSuggestion(issue: StructureIssue): string {
+  const t = issue.chapterTitle.toLowerCase();
+
+  if (issue.direction === 'over' && /intro/i.test(t)) {
+    return `"${issue.chapterTitle}" is ${issue.actualPct}% of your thesis (ideal: ~${issue.idealPct}%). Consider moving some background material to a dedicated Literature Review chapter.`;
+  }
+  if (issue.direction === 'under' && /intro/i.test(t)) {
+    return `"${issue.chapterTitle}" is only ${issue.actualPct}% of your thesis (ideal: ~${issue.idealPct}%). Your introduction should frame the problem clearly — add context about why this research matters.`;
+  }
+  if (issue.direction === 'over' && /result|finding/i.test(t)) {
+    return `"${issue.chapterTitle}" is ${issue.actualPct}% (ideal: ~${issue.idealPct}%). Consider splitting into two chapters or moving supplementary data to appendices.`;
+  }
+  if (issue.direction === 'under' && /result/i.test(t)) {
+    return `"${issue.chapterTitle}" is only ${issue.actualPct}% (ideal: ~${issue.idealPct}%). Add more detailed findings, tables, and figures to strengthen this section.`;
+  }
+  if (issue.direction === 'over' && /method/i.test(t)) {
+    return `"${issue.chapterTitle}" is ${issue.actualPct}% (ideal: ~${issue.idealPct}%). Consider moving detailed procedures to appendices or a supplementary methods section.`;
+  }
+  if (issue.direction === 'under' && /method/i.test(t)) {
+    return `"${issue.chapterTitle}" is only ${issue.actualPct}% (ideal: ~${issue.idealPct}%). Provide more detail on your research design, tools, and data collection methods.`;
+  }
+  if (issue.direction === 'over' && /conclu|summary/i.test(t)) {
+    return `"${issue.chapterTitle}" is ${issue.actualPct}% (ideal: ~${issue.idealPct}%). Move implications and future work suggestions here, keep only the summary.`;
+  }
+  if (issue.direction === 'under' && /conclu|summary/i.test(t)) {
+    return `"${issue.chapterTitle}" is only ${issue.actualPct}% (ideal: ~${issue.idealPct}%). Add implications, limitations, and future research directions.`;
+  }
+  if (issue.direction === 'over' && /discussion|analysis/i.test(t)) {
+    return `"${issue.chapterTitle}" is ${issue.actualPct}% (ideal: ~${issue.idealPct}%). Move detailed statistical analysis to the results chapter.`;
+  }
+  if (issue.direction === 'under' && /discussion|analysis/i.test(t)) {
+    return `"${issue.chapterTitle}" is only ${issue.actualPct}% (ideal: ~${issue.idealPct}%). Add deeper interpretation of your findings and connect them back to the literature.`;
+  }
+
+  // Generic fallback
+  if (issue.direction === 'over') {
+    return `"${issue.chapterTitle}" is ${issue.actualPct}% of your thesis (ideal: ~${issue.idealPct}%). Consider trimming or reorganizing this section.`;
+  }
+  return `"${issue.chapterTitle}" is only ${issue.actualPct}% of your thesis (ideal: ~${issue.idealPct}%). Consider expanding this section with more detail.`;
 }
 
 /** Re-export countWords for use by other algorithms */

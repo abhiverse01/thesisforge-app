@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { useThesisStore } from "@/lib/thesis-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  ChevronLeft,
   Download,
   FileText,
   FileDown,
@@ -28,6 +27,9 @@ import {
   Loader2,
   AlertCircle,
   Layers,
+  List,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,7 @@ import { lintLatex, lintSummary, type LintResult } from "@/core/linter";
 import { exportThesis, exportTexOnly, exportBibOnly } from "@/core/export";
 import { validateAll, type ValidationResult } from "@/core/validators";
 import { countWords } from "@/utils/word-count";
+import { WIZARD_STEPS } from "@/lib/thesis-types";
 
 const fadeVariants = {
   initial: { opacity: 0, y: 8 },
@@ -49,7 +52,7 @@ const fadeTransition = {
 };
 
 export function GeneratePreview() {
-  const { thesis, selectedTemplate, prevStep, isGenerating, setGenerating } =
+  const { thesis, selectedTemplate, isGenerating, setGenerating } =
     useThesisStore();
   const [latex, setLatex] = useState("");
   const [bib, setBib] = useState("");
@@ -60,17 +63,48 @@ export function GeneratePreview() {
   const [copied, setCopied] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [chapterNavOpen, setChapterNavOpen] = useState(true);
   const confettiShown = useRef(false);
+  const texPreviewRef = useRef<HTMLDivElement>(null);
 
   // Auto-generate on mount and when thesis changes
   const initialGenerated = useRef(false);
   useEffect(() => {
-    if (!thesis || isGenerating) return;
-    // Skip first render to avoid double-generation with handleGenerate on mount
-    if (initialGenerated.current) return;
+    if (!thesis || isGenerating || initialGenerated.current) return;
     initialGenerated.current = true;
-    handleGenerate();
-  }, [thesis, isGenerating]);
+    setGenerating(true);
+    // Small delay for UX feedback
+    const timer = setTimeout(() => {
+      try {
+        const tex = generateLatex(thesis);
+        const bibContent = generateBibtexFile(thesis);
+        const lint = lintLatex(tex);
+        const validation = validateAll(thesis);
+        setLatex(tex);
+        setBib(bibContent);
+        setLintResult(lint);
+        setValidationResult(validation);
+        setHasGenerated(true);
+        if (!confettiShown.current) {
+          confettiShown.current = true;
+          triggerConfetti();
+        }
+        const summary = lintSummary(lint);
+        if (lint.hasErrors) {
+          toast.warning("Generated with issues", { description: summary, duration: 4000 });
+        } else if (lint.warnings.length > 0) {
+          toast.success("LaTeX generated", { description: summary, duration: 3000 });
+        } else {
+          toast.success("LaTeX generated successfully", { description: "No issues found. Ready to download!", duration: 3000 });
+        }
+      } catch (err) {
+        toast.error("Generation failed", { description: err instanceof Error ? err.message : "An unknown error occurred.", duration: 4000 });
+      } finally {
+        setGenerating(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [thesis, isGenerating, setGenerating]);
 
   const handleGenerate = useCallback(async () => {
     if (!thesis) return;
@@ -191,6 +225,39 @@ export function GeneratePreview() {
     }
   }, []);
 
+  const scrollToChapter = useCallback((chapterIndex: number) => {
+    if (!texPreviewRef.current || !latex) return;
+    // Find the line with \chapter{...} for this chapter
+    const lines = latex.split("\n");
+    let targetLineNum = 0;
+    let chapterCount = 0;
+    for (let i = 0; i < lines.length; i++) {
+      if (/\\chapter\{/.test(lines[i])) {
+        if (chapterCount === chapterIndex) {
+          targetLineNum = i;
+          break;
+        }
+        chapterCount++;
+      }
+    }
+    // Scroll the pre element by estimating line height
+    const pre = texPreviewRef.current.querySelector("pre");
+    if (pre) {
+      const lineHeight = 18; // approximate
+      pre.scrollTop = targetLineNum * lineHeight;
+    }
+  }, [latex]);
+
+  // Extract chapter titles from latex for navigation
+  const chapterTitles = useMemo(() => {
+    if (!latex) return [];
+    const matches = latex.match(/\\chapter\{([^}]*)\}/g);
+    return (matches || []).map((m) => {
+      const titleMatch = m.match(/\\chapter\{(.+)\}/);
+      return titleMatch ? titleMatch[1] : m;
+    });
+  }, [latex]);
+
   if (!thesis) return null;
 
   // Word count stats (CJK-aware)
@@ -215,51 +282,60 @@ export function GeneratePreview() {
       className="space-y-5"
     >
       {/* Header */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary" />
-          <h2 className="text-xl font-bold tracking-tight">
-            Generate & Export
-          </h2>
+      <div className="space-y-3">
+        <div className="text-center space-y-2">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+              <Sparkles className="w-3.5 h-3.5" />
+              Step {WIZARD_STEPS[5].id} of {WIZARD_STEPS.length}
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+              Preview and Export
+            </h2>
+            <p className="text-muted-foreground text-sm max-w-lg mx-auto leading-relaxed">
+              Your LaTeX code has been generated below. Review, lint, and download
+              your thesis files as a ZIP archive.
+            </p>
+          </motion.div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Your LaTeX code has been generated below. Review, lint, and download
-          your thesis files.
-        </p>
       </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="border-border/50 bg-card/50">
           <CardContent className="p-3 text-center">
-            <div className="text-lg font-bold text-foreground">
+            <div className="text-lg font-semibold text-foreground">
               {thesis.chapters.length}
             </div>
-            <p className="text-[10px] text-muted-foreground">Chapters</p>
+            <p className="text-xs text-muted-foreground">Chapters</p>
           </CardContent>
         </Card>
         <Card className="border-border/50 bg-card/50">
           <CardContent className="p-3 text-center">
-            <div className="text-lg font-bold text-foreground">
+            <div className="text-lg font-semibold text-foreground">
               {totalWords.toLocaleString()}
             </div>
-            <p className="text-[10px] text-muted-foreground">Total Words</p>
+            <p className="text-xs text-muted-foreground">Total Words</p>
           </CardContent>
         </Card>
         <Card className="border-border/50 bg-card/50">
           <CardContent className="p-3 text-center">
-            <div className="text-lg font-bold text-foreground">
+            <div className="text-lg font-semibold text-foreground">
               {abstractWords}
             </div>
-            <p className="text-[10px] text-muted-foreground">Abstract Words</p>
+            <p className="text-xs text-muted-foreground">Abstract Words</p>
           </CardContent>
         </Card>
         <Card className="border-border/50 bg-card/50">
           <CardContent className="p-3 text-center">
-            <div className="text-lg font-bold text-foreground">
+            <div className="text-lg font-semibold text-foreground">
               {thesis.references.length}
             </div>
-            <p className="text-[10px] text-muted-foreground">References</p>
+            <p className="text-xs text-muted-foreground">References</p>
           </CardContent>
         </Card>
       </div>
@@ -279,7 +355,7 @@ export function GeneratePreview() {
               {lintResult.hasErrors ? (
                 <AlertCircle className="w-3.5 h-3.5 text-destructive" />
               ) : lintResult.warnings.length > 0 ? (
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                <AlertTriangle className="w-3.5 h-3.5 text-[var(--color-text-warning)]" />
               ) : (
                 <Info className="w-3.5 h-3.5 text-muted-foreground" />
               )}
@@ -287,7 +363,7 @@ export function GeneratePreview() {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-3">
-            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+            <div className="space-y-2 max-h-40 overflow-y-auto">
               {lintResult.all.map((issue) => (
                 <div
                   key={issue.id}
@@ -296,14 +372,14 @@ export function GeneratePreview() {
                   {issue.severity === "error" ? (
                     <AlertCircle className="w-3 h-3 text-destructive mt-0.5 shrink-0" />
                   ) : issue.severity === "warning" ? (
-                    <AlertTriangle className="w-3 h-3 text-amber-500 mt-0.5 shrink-0" />
+                    <AlertTriangle className="w-3 h-3 text-[var(--color-text-warning)] mt-0.5 shrink-0" />
                   ) : (
                     <Info className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
                   )}
                   <span className="text-muted-foreground">
                     {issue.message}
                     {issue.line && (
-                      <span className="ml-1 font-mono text-[10px]">
+                      <span className="ml-1 font-mono text-xs">
                         (line {issue.line})
                       </span>
                     )}
@@ -319,15 +395,15 @@ export function GeneratePreview() {
       {validationResult &&
         validationResult.warnings &&
         Object.keys(validationResult.warnings).length > 0 && (
-          <Card className="border-amber-500/30 bg-amber-500/5">
+          <Card className="border-amber-500/30 bg-[var(--color-fill-warning)]">
             <CardHeader className="pb-2 pt-3 px-4">
               <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                <AlertTriangle className="w-3.5 h-3.5 text-[var(--color-text-warning)]" />
                 Suggestions
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-3">
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {Object.values(validationResult.warnings).map((msg, i) => (
                   <p key={i} className="text-xs text-muted-foreground">
                     {msg}
@@ -347,17 +423,17 @@ export function GeneratePreview() {
         >
           <div className="flex items-center justify-between mb-3">
             <TabsList className="h-9">
-              <TabsTrigger value="tex" className="text-xs gap-1.5 px-3">
+              <TabsTrigger value="tex" className="text-xs gap-2 px-3">
                 <FileText className="w-3.5 h-3.5" />
                 main.tex
               </TabsTrigger>
-              <TabsTrigger value="bib" className="text-xs gap-1.5 px-3">
+              <TabsTrigger value="bib" className="text-xs gap-2 px-3">
                 <BookOpen className="w-3.5 h-3.5" />
                 references.bib
               </TabsTrigger>
               <TabsTrigger
                 value="lint"
-                className="text-xs gap-1.5 px-3"
+                className="text-xs gap-2 px-3"
                 disabled={!lintResult || lintResult.all.length === 0}
               >
                 <Layers className="w-3.5 h-3.5" />
@@ -367,7 +443,7 @@ export function GeneratePreview() {
                     variant={
                       lintResult.hasErrors ? "destructive" : "secondary"
                     }
-                    className="ml-1 h-4 px-1 text-[9px]"
+                    className="ml-1 h-4 px-1 text-xs"
                   >
                     {lintResult.all.length}
                   </Badge>
@@ -402,19 +478,52 @@ export function GeneratePreview() {
           </div>
 
           <TabsContent value="tex" className="mt-0">
-            <div className="latex-code-block rounded-xl border border-border/50 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/50">
-                <span className="text-[10px] font-mono text-muted-foreground">
-                  main.tex
-                </span>
-                <span className="text-[10px] font-mono text-muted-foreground">
-                  {latex.split("\n").length} lines
-                </span>
-              </div>
-              <div className="max-h-[500px] overflow-auto p-4">
-                <pre className="text-xs leading-relaxed whitespace-pre-wrap break-words">
-                  <code>{latex}</code>
-                </pre>
+            <div className="flex gap-3">
+              {/* Chapter sidebar */}
+              {chapterTitles.length > 0 && (
+                <div className="w-48 shrink-0 hidden lg:block">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground mb-2 w-full text-left"
+                    onClick={() => setChapterNavOpen(!chapterNavOpen)}
+                  >
+                    <ChevronDown className={`w-3 h-3 transition-transform ${chapterNavOpen ? '' : '-rotate-90'}`} />
+                    <List className="w-3 h-3" />
+                    Chapters ({chapterTitles.length})
+                  </button>
+                  {chapterNavOpen && (
+                    <div className="space-y-0.5">
+                      {chapterTitles.map((title, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          className="flex items-center gap-2 w-full text-left px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors truncate"
+                          onClick={() => scrollToChapter(idx)}
+                        >
+                          <ChevronRight className="w-2.5 h-2.5 shrink-0" />
+                          <span className="truncate">{title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* LaTeX code preview */}
+              <div className="latex-code-block rounded-xl border border-border/50 overflow-hidden flex-1 min-w-0" ref={texPreviewRef}>
+                <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/50">
+                  <span className="text-xs font-mono text-muted-foreground">
+                    main.tex
+                  </span>
+                  <span className="text-xs font-mono text-muted-foreground tabular-nums">
+                    {latex.split("\n").length} lines
+                  </span>
+                </div>
+                <div className="max-h-[500px] overflow-auto p-4">
+                  <pre className="text-xs leading-relaxed whitespace-pre-wrap break-words">
+                    <code>{latex}</code>
+                  </pre>
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -422,10 +531,10 @@ export function GeneratePreview() {
           <TabsContent value="bib" className="mt-0">
             <div className="latex-code-block rounded-xl border border-border/50 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/50">
-                <span className="text-[10px] font-mono text-muted-foreground">
+                <span className="text-xs font-mono text-muted-foreground">
                   references.bib
                 </span>
-                <span className="text-[10px] font-mono text-muted-foreground">
+                <span className="text-xs font-mono text-muted-foreground tabular-nums">
                   {bib.split("\n").length} lines
                 </span>
               </div>
@@ -443,7 +552,7 @@ export function GeneratePreview() {
                 <CardContent className="p-4">
                   {lintResult.all.length === 0 ? (
                     <div className="text-center py-8">
-                      <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                      <CheckCircle2 className="w-8 h-8 text-[var(--color-text-success)] mx-auto mb-2" />
                       <p className="text-sm font-medium">All clear!</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         No issues found in your LaTeX code.
@@ -453,17 +562,17 @@ export function GeneratePreview() {
                     <div className="space-y-3">
                       {lintResult.errors.length > 0 && (
                         <div>
-                          <h4 className="text-xs font-semibold text-destructive mb-2 flex items-center gap-1.5">
+                          <h4 className="text-xs font-semibold text-destructive mb-2 flex items-center gap-2">
                             <AlertCircle className="w-3.5 h-3.5" />
                             Errors ({lintResult.errors.length})
                           </h4>
-                          <div className="space-y-1.5">
+                          <div className="space-y-2">
                             {lintResult.errors.map((issue) => (
                               <div
                                 key={issue.id}
                                 className="flex items-start gap-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20"
                               >
-                                <code className="text-[10px] font-mono bg-destructive/10 text-destructive px-1 py-0.5 rounded shrink-0">
+                                <code className="text-xs font-mono bg-destructive/10 text-destructive px-1 py-0.5 rounded shrink-0">
                                   {issue.id}
                                 </code>
                                 <span className="text-xs">
@@ -476,17 +585,17 @@ export function GeneratePreview() {
                       )}
                       {lintResult.warnings.length > 0 && (
                         <div>
-                          <h4 className="text-xs font-semibold text-amber-500 mb-2 flex items-center gap-1.5">
+                          <h4 className="text-xs font-semibold text-[var(--color-text-warning)] mb-2 flex items-center gap-2">
                             <AlertTriangle className="w-3.5 h-3.5" />
                             Warnings ({lintResult.warnings.length})
                           </h4>
-                          <div className="space-y-1.5">
+                          <div className="space-y-2">
                             {lintResult.warnings.map((issue) => (
                               <div
                                 key={issue.id}
-                                className="flex items-start gap-2 p-2 rounded-lg bg-amber-500/5 border border-amber-500/20"
+                                className="flex items-start gap-2 p-2 rounded-lg bg-[var(--color-fill-warning)] border border-amber-500/20"
                               >
-                                <code className="text-[10px] font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1 py-0.5 rounded shrink-0">
+                                <code className="text-xs font-mono bg-[var(--color-fill-warning)] text-[var(--color-text-warning)] px-1 py-0.5 rounded shrink-0">
                                   {issue.id}
                                 </code>
                                 <span className="text-xs">
@@ -499,17 +608,17 @@ export function GeneratePreview() {
                       )}
                       {lintResult.infos.length > 0 && (
                         <div>
-                          <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                          <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-2">
                             <Info className="w-3.5 h-3.5" />
                             Info ({lintResult.infos.length})
                           </h4>
-                          <div className="space-y-1.5">
+                          <div className="space-y-2">
                             {lintResult.infos.map((issue) => (
                               <div
                                 key={issue.id}
                                 className="flex items-start gap-2 p-2 rounded-lg bg-muted/50"
                               >
-                                <code className="text-[10px] font-mono bg-muted px-1 py-0.5 rounded shrink-0">
+                                <code className="text-xs font-mono bg-muted px-1 py-0.5 rounded shrink-0">
                                   {issue.id}
                                 </code>
                                 <span className="text-xs text-muted-foreground">
@@ -588,36 +697,12 @@ export function GeneratePreview() {
             references.bib only
           </Button>
         </div>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           ZIP includes: main.tex + references.bib + README.md with compilation
           instructions. Works on Overleaf, TeXStudio, or any LaTeX editor.
         </p>
       </div>
 
-      <Separator />
-
-      {/* Navigation */}
-      <div className="flex items-center justify-between pt-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={prevStep}
-          className="gap-1.5 text-xs"
-        >
-          <ChevronLeft className="w-3.5 h-3.5" />
-          Format
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleGenerate}
-          className="gap-1.5 text-xs"
-          disabled={isGenerating}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          Regenerate
-        </Button>
-      </div>
     </motion.div>
   );
 }

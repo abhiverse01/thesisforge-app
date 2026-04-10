@@ -56,27 +56,28 @@ export function buildAST(data: ThesisData): DocumentNode {
   children.push(buildHeaderComment(data));
 
   // 2. Preamble (documentclass + packages + hypersetup + commands)
-  children.push(buildPreamble(data, schema));
+  children.push(...buildPreamble(data, schema));
 
   // 3. \begin{document}
+  children.push(command('begin', ['document']));
   children.push(blankLine());
 
   // 4. Title page
-  children.push(buildTitlePage(data, schema));
+  children.push(...buildTitlePage(data, schema));
 
   // 5. Front matter
-  children.push(buildFrontMatter(data, schema));
+  children.push(...buildFrontMatter(data, schema));
 
   // 6. Main matter (chapters)
-  children.push(buildMainMatter(data, schema));
+  children.push(...buildMainMatter(data, schema));
 
   // 7. Appendices
   if (data.appendices.length > 0) {
-    children.push(buildAppendices(data, schema));
+    children.push(...buildAppendices(data, schema));
   }
 
   // 8. Bibliography
-  children.push(buildBibliography(data, schema));
+  children.push(...buildBibliography(data, schema));
 
   // 9. \end{document}
   children.push(command('end', ['document']));
@@ -138,7 +139,7 @@ function buildPreamble(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string]
   // Packages — ordered per spec: inputenc/fontenc first, hyperref LAST
   const packages = buildPackageList(data, schema);
   for (const pkg of packages) {
-    nodes.push(usepackage(pkg.name, pkg.options));
+    nodes.push(usepackage(pkg.packageName, pkg.options));
   }
   nodes.push(blankLine());
 
@@ -189,16 +190,17 @@ function buildPreamble(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string]
   }
 
   // Hyperref setup — MUST be after all usepackage calls
-  nodes.push(command('hypersetup', [
-    `  pdftitle    = {${esc(data.metadata.title)}}`,
-    `  pdfauthor   = {${esc(data.metadata.author)}}`,
-    `  pdfsubject  = {${esc(data.metadata.subtitle || data.type + ' thesis')}}`,
-    `  pdfkeywords = {${esc(data.keywords.join(', '))}}`,
-    `  colorlinks  = true`,
-    `  linkcolor   = blue`,
-    `  citecolor   = blue`,
-    `  urlcolor    = blue`,
-  ]));
+  const hyperEntries = [
+    `pdftitle    = {${esc(data.metadata.title)}}`,
+    `pdfauthor   = {${esc(data.metadata.author)}}`,
+    `pdfsubject  = {${esc(data.metadata.subtitle || data.type + ' thesis')}}`,
+    `pdfkeywords = {${esc(data.keywords.join(', '))}}`,
+    `colorlinks  = true`,
+    `linkcolor   = blue`,
+    `citecolor   = blue`,
+    `urlcolor    = blue`,
+  ];
+  nodes.push(text(`\\hypersetup{\n  ${hyperEntries.join(',\n  ')}\n}`, true));
   nodes.push(blankLine());
 
   // ToC depth
@@ -287,15 +289,14 @@ function buildPackageList(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[stri
 
   // Reorder: natbib BEFORE hyperref, hyperref LAST
   const hyperrefIdx = pkgList.findIndex(p => p.packageName === 'hyperref');
-  const natbibIdx = pkgList.findIndex(p => p.packageName === 'natbib');
-
   if (hyperrefIdx > -1) {
     const hyperrefPkg = pkgList.splice(hyperrefIdx, 1)[0];
     pkgList.push(hyperrefPkg);
   }
-  if (natbibIdx > -1) {
-    const natbibPkg = pkgList.splice(natbibIdx > (hyperrefIdx > -1 && natbibIdx > hyperrefIdx ? natbibIdx - 1 : natbibIdx), 1)[0];
-    // Insert before the last item (hyperref)
+  // natbib should be second-to-last (just before hyperref)
+  const natbibIdx2 = pkgList.findIndex(p => p.packageName === 'natbib');
+  if (natbibIdx2 > -1 && natbibIdx2 < pkgList.length - 1) {
+    const natbibPkg = pkgList.splice(natbibIdx2, 1)[0];
     pkgList.splice(pkgList.length - 1, 0, natbibPkg);
   }
 
@@ -348,7 +349,8 @@ function buildTitlePage(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string
     phd: 'Doctoral Dissertation',
     report: 'Research Report',
   };
-  titlePageChildren.push(command('Large', [], ['bfseries']));
+  titlePageChildren.push(command('Large'));
+  titlePageChildren.push(command('bfseries'));
   titlePageChildren.push(text(esc(typeLabels[data.type])));
   titlePageChildren.push(command('par'));
   titlePageChildren.push(blankLine());
@@ -356,13 +358,15 @@ function buildTitlePage(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string
   titlePageChildren.push(command('vspace', ['1cm']));
   titlePageChildren.push(blankLine());
 
-  titlePageChildren.push(command('LARGE', [], ['bfseries']));
+  titlePageChildren.push(command('LARGE'));
+  titlePageChildren.push(command('bfseries'));
   titlePageChildren.push(text(esc(metadata.title)));
   titlePageChildren.push(command('par'));
   titlePageChildren.push(blankLine());
 
   if (metadata.subtitle) {
-    titlePageChildren.push(command('large', [], ['itshape']));
+    titlePageChildren.push(command('large'));
+    titlePageChildren.push(command('itshape'));
     titlePageChildren.push(text(esc(metadata.subtitle)));
     titlePageChildren.push(command('par'));
     titlePageChildren.push(blankLine());
@@ -375,7 +379,8 @@ function buildTitlePage(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string
   titlePageChildren.push(text('Submitted by:'));
   titlePageChildren.push(command('par'));
   titlePageChildren.push(command('vspace', ['0.3cm']));
-  titlePageChildren.push(command('Large', [], ['bfseries']));
+  titlePageChildren.push(command('Large'));
+  titlePageChildren.push(command('bfseries'));
   titlePageChildren.push(text(esc(metadata.author)));
   titlePageChildren.push(command('par'));
   titlePageChildren.push(blankLine());
@@ -435,9 +440,14 @@ function buildFrontMatter(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[stri
   const nodes: ASTNode[] = [];
   const { metadata, abstract, keywords, options } = data;
 
-  nodes.push(comment('Front Matter'));
-  nodes.push(command('frontmatter'));
-  nodes.push(blankLine());
+  // \frontmatter only exists in report/book class, not article
+  if (schema.documentClass !== 'article') {
+    nodes.push(comment('Front Matter'));
+    nodes.push(command('frontmatter'));
+    nodes.push(blankLine());
+  } else {
+    nodes.push(comment('Front Matter'));
+  }
 
   // Dedication
   if (options.includeDedication && metadata.dedication) {
@@ -445,7 +455,8 @@ function buildFrontMatter(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[stri
     const dedChildren: ASTNode[] = [
       command('vspace', ['*{\\fill}']),
       command('begin', ['center']),
-      command('large', [], ['itshape']),
+      command('large'),
+      command('itshape'),
       text(esc(metadata.dedication)),
       command('end', ['center']),
       command('vspace', ['*{\\fill}']),
@@ -458,7 +469,7 @@ function buildFrontMatter(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[stri
   if (options.includeAcknowledgment && metadata.acknowledgment) {
     nodes.push(comment('Acknowledgments'));
     const absCmd = data.type === 'report' ? 'section' : 'chapter';
-    nodes.push(command(absCmd, ['Acknowledgments'], ['*']));
+    nodes.push(command(absCmd, ['Acknowledgments'], undefined, true));
     nodes.push(command('addcontentsline', ['toc', data.type === 'report' ? 'section' : 'chapter', 'Acknowledgments']));
     nodes.push(blankLine());
     nodes.push(...contentToNodes(metadata.acknowledgment));
@@ -468,7 +479,7 @@ function buildFrontMatter(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[stri
   // Abstract
   nodes.push(comment('Abstract'));
   const absLabel = data.type === 'report' ? 'section' : 'chapter';
-  nodes.push(command(absLabel, ['Abstract'], ['*']));
+  nodes.push(command(absLabel, ['Abstract'], undefined, true));
   nodes.push(command('addcontentsline', ['toc', data.type === 'report' ? 'section' : 'chapter', 'Abstract']));
   nodes.push(blankLine());
   if (abstract) {
@@ -506,12 +517,17 @@ function buildFrontMatter(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[stri
 function buildMainMatter(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string]): ASTNode[] {
   const nodes: ASTNode[] = [];
 
-  nodes.push(comment('Main Matter'));
-  nodes.push(command('mainmatter'));
-  nodes.push(blankLine());
+  // \mainmatter only exists in report/book class, not article
+  if (schema.documentClass !== 'article') {
+    nodes.push(comment('Main Matter'));
+    nodes.push(command('mainmatter'));
+    nodes.push(blankLine());
+  } else {
+    nodes.push(comment('Main Matter'));
+  }
 
   for (const chapter of data.chapters) {
-    nodes.push(buildChapter(chapter, data.type, schema));
+    nodes.push(...buildChapter(chapter, data.type, schema));
   }
 
   return nodes;
@@ -601,9 +617,14 @@ function buildAppendices(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[strin
 function buildBibliography(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string]): ASTNode[] {
   const nodes: ASTNode[] = [];
 
-  nodes.push(comment('Bibliography'));
-  nodes.push(command('backmatter'));
-  nodes.push(blankLine());
+  // \backmatter only exists in report/book class, not article
+  if (schema.documentClass !== 'article') {
+    nodes.push(comment('Bibliography'));
+    nodes.push(command('backmatter'));
+    nodes.push(blankLine());
+  } else {
+    nodes.push(comment('Bibliography'));
+  }
 
   if (data.references.length === 0) {
     nodes.push(comment('No references added yet. Add references in Step 4 to populate this section.'));
@@ -671,7 +692,7 @@ function contentToNodes(content: string): ASTNode[] {
         const lines = part.content.split('\n');
         for (let j = 0; j < lines.length; j++) {
           if (j > 0) {
-            nodes.push(text('\\\\'));
+            nodes.push(text('\\\\', true));
           }
           const line = lines[j].trim();
           if (line) {
@@ -737,7 +758,7 @@ function buildFigurePlaceholder(caption: string): ASTNode[] {
     environment('figure', [
       blankLine(),
       command('centering'),
-      command('includegraphics', ['width=0.8\\textwidth'], ['figures/placeholder']),
+      command('includegraphics', ['figures/placeholder'], ['width=0.8\\textwidth']),
       command('caption', [esc(cap)]),
       command('label', ['fig:placeholder']),
       blankLine(),
@@ -756,14 +777,14 @@ function buildTablePlaceholder(caption: string): ASTNode[] {
       command('label', ['tab:placeholder']),
       blankLine(),
       comment('Replace with your table content'),
-      text('\\begin{tabular}{lcc}'),
-      text('\\toprule'),
-      text('Header 1 & Header 2 & Header 3 \\\\'),
-      text('\\midrule'),
-      text('Data 1 & Data 2 & Data 3 \\\\'),
-      text('Data 4 & Data 5 & Data 6 \\\\'),
-      text('\\bottomrule'),
-      text('\\end{tabular}'),
+      text('\\begin{tabular}{lcc}', true),
+      text('\\toprule', true),
+      text('Header 1 & Header 2 & Header 3 \\\\', true),
+      text('\\midrule', true),
+      text('Data 1 & Data 2 & Data 3 \\\\', true),
+      text('Data 4 & Data 5 & Data 6 \\\\', true),
+      text('\\bottomrule', true),
+      text('\\end{tabular}', true),
       blankLine(),
     ], ['htbp']),
     blankLine(),

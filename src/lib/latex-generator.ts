@@ -4,7 +4,7 @@
 // Pipeline: ThesisData → ASTBuilder → Serializer → .tex string
 // ============================================================
 
-import type { ThesisData, ThesisType, ThesisReference, ReferenceType } from './thesis-types';
+import type { ThesisData, ThesisReference, ReferenceType } from './thesis-types';
 import { generateLatexFromAST } from '@/core/ast-builder';
 
 /**
@@ -12,7 +12,11 @@ import { generateLatexFromAST } from '@/core/ast-builder';
  * Output is compilable on Overleaf without modifications.
  */
 export function generateLatex(data: ThesisData): string {
-  return generateLatexFromAST(data);
+  try {
+    return generateLatexFromAST(data);
+  } catch (err) {
+    throw new Error(`LaTeX generation failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+  }
 }
 
 /**

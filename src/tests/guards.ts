@@ -304,12 +304,12 @@ test('LaTeX: hash escaped', () => {
 });
 
 test('LaTeX: cite key is alphanumeric only', () => {
-  const key = generateCiteKey({ authors: "O'Brien, M.", year: '2021', title: 'Über the Résumé' });
+  const key = generateCiteKeyTest({ authors: "O'Brien, M.", year: '2021', title: 'Über the Résumé' });
   assert(/^[a-z0-9]+$/.test(key), `Bad cite key: "${key}"`);
 });
 
 test('LaTeX: cite key handles accents', () => {
-  const key = generateCiteKey({ authors: 'Müller, Hans', year: '2023', title: 'Über German Orthography' });
+  const key = generateCiteKeyTest({ authors: 'Müller, Hans', year: '2023', title: 'Über German Orthography' });
   assert(/^[a-z0-9]+$/.test(key), `Bad cite key: "${key}"`);
 });
 

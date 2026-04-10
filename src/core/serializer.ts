@@ -105,7 +105,7 @@ export function serialize(node: ASTNode, indent: number = 0): string {
 
     case 'Comment': {
       const c = node as CommentNode;
-      return `% ${c.content}`;
+      return c.content.split('\n').map(line => `% ${line}`).join('\n');
     }
 
     case 'BlankLine': {
@@ -157,6 +157,27 @@ export function contentToLatexNodes(content: string, escaped = false): ASTNode[]
   const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim());
   const nodes: ASTNode[] = [];
 
+  // Helper: create a command node
+  const command = (name: string, options?: string[], args?: (string | ASTNode)[]): CommandNode => ({
+    type: 'Command',
+    name,
+    options: options ?? [],
+    args: args ?? [],
+    star: false,
+  });
+
+  // Helper: create a text node
+  const text = (content: string, isEscaped: boolean): TextNode => ({
+    type: 'Text',
+    content,
+    escaped: isEscaped,
+  });
+
+  // Helper: create a blank line node
+  const blankLine = (): BlankLineNode => ({
+    type: 'BlankLine',
+  });
+
   for (const para of paragraphs) {
     const trimmed = para.trim();
     if (!trimmed) continue;
@@ -193,7 +214,7 @@ function isMajorSection(node: ASTNode): boolean {
   if (node.type === 'Command') {
     const cmdName = (node as CommandNode).name;
     return ['frontmatter', 'mainmatter', 'backmatter', 'appendix', 'tableofcontents',
-            'listoffigures', 'listoftables', 'maketitle'].includes(cmdName);
+            'listoffigures', 'listoftables', 'maketitle', 'begin'].includes(cmdName);
   }
   return false;
 }

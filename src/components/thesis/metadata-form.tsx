@@ -30,8 +30,6 @@ import {
   Calendar,
   MapPin,
   Heart,
-  ChevronRight,
-  ChevronLeft,
   Settings,
   Check,
   CalendarIcon,
@@ -42,7 +40,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+// ScrollArea removed - main element handles scrolling via h-screen layout
 import { countWords } from "@/utils/word-count";
 import {
   Tooltip,
@@ -94,7 +92,7 @@ function FieldCheck({ filled }: { filled: boolean }) {
         filled ? "opacity-100" : "opacity-0"
       }`}
     >
-      <Check className="w-3 h-3 text-emerald-500" />
+      <Check className="w-3 h-3 text-[var(--color-text-success)]" />
     </span>
   );
 }
@@ -193,12 +191,12 @@ export function MetadataForm() {
           <Sparkles className="w-3.5 h-3.5" />
           Step {WIZARD_STEPS[1].id} of {WIZARD_STEPS.length}
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Document Metadata
+        <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+          About Your Thesis
         </h2>
-        <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-          Fill in your thesis details. This information will appear on the title
-          page and in the document metadata.
+        <p className="text-muted-foreground text-sm max-w-lg mx-auto leading-relaxed">
+          Fill in the essential details about your thesis. This information will
+          appear on the title page and in the document metadata.
         </p>
       </motion.div>
 
@@ -211,20 +209,19 @@ export function MetadataForm() {
       >
         <div className="h-1 rounded-full bg-secondary overflow-hidden">
           <motion.div
-            className="h-full rounded-full bg-emerald-500"
+            className="h-full rounded-full bg-[var(--c-brand-600,#534AB7)]"
             animate={{ width: `${requiredPct}%` }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+            transition={{ duration: 0.5, ease: [0.25, 1, 0.5, 1] }}
           />
         </div>
-        <p className="text-[11px] text-muted-foreground text-center tabular-nums">
+        <p className="text-xs text-muted-foreground text-center tabular-nums">
           {requiredFieldsFilled.filled}/{requiredFieldsFilled.total} required
           fields completed
         </p>
       </motion.div>
 
       <div>
-        <ScrollArea className="max-h-[calc(100vh-440px)] px-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
             {/* ---- Title & Subtitle ---- */}
             <Card className="md:col-span-2">
               <CardHeader className="pb-3">
@@ -237,7 +234,7 @@ export function MetadataForm() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="title"
-                    className="text-xs font-medium flex items-center gap-1.5"
+                    className="text-xs font-medium flex items-center gap-2"
                   >
                     Title <span className="text-destructive">*</span>
                     <FieldCheck filled={!!metadata.title.trim()} />
@@ -254,7 +251,7 @@ export function MetadataForm() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="subtitle"
-                    className="text-xs font-medium flex items-center gap-1.5"
+                    className="text-xs font-medium flex items-center gap-2"
                   >
                     Subtitle (optional)
                     <FieldCheck filled={!!metadata.subtitle.trim()} />
@@ -284,7 +281,7 @@ export function MetadataForm() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="author"
-                    className="text-xs font-medium flex items-center gap-1.5"
+                    className="text-xs font-medium flex items-center gap-2"
                   >
                     Full Name <span className="text-destructive">*</span>
                     <FieldCheck filled={!!metadata.author.trim()} />
@@ -301,7 +298,7 @@ export function MetadataForm() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="authorId"
-                    className="text-xs font-medium flex items-center gap-1.5"
+                    className="text-xs font-medium flex items-center gap-2"
                   >
                     Student ID (optional)
                     <FieldCheck filled={!!metadata.authorId.trim()} />
@@ -331,12 +328,12 @@ export function MetadataForm() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="university"
-                    className="text-xs font-medium flex items-center gap-1.5"
+                    className="text-xs font-medium flex items-center gap-2"
                   >
                     University <span className="text-destructive">*</span>
                     <FieldCheck filled={!!metadata.university.trim()} />
                   </Label>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-2">
                     <div className="relative flex-1">
                       <GraduationCap className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                       <Input
@@ -377,7 +374,7 @@ export function MetadataForm() {
                           <button
                             key={uni}
                             type="button"
-                            className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                             onClick={() => {
                               updateMetadata({ university: uni });
                               setSuggestedUniversities([]);
@@ -393,7 +390,7 @@ export function MetadataForm() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="faculty"
-                    className="text-xs font-medium flex items-center gap-1.5"
+                    className="text-xs font-medium flex items-center gap-2"
                   >
                     Faculty
                     <FieldCheck filled={!!metadata.faculty.trim()} />
@@ -409,7 +406,7 @@ export function MetadataForm() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="department"
-                    className="text-xs font-medium flex items-center gap-1.5"
+                    className="text-xs font-medium flex items-center gap-2"
                   >
                     Department
                     <FieldCheck filled={!!metadata.department.trim()} />
@@ -441,7 +438,7 @@ export function MetadataForm() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="supervisor"
-                        className="text-xs font-medium flex items-center gap-1.5"
+                        className="text-xs font-medium flex items-center gap-2"
                       >
                         Supervisor <span className="text-destructive">*</span>
                         <FieldCheck filled={!!metadata.supervisor.trim()} />
@@ -492,7 +489,7 @@ export function MetadataForm() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="coSupervisor"
-                        className="text-xs font-medium flex items-center gap-1.5"
+                        className="text-xs font-medium flex items-center gap-2"
                       >
                         Co-Supervisor (optional)
                         <FieldCheck filled={!!metadata.coSupervisor.trim()} />
@@ -554,7 +551,7 @@ export function MetadataForm() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="submissionDate"
-                    className="text-xs font-medium flex items-center gap-1.5"
+                    className="text-xs font-medium flex items-center gap-2"
                   >
                     Submission Date <span className="text-destructive">*</span>
                     <FieldCheck filled={!!metadata.submissionDate} />
@@ -576,7 +573,7 @@ export function MetadataForm() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="graduationDate"
-                    className="text-xs font-medium flex items-center gap-1.5"
+                    className="text-xs font-medium flex items-center gap-2"
                   >
                     Graduation Date (optional)
                     <FieldCheck filled={!!metadata.graduationDate} />
@@ -597,12 +594,12 @@ export function MetadataForm() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="location"
-                    className="text-xs font-medium flex items-center gap-1.5"
+                    className="text-xs font-medium flex items-center gap-2"
                   >
                     City / Location <span className="text-destructive">*</span>
                     <FieldCheck filled={!!metadata.location.trim()} />
                   </Label>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-2">
                     <div className="relative flex-1">
                       <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                       <Input
@@ -643,7 +640,7 @@ export function MetadataForm() {
                           <button
                             key={loc}
                             type="button"
-                            className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                             onClick={() => {
                               updateMetadata({ location: loc });
                               setSuggestedLocations([]);
@@ -759,15 +756,15 @@ export function MetadataForm() {
                   <div className="flex items-center justify-between">
                     <Label
                       htmlFor="abstract"
-                      className="text-xs font-medium flex items-center gap-1.5"
+                      className="text-xs font-medium flex items-center gap-2"
                     >
                       Abstract
                     </Label>
                     {thesis.abstract.trim() && (
                       <span className={cn(
-                        "text-[10px] font-medium tabular-nums",
+                        "text-xs font-medium tabular-nums",
                         abstractWordCount > abstractWordLimit
-                          ? "text-amber-600 dark:text-amber-400"
+                          ? "text-[var(--color-text-warning)]"
                           : "text-muted-foreground"
                       )}>
                         {abstractWordCount} / {abstractWordLimit} words
@@ -785,7 +782,7 @@ export function MetadataForm() {
                     className="text-sm min-h-[120px] resize-y"
                   />
                   {abstractWordCount > abstractWordLimit && (
-                    <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+                    <p className="text-xs text-[var(--color-text-warning)] mt-1">
                       Your abstract exceeds the recommended word limit ({abstractWordLimit} for this template). This is a soft cap — you can still proceed.
                     </p>
                   )}
@@ -793,7 +790,7 @@ export function MetadataForm() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="keywords-input"
-                    className="text-xs font-medium flex items-center gap-1.5"
+                    className="text-xs font-medium flex items-center gap-2"
                   >
                     Keywords
                   </Label>
@@ -812,11 +809,11 @@ export function MetadataForm() {
                     className="text-sm"
                   />
                   {thesis.keywords.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-1">
+                    <div className="flex flex-wrap gap-2 mt-1">
                       {thesis.keywords.map((kw) => (
                         <span
                           key={kw}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-medium"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium"
                         >
                           {kw}
                           <button
@@ -831,7 +828,7 @@ export function MetadataForm() {
                       ))}
                     </div>
                   )}
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Separate keywords with commas or press Enter after each one. Keywords appear in the PDF metadata.
                   </p>
                 </div>
@@ -849,13 +846,13 @@ export function MetadataForm() {
               <CardContent className="space-y-0">
                 {/* Formatting sub-group */}
                 <div className="space-y-3 pb-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <Type className="w-3 h-3" />
                     Formatting
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium">Font Size</Label>
+                      <Label className="text-xs font-medium text-muted-foreground">Font Size</Label>
                       <Select
                         value={options.fontSize}
                         onValueChange={(val) =>
@@ -875,7 +872,7 @@ export function MetadataForm() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium">
+                      <Label className="text-xs font-medium text-muted-foreground">
                         Line Spacing
                       </Label>
                       <Select
@@ -897,7 +894,7 @@ export function MetadataForm() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium">
+                      <Label className="text-xs font-medium text-muted-foreground">
                         Page Margins
                       </Label>
                       <Select
@@ -925,7 +922,7 @@ export function MetadataForm() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium">
+                      <Label className="text-xs font-medium text-muted-foreground">
                         Paper Size
                       </Label>
                       <Select
@@ -956,13 +953,13 @@ export function MetadataForm() {
 
                 {/* Academic sub-group */}
                 <div className="space-y-3 py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <GraduationCap className="w-3 h-3" />
                     Academic
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium">
+                      <Label className="text-xs font-medium text-muted-foreground">
                         Citation Style
                       </Label>
                       <Select
@@ -986,7 +983,7 @@ export function MetadataForm() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium">TOC Depth</Label>
+                      <Label className="text-xs font-medium text-muted-foreground">TOC Depth</Label>
                       <Select
                         value={String(options.tocDepth)}
                         onValueChange={(val) =>
@@ -1035,7 +1032,7 @@ export function MetadataForm() {
 
                 {/* Features sub-group */}
                 <div className="space-y-3 pt-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <Puzzle className="w-3 h-3" />
                     Features
                   </p>
@@ -1090,8 +1087,6 @@ export function MetadataForm() {
               </CardContent>
             </Card>
           </div>
-        </ScrollArea>
-
       </div>
     </div>
   );

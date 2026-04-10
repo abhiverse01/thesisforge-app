@@ -167,7 +167,7 @@ const fadeUp = {
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, delay: i * 0.08, ease: "easeOut" },
+    transition: { duration: 0.5, delay: i * 0.08, ease: [0.25, 1, 0.5, 1] as const },
   }),
 };
 
@@ -307,7 +307,7 @@ function StatCounter({ stat, index, isLast }: { stat: typeof stats[number]; inde
         viewport={{ once: true }}
         className="text-center p-4 sm:p-6"
       >
-        <div className="text-3xl sm:text-4xl lg:text-5xl font-bold google-gradient-text mb-2">
+        <div className="text-3xl sm:text-4xl lg:text-5xl font-semibold google-gradient-text mb-2">
           {stat.isSpecial ? (
             <motion.span
               initial={{ opacity: 0 }}
@@ -412,7 +412,7 @@ export function Homepage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.5, ease: [0.25, 1, 0.5, 1] }}
             className="mb-10"
           >
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/10 border border-primary/10 mb-6">
@@ -424,8 +424,8 @@ export function Homepage() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-            className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-8 text-balance"
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
+            className="text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-8 text-balance"
           >
             {"Create Your Thesis in Minutes".split(" ").map((word, i) => (
               <motion.span
@@ -459,7 +459,7 @@ export function Homepage() {
                 transition={{
                   duration: 0.3,
                   delay: mounted ? 0.4 + i * 0.04 : 0,
-                  ease: "easeOut",
+                  ease: [0.25, 1, 0.5, 1],
                 }}
                 className="inline-block mr-[0.25em]"
               >
@@ -479,7 +479,7 @@ export function Homepage() {
             <Button
               onClick={startWizard}
               size="lg"
-              className="h-16 px-12 rounded-2xl text-base font-semibold gap-2.5 hover:scale-[1.03] transition-all duration-200 surface-2 cta-pulse google-gradient border-0 shadow-lg hover:shadow-xl"
+              className="h-16 px-12 rounded-2xl text-base font-semibold gap-2.5 hover:scale-[1.03] transition-[transform,box-shadow] duration-200 surface-2 cta-pulse google-gradient border-0 shadow-lg hover:shadow-xl"
             >
               <Zap className="w-5 h-5" />
               Get Started — It&apos;s Free
@@ -610,22 +610,22 @@ export function Homepage() {
           >
             {features.map((feature) => (
               <motion.div key={feature.title} variants={item}>
-                <Card className="h-full card-hover group relative overflow-hidden border-border/50 bg-card/50 hover:bg-card transition-all duration-300">
+                <Card className="h-full card-hover group relative overflow-hidden border-border/50 bg-card/50 hover:bg-card transition-[background-color,box-shadow] duration-200">
                   {/* Subtle gradient border on hover */}
-                  <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ring-1 ring-primary/20" />
+                  <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none ring-1 ring-primary/20" />
                   {/* Subtle gradient on hover */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-primary/5 via-transparent to-primary/[0.02] pointer-events-none" />
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-br from-primary/5 via-transparent to-primary/[0.02] pointer-events-none" />
                   <CardContent className="relative p-6">
                     <div className="flex items-start gap-4">
-                      <div className="shrink-0 mt-0.5 w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                      <div className="shrink-0 mt-0.5 w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                         <feature.icon className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
+                        <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-sm font-semibold">
                             {feature.title}
                           </h3>
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-primary/10 text-primary">
                             {feature.badge}
                           </span>
                         </div>
@@ -671,7 +671,7 @@ export function Homepage() {
           >
             {useCases.map((useCase) => (
               <motion.div key={useCase.title} variants={item}>
-                <Card className={`h-full card-hover group border-border/50 bg-gradient-to-br ${useCase.color} transition-all duration-300`}>
+                <Card className={`h-full card-hover group border-border/50 bg-gradient-to-br ${useCase.color} transition-[box-shadow] duration-200`}>
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
                       <div className="shrink-0 mt-0.5 w-11 h-11 rounded-xl flex items-center justify-center relative">
@@ -736,14 +736,14 @@ export function Homepage() {
                   className="text-center relative"
                 >
                   {/* Step number circle */}
-                  <div className="relative inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground font-bold text-xl mb-5 ring-4 ring-primary/10 z-10">
+                  <div className="relative inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground font-semibold text-xl mb-5 ring-4 ring-primary/10 z-10">
                     {step.step}
                   </div>
                   {/* Step icon */}
                   <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-muted mb-3">
                     <step.icon className="w-4 h-4 text-muted-foreground" />
                   </div>
-                  <h3 className="text-sm font-semibold mb-1.5">{step.title}</h3>
+                  <h3 className="text-sm font-semibold mb-2">{step.title}</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed max-w-[200px] mx-auto text-pretty">
                     {step.desc}
                   </p>
@@ -812,7 +812,7 @@ export function Homepage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={ctaInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+            transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
           >
             {/* Icon */}
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/10 mb-6">
@@ -829,7 +829,7 @@ export function Homepage() {
             <Button
               onClick={startWizard}
               size="lg"
-              className="h-14 px-10 rounded-2xl text-base font-semibold gap-2.5 hover:scale-[1.03] transition-all duration-200 surface-2 cta-pulse google-gradient border-0 shadow-lg hover:shadow-xl"
+              className="h-14 px-10 rounded-2xl text-base font-semibold gap-2.5 hover:scale-[1.03] transition-[transform,box-shadow] duration-200 surface-2 cta-pulse google-gradient border-0 shadow-lg hover:shadow-xl"
             >
               <Zap className="w-5 h-5" />
               Start Writing Now
@@ -857,14 +857,14 @@ export function Homepage() {
               Abhishek Shah
             </strong>
             {/* Version badge */}
-            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-mono font-medium bg-muted/80 text-muted-foreground border border-border/50">
+            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-muted/80 text-muted-foreground border border-border/50">
               v2.0
             </span>
           </p>
           <div className="flex items-center justify-center gap-3 mt-2 flex-wrap">
             <a
               href="mailto:abhishek.aimarine@gmail.com"
-              className="text-[11px] text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
             >
               <Mail className="w-3 h-3" />
               abhishek.aimarine@gmail.com
@@ -874,13 +874,13 @@ export function Homepage() {
               href="https://abhishekshah.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
             >
               <ExternalLink className="w-3 h-3" />
               abhishekshah.vercel.app
             </a>
           </div>
-          <p className="text-[10px] text-muted-foreground/50 mt-3">
+          <p className="text-xs text-muted-foreground/50 mt-3">
             ThesisForge v2.0 — AST-based academic LaTeX thesis generator
           </p>
         </div>

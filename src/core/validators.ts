@@ -61,14 +61,9 @@ export function validateMetadata(data: ThesisData): ValidationResult {
     }
   }
 
-  if (metadata.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(metadata.email)) {
-    errors.email = 'Please enter a valid email address.';
-    issues.push({ field: 'email', message: errors.email, severity: 'error', step: 2 });
-  }
-
-  if (metadata.year && !/^\d{4}$/.test(metadata.year)) {
-    errors.year = 'Year must be a 4-digit number.';
-    issues.push({ field: 'year', message: errors.year, severity: 'error', step: 2 });
+  if (metadata.graduationDate && isNaN(new Date(metadata.graduationDate).getTime())) {
+    errors.graduationDate = 'Please enter a valid graduation date.';
+    issues.push({ field: 'graduationDate', message: errors.graduationDate, severity: 'error', step: 2 });
   }
 
   return {

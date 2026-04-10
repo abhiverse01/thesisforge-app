@@ -4,20 +4,25 @@ import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useThesisStore } from "@/lib/thesis-store";
-import { WIZARD_STEPS } from "@/lib/thesis-types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import {
   Plus,
   Trash2,
@@ -39,7 +44,6 @@ import {
 export function AppendixEditor() {
   const {
     thesis,
-    options,
     addAppendix,
     removeAppendix,
     updateAppendix,
@@ -47,7 +51,7 @@ export function AppendixEditor() {
   } = useThesisStore();
 
   const appendices = thesis?.appendices ?? [];
-  const showAppendices = options?.includeAppendices ?? false;
+  const showAppendices = thesis?.options?.includeAppendices ?? false;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -68,7 +72,7 @@ export function AppendixEditor() {
             checked={showAppendices}
             onCheckedChange={(checked) => updateOptions({ includeAppendices: checked })}
           />
-          <Label htmlFor="switch-appendices" className="text-xs font-medium cursor-pointer">
+          <Label htmlFor="switch-appendices" className="text-xs font-medium text-muted-foreground cursor-pointer">
             Include Appendices
           </Label>
         </div>
@@ -111,13 +115,13 @@ export function AppendixEditor() {
                 </div>
                 <h3 className="text-sm font-semibold mb-1">No appendices yet</h3>
                 <p className="text-xs text-muted-foreground max-w-[240px] mb-4">
-                  Add supplementary material like code listings, raw data, or extended proofs.
+                  Add supplementary material like code listings or raw data.
                 </p>
                 <Button
                   type="button"
                   onClick={addAppendix}
                   size="sm"
-                  className="gap-1.5 text-xs"
+                  className="gap-2 text-xs"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add Appendix
@@ -144,7 +148,7 @@ export function AppendixEditor() {
                         <CardHeader className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-md bg-secondary flex items-center justify-center shrink-0">
-                              <span className="text-[10px] font-bold text-secondary-foreground">
+                              <span className="text-xs font-semibold text-secondary-foreground">
                                 {letter}
                               </span>
                             </div>
@@ -172,7 +176,7 @@ export function AppendixEditor() {
 
                             <div className="flex items-center gap-1 shrink-0">
                               {wordCount > 0 && (
-                                <span className="text-[10px] text-muted-foreground font-mono">
+                                <span className="text-xs text-muted-foreground font-mono tabular-nums">
                                   {wordCount} words
                                 </span>
                               )}
@@ -258,7 +262,7 @@ export function AppendixEditor() {
                           <DialogContent className="sm:max-w-[380px]">
                             <DialogHeader>
                               <DialogTitle className="flex items-center gap-2 text-base">
-                                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                <AlertTriangle className="w-4 h-4 text-[var(--color-text-warning)]" />
                                 Delete Appendix
                               </DialogTitle>
                             </DialogHeader>
@@ -304,7 +308,7 @@ export function AppendixEditor() {
                     variant="outline"
                     size="sm"
                     onClick={addAppendix}
-                    className="gap-1.5 text-xs border-dashed"
+                    className="gap-2 text-xs border-dashed"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Add Appendix

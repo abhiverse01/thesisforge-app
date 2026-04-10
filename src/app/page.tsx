@@ -17,7 +17,7 @@ import { Homepage } from "@/components/thesis/homepage";
 import IntelligencePanel from "@/components/thesis/intelligence-panel";
 import { SaveIndicator } from "@/components/thesis/save-indicator";
 import { intelligenceScheduler } from "@/intelligence/scheduler";
-import { saveDraft, loadDraft, clearDraft, createSnapshot } from "@/core/persistence";
+import { saveDraft, loadDraft, clearDraft, createSnapshot, onSaveStatus } from "@/core/persistence";
 import { Button } from "@/components/ui/button";
 import {
   FileText,
@@ -28,7 +28,6 @@ import {
   Mail,
   ExternalLink,
   Keyboard,
-  Sparkles,
   FileDown,
   Loader2,
   FileUp,
@@ -37,8 +36,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  Undo2,
-  Redo2,
 } from "lucide-react";
 import {
   Tooltip,
@@ -62,6 +59,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { exportThesis } from "@/core/export";
 
 // ============================================================
 // Animation Variants — Simple fade + slight slide
@@ -92,7 +90,7 @@ const STEP_NAV: {
   { step: 3, name: "Chapters", description: "Write content" },
   { step: 4, name: "References", description: "Manage citations" },
   { step: 5, name: "Format", description: "Configure output" },
-  { step: 6, name: "Generate", description: "Preview & download" },
+  { step: 6, name: "Generate", description: "Preview & export" },
 ];
 
 // Helper to get step label
@@ -157,12 +155,12 @@ function restoreState(entry: { state: string; description: string }, isUndo: boo
 // ============================================================
 
 export default function Home() {
-  const { currentStep, selectedTemplate, thesis, saveStatus, lastErrors, wizardStarted,
+  const { currentStep, selectedTemplate, thesis, wizardStarted,
           setStep, nextStep, prevStep, canGoNext,
           lastDeletedChapter, lastDeletedReference,
           undoDeleteChapter, undoDeleteReference,
           exportProject, importProject,
-          reset, goToHome, setSaveStatus } = useThesisStore();
+          reset, goToHome, isGenerating, setGenerating, setSaveStatus } = useThesisStore();
   const { theme, setTheme } = useTheme();
 
   // ---- Dialog states ----
@@ -173,10 +171,7 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showIntelligencePanel, setShowIntelligencePanel] = useState(false);
   const [showShortcutHint, setShowShortcutHint] = useState(false);
-  const [showOverleafModal, setShowOverleafModal] = useState(false);
-  const [overleafDownloading, setOverleafDownloading] = useState(false);
-  const historyInitialized = useRef(false);
-  const lastPushedState = useRef<string>("");
+  const [scrolled, setScrolled] = useState(false);
 
   // ---- Refs ----
   const konamiBuffer = useRef<string[]>([]);
@@ -186,6 +181,20 @@ export default function Home() {
   const deletedRefShownRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const historyInitRef = useRef(false);
+  const autoSaveToastShownRef = useRef(false);
+  const saveStatusResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ================================================================
+  // Scroll detection for frosted header
+  // ================================================================
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 0);
+    const mainEl = document.querySelector('main');
+    const target = mainEl || window;
+    target.addEventListener('scroll', handleScroll, true);
+    handleScroll();
+    return () => target.removeEventListener('scroll', handleScroll, true);
+  }, []);
 
   // ================================================================
   // IndexedDB Persistence (first render only)
@@ -230,6 +239,43 @@ export default function Home() {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
   }, [thesis, currentStep, wizardStarted, selectedTemplate]);
+
+  // ================================================================
+  // Subscribe to save status events from persistence layer
+  // ================================================================
+  useEffect(() => {
+    if (!wizardStarted) return;
+
+    const unsubscribe = onSaveStatus((status) => {
+      if (status === 'saving') {
+        setSaveStatus('saving');
+      } else if (status === 'saved') {
+        setSaveStatus('saved');
+
+        // Bug 8: One-time "Auto-save is on" toast on first successful save
+        if (!autoSaveToastShownRef.current) {
+          autoSaveToastShownRef.current = true;
+          toast.success("Auto-save is on", {
+            description: "Your progress is saved automatically to this browser.",
+            duration: 4000,
+          });
+        }
+
+        // Reset to idle after 2 seconds
+        if (saveStatusResetRef.current) clearTimeout(saveStatusResetRef.current);
+        saveStatusResetRef.current = setTimeout(() => {
+          setSaveStatus('idle');
+        }, 2000);
+      } else if (status === 'error' || status === 'quota-exceeded' || status === 'conflict') {
+        setSaveStatus('error');
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      if (saveStatusResetRef.current) clearTimeout(saveStatusResetRef.current);
+    };
+  }, [wizardStarted, setSaveStatus]);
 
   // ================================================================
   // beforeunload — warn about unsaved changes
@@ -468,6 +514,35 @@ export default function Home() {
     setMobileMenuOpen(false);
   }, [exportProject]);
 
+  const handleExportZip = useCallback(async () => {
+    if (!thesis || !selectedTemplate) {
+      toast.error("No thesis to export");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const result = await exportThesis(thesis, selectedTemplate);
+      if (result.errors && result.errors.length > 0) {
+        toast.error("Export blocked — LaTeX errors detected", {
+          description: result.errors.map(e => e.message).slice(0, 3).join("\n"),
+          duration: 5000,
+        });
+        return;
+      }
+      toast.success("Your thesis is ready", {
+        description: "Compile it in Overleaf to get your PDF.",
+        duration: 5000,
+      });
+    } catch (err) {
+      toast.error("Export failed", {
+        description: err instanceof Error ? err.message : "Failed to create ZIP file.",
+        duration: 4000,
+      });
+    } finally {
+      setGenerating(false);
+    }
+  }, [thesis, selectedTemplate, setGenerating]);
+
   const handleImport = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
@@ -605,7 +680,7 @@ export default function Home() {
       >
         <Keyboard className="w-4 h-4 shrink-0" />
         <span>Keyboard Shortcuts</span>
-        <span className="ml-auto text-[10px] text-muted-foreground/50 kbd">
+        <span className="ml-auto text-xs text-muted-foreground/50 kbd">
           ?
         </span>
       </button>
@@ -632,7 +707,7 @@ export default function Home() {
   // ================================================================
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="min-h-screen flex flex-col bg-pattern">
+      <div className={cn("flex flex-col bg-pattern", wizardStarted ? "h-screen overflow-hidden" : "min-h-screen")}>
         {/* Hidden file input for import */}
         <input
           ref={fileInputRef}
@@ -645,15 +720,15 @@ export default function Home() {
         {/* ============================================================ */}
         {/* HEADER */}
         {/* ============================================================ */}
-        <header className="sticky top-0 z-50 border-b bg-background/85 backdrop-blur-xl surface-1">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2">
+        <header className={cn("sticky top-0 z-50 shrink-0 border-b transition-[background,backdrop-filter] duration-150", scrolled ? "bg-background/82 backdrop-blur-xl backdrop-saturate-[1.8]" : "bg-background border-b-transparent")}>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
             {/* Left: Logo */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
                 <FileText className="w-4 h-4 text-primary-foreground" />
               </div>
-              <span className="text-sm font-bold tracking-tight">
-                ThesisForge
+              <span className="text-sm font-semibold tracking-tight text-foreground">
+                Thesis<span style={{ color: 'var(--c-brand-600)' }}>Forge</span>
               </span>
             </div>
 
@@ -759,7 +834,7 @@ export default function Home() {
                       className={cn(
                         "h-8 w-8 p-0 transition-colors",
                         showIntelligencePanel
-                          ? "text-purple-500 bg-purple-500/10"
+                          ? "text-[var(--c-brand-600)] bg-[var(--color-fill-brand)]"
                           : "text-muted-foreground"
                       )}
                     >
@@ -851,7 +926,7 @@ export default function Home() {
         {/* ============================================================ */}
         {/* MAIN CONTENT */}
         {/* ============================================================ */}
-        <main className="flex-1">
+        <main className={cn("flex-1 min-h-0", wizardStarted && "overflow-y-auto")}>
           <AnimatePresence mode="wait">
             {!wizardStarted ? (
               <motion.div
@@ -954,10 +1029,10 @@ export default function Home() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className="sticky bottom-0 z-40 border-t bg-background/80 backdrop-blur-xl"
+              className="shrink-0 border-t bg-background/92 backdrop-blur-xl backdrop-saturate-[1.8]"
             >
               <div className={cn(
-                "px-4 sm:px-6 h-14 flex items-center justify-between gap-3",
+                "px-4 sm:px-6 h-[72px] flex items-center justify-between gap-3",
                 showPanelInline
                   ? "max-w-[calc(1280px-1rem)] mx-auto"
                   : "max-w-4xl mx-auto"
@@ -989,7 +1064,7 @@ export default function Home() {
 
                 {/* CENTER: Step label */}
                 <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground shrink-0">
-                  <span className="font-medium text-foreground/80">
+                  <span className="font-medium text-foreground/80 tabular-nums">
                     Step {currentStep}
                   </span>
                   <span className="text-muted-foreground/50">·</span>
@@ -1003,7 +1078,7 @@ export default function Home() {
                       size="sm"
                       onClick={() => nextStep()}
                       disabled={!canGoNext()}
-                      className="text-xs gap-1.5"
+                      className="text-xs gap-1.5 min-w-[140px] h-11 btn-next"
                     >
                       Next
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -1011,16 +1086,15 @@ export default function Home() {
                   ) : (
                     <Button
                       size="sm"
-                      onClick={handleExport}
-                      className="text-xs gap-1.5 font-semibold"
-                      disabled={isGenerating}
+                      onClick={handleExportZip}
+                      className="text-xs gap-1.5 font-semibold min-w-[140px] h-11 btn-primary"
                     >
                       {isGenerating ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <>
                           <Download className="w-3.5 h-3.5" />
-                          Export
+                          Export thesis
                         </>
                       )}
                     </Button>
@@ -1035,13 +1109,13 @@ export default function Home() {
         {/* FOOTER — Compact: tagline + developer credit (when not in wizard) */}
         {/* ============================================================ */}
         {!wizardStarted && (
-          <footer className="border-t mt-auto bg-background/60 backdrop-blur-sm">
+          <footer className="border-t mt-auto shrink-0 bg-background/60 backdrop-blur-sm">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-1.5">
                 {/* Tagline */}
-                <p className="text-[10px] text-muted-foreground/50 text-center sm:text-left">
+                <p className="text-xs text-muted-foreground/50 text-center sm:text-left">
                   Paste content &rarr;{" "}
-                  <code className="text-[9px] bg-secondary/50 px-1 py-0.5 rounded font-mono">
+                  <code className="text-xs bg-secondary/50 px-1 py-0.5 rounded font-mono">
                     .tex
                   </code>{" "}
                   &rarr; Compile &rarr; PDF
@@ -1056,11 +1130,11 @@ export default function Home() {
                     className="flex items-center gap-1.5 group"
                   >
                     <div className="w-4 h-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <span className="text-[7px] font-bold text-primary">
+                      <span className="text-xs font-semibold text-primary">
                         AS
                       </span>
                     </div>
-                    <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                    <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
                       Abhishek Shah
                     </span>
                   </a>
@@ -1086,7 +1160,7 @@ export default function Home() {
 
               {/* Brand line */}
               <div className="mt-1.5 pt-1.5 border-t border-border/30 flex items-center justify-center">
-                <span className="text-[9px] text-muted-foreground/25">
+                <span className="text-xs text-muted-foreground/25">
                   <span className="font-semibold">ThesisForge</span> by{" "}
                   <a
                     href="https://abhishekshah.vercel.app"
@@ -1149,7 +1223,7 @@ export default function Home() {
               {wizardStarted && selectedTemplate && (
                 <>
                   <div className="border-t my-2" />
-                  <p className="text-[11px] font-medium text-muted-foreground px-3 mb-2">
+                  <p className="text-xs font-medium text-muted-foreground px-3 mb-2">
                     Go to Step
                   </p>
                   <div className="grid grid-cols-4 gap-1.5 px-1">
@@ -1164,10 +1238,10 @@ export default function Home() {
                             : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground"
                         )}
                       >
-                        <div className="text-[11px] font-medium">
+                        <div className="text-xs font-medium">
                           {s.name}
                         </div>
-                        <div className="text-[9px] mt-0.5 opacity-60 leading-tight hidden sm:block">
+                        <div className="text-xs mt-0.5 opacity-60 leading-tight hidden sm:block">
                           {s.description}
                         </div>
                       </button>
@@ -1283,7 +1357,7 @@ export default function Home() {
                 ].map((key, i) => (
                   <span
                     key={i}
-                    className="w-6 h-6 rounded bg-muted text-[10px] font-mono font-bold text-muted-foreground flex items-center justify-center"
+                    className="w-6 h-6 rounded bg-muted text-xs font-mono font-semibold text-muted-foreground flex items-center justify-center"
                   >
                     {key}
                   </span>

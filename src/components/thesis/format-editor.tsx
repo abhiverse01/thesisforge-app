@@ -4,7 +4,6 @@ import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import { useThesisStore } from "@/lib/thesis-store";
 import { THESIS_TEMPLATES } from "@/lib/thesis-types";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,7 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -29,8 +27,6 @@ import {
 import {
   Settings,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Info,
   Type,
   FileText,
@@ -39,12 +35,11 @@ import {
   Quote,
   Hash,
   BookOpen,
-  List,
   Code,
-  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { WIZARD_STEPS } from "@/lib/thesis-types";
 
 const fadeVariants = {
   initial: { opacity: 0, y: 8 },
@@ -171,23 +166,25 @@ export function FormatEditor() {
   const { thesis, updateOptions, selectedTemplate } = useThesisStore();
   const [showAdvanced, setShowAdvanced] = React.useState(false);
 
-  const options = thesis?.options;
   const template = THESIS_TEMPLATES.find((t) => t.type === selectedTemplate);
 
   const preamblePreview = useMemo(() => {
-    if (!options) return '';
+    const opts = thesis?.options;
+    if (!opts) return '';
     const lines = [
-      `\\documentclass[${options.fontSize},${options.paperSize}]{report}`,
-      `\\usepackage[${options.marginSize}]{geometry}`,
+      `\\documentclass[${opts.fontSize},${opts.paperSize}]{report}`,
+      `\\usepackage[${opts.marginSize}]{geometry}`,
     ];
-    if (options.lineSpacing === 'onehalf') lines.push('\\onehalfspacing');
-    else if (options.lineSpacing === 'double') lines.push('\\doublespacing');
-    lines.push(`\\bibliographystyle{${options.citationStyle}}`);
-    lines.push(`\\setcounter{tocdepth}{${options.tocDepth}}`);
+    if (opts.lineSpacing === 'onehalf') lines.push('\\onehalfspacing');
+    else if (opts.lineSpacing === 'double') lines.push('\\doublespacing');
+    lines.push(`\\bibliographystyle{${opts.citationStyle}}`);
+    lines.push(`\\setcounter{tocdepth}{${opts.tocDepth}}`);
     return lines.join('\n');
-  }, [options]);
+  }, [thesis?.options]);
 
   if (!thesis) return null;
+
+  const options = thesis.options;
 
   const handleChange = (key: string, value: string | number | boolean) => {
     updateOptions({ [key]: value });
@@ -211,19 +208,26 @@ export function FormatEditor() {
       className="space-y-6"
     >
       {/* Header */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <Settings className="w-5 h-5 text-primary" />
-          <h2 className="text-xl font-bold tracking-tight">Format & Layout</h2>
+      <div className="space-y-3">
+        <div className="text-center space-y-2">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+              <Settings className="w-3.5 h-3.5" />
+              Step {WIZARD_STEPS[4].id} of {WIZARD_STEPS.length}
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+              Formatting Options
+            </h2>
+            <p className="text-muted-foreground text-sm max-w-lg mx-auto leading-relaxed">
+              Configure your thesis formatting options. Changes are
+              reflected in the generated LaTeX code in real time.
+            </p>
+          </motion.div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Configure your thesis formatting options. Changes are reflected in the generated LaTeX code.
-          {template && (
-            <span className="ml-1 text-primary">
-              Defaults loaded for {template.name}.
-            </span>
-          )}
-        </p>
       </div>
 
       {/* Main Options */}
@@ -241,8 +245,8 @@ export function FormatEditor() {
                     <Icon className="w-4 h-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Label htmlFor={opt.key} className="text-xs font-medium">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Label htmlFor={opt.key} className="text-xs font-medium text-muted-foreground">
                         {opt.label}
                       </Label>
                       <Tooltip>
@@ -254,7 +258,7 @@ export function FormatEditor() {
                         <TooltipContent side="right" className="max-w-[280px]">
                           <p className="text-xs leading-relaxed">{opt.tooltip}</p>
                           {opt.latexCommand && (
-                            <code className="mt-1.5 block text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded">
+                            <code className="mt-2 block text-xs font-mono bg-muted px-2 py-0.5 rounded">
                               {opt.latexCommand.replace(`{${opt.key}}`, `{${options[opt.key as keyof typeof options]}}`)}
                             </code>
                           )}
@@ -347,7 +351,7 @@ export function FormatEditor() {
                     checked={options[opt.key as keyof typeof options] as boolean}
                     onCheckedChange={(checked) => handleToggle(opt.key, checked)}
                   />
-                  <Label htmlFor={opt.key} className="text-xs font-medium cursor-pointer">
+                  <Label htmlFor={opt.key} className="text-xs font-medium text-muted-foreground cursor-pointer">
                     {opt.label}
                   </Label>
                   <Tooltip>
@@ -358,7 +362,7 @@ export function FormatEditor() {
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-[260px]">
                       <p className="text-xs leading-relaxed">{opt.tooltip}</p>
-                      <code className="mt-1 block text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded">{opt.latexCommand}</code>
+                      <code className="mt-2 block text-xs font-mono bg-muted px-2 py-0.5 rounded">{opt.latexCommand}</code>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -374,7 +378,7 @@ export function FormatEditor() {
           <button type="button" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full py-2 group">
             <Code className="w-4 h-4" />
             <span>LaTeX Preamble Preview</span>
-            <ChevronDown className={cn("w-4 h-4 transition-transform", showAdvanced && "rotate-180")} />
+            <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", showAdvanced && "rotate-180")} />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>

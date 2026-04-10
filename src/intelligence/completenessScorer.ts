@@ -209,11 +209,22 @@ export function scoreCompleteness(
 
   const ratio = possible > 0 ? earned / possible : 0;
 
+  // Find the single highest-value incomplete item for the "next action" pointer
+  const nextAction = breakdown
+    .filter(item => !item.achieved)
+    .sort((a, b) => b.weight - a.weight)[0] || null;
+
   return {
     score: Math.round(ratio * 100),
     earned,
     possible,
     breakdown,
+    nextAction: nextAction ? {
+      field: nextAction.field,
+      label: nextAction.label,
+      weight: nextAction.weight,
+      action: `Next: ${nextAction.label} (+${nextAction.weight} pts)`,
+    } : null,
     level:
       ratio >= 0.9
         ? 'ready'

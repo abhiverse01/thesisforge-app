@@ -46,13 +46,6 @@ const templateIconConfig: Record<
   report: { Icon: FileText, Wrapper: Layers, label: "Technical" },
 };
 
-const templateColors: Record<string, string> = {
-  bachelor: "blue",
-  master: "violet",
-  phd: "amber",
-  report: "emerald",
-};
-
 const templateGradients: Record<string, string> = {
   bachelor: "from-blue-500/8 to-sky-500/5 border-blue-500/20 hover:border-blue-500/40",
   master: "from-violet-500/8 to-purple-500/5 border-violet-500/20 hover:border-violet-500/40",
@@ -143,7 +136,7 @@ export function TemplateSelector() {
           <Sparkles className="w-3.5 h-3.5" />
           Step {WIZARD_STEPS[0].id} of {WIZARD_STEPS.length}
         </div>
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+        <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">
           Choose Your Template
         </h2>
         <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto leading-relaxed">
@@ -176,13 +169,22 @@ export function TemplateSelector() {
               onMouseLeave={() => setHoveredType(null)}
             >
               <Card
+                role="button"
+                tabIndex={0}
+                aria-pressed={selectedTemplate === template.type}
                 onClick={() => selectTemplate(template.type)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selectTemplate(template.type);
+                  }
+                }}
                 className={cn(
-                  "cursor-pointer transition-all duration-300 group relative overflow-hidden border-2 min-h-[180px]",
-                  "hover:shadow-lg hover:scale-[1.01]",
+                  "cursor-pointer transition-[border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] group relative overflow-hidden border-2 rounded-xl min-h-[180px]",
+                  "hover:-translate-y-0.5 hover:shadow-md",
                   isSelected
                     ? cn(
-                        "ring-2 shadow-lg",
+                        "ring-2 shadow-lg template-card--selected",
                         templateGlowColors[template.type]
                       )
                     : cn(
@@ -196,7 +198,7 @@ export function TemplateSelector() {
                       {/* Icon with distinctive gradient background */}
                       <motion.div
                         className={cn(
-                          "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300",
+                          "w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-200",
                           templateIconBg[template.type]
                         )}
                         animate={
@@ -212,18 +214,18 @@ export function TemplateSelector() {
                         <CardTitle className="text-base font-semibold">
                           {template.name}
                         </CardTitle>
-                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <Badge
                             variant="secondary"
                             className={cn(
-                              "text-[10px] font-medium",
+                              "text-xs font-medium",
                               templateBadgeColors[template.type]
                             )}
                           >
                             {iconConfig.label}
                           </Badge>
                           {isMaster && (
-                            <Badge className="text-[9px] bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800 font-semibold gap-0.5">
+                            <Badge className="text-xs bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800 font-semibold gap-0.5">
                               <Star className="w-2.5 h-2.5" />
                               Popular
                             </Badge>
@@ -246,14 +248,14 @@ export function TemplateSelector() {
                           }}
                         >
                           <div className="flex items-center justify-center">
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+                            <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
                               <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
                                 <Check
                                   className="w-3 h-3 text-primary-foreground"
                                   strokeWidth={3}
                                 />
                               </div>
-                              <span className="text-[10px] font-semibold text-primary">
+                              <span className="text-xs font-semibold text-primary">
                                 Selected
                               </span>
                             </div>
@@ -270,12 +272,12 @@ export function TemplateSelector() {
                   </CardDescription>
 
                   {/* Quick config stats */}
-                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mt-3 text-[10px] font-medium text-muted-foreground">
-                    <span className="px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-xs font-medium text-muted-foreground">
+                    <span className="px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground tabular-nums">
                       {template.defaultOptions.fontSize}
                     </span>
                     <span className="text-muted-foreground/40">|</span>
-                    <span className="px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground">
+                    <span className="px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground tabular-nums">
                       {template.defaultOptions.lineSpacing === "onehalf"
                         ? "1.5"
                         : template.defaultOptions.lineSpacing}{" "}
@@ -286,7 +288,7 @@ export function TemplateSelector() {
                       {template.defaultOptions.citationStyle?.toUpperCase()}
                     </span>
                     <span className="text-muted-foreground/40">|</span>
-                    <span className="px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground">
+                    <span className="px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground tabular-nums">
                       {template.defaultOptions.paperSize === "a4paper"
                         ? "A4"
                         : "Letter"}
@@ -295,11 +297,11 @@ export function TemplateSelector() {
 
                   {/* Bottom row: estimated chapters + pages + expandable features */}
                   <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border/50">
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Layers className="w-3 h-3" />
                       <span>{estimate.chapters} chapters</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <BookOpen className="w-3 h-3" />
                       <span>{estimate.pages} pages</span>
                     </div>
@@ -317,7 +319,7 @@ export function TemplateSelector() {
                           type="button"
                           onClick={(e) => e.stopPropagation()}
                           className={cn(
-                            "flex items-center gap-1 text-[10px] font-medium transition-colors",
+                            "flex items-center gap-1 text-xs font-medium transition-colors",
                             isFeaturesOpen
                               ? "text-primary"
                               : "text-muted-foreground hover:text-foreground"
@@ -349,7 +351,7 @@ export function TemplateSelector() {
                                   (feature) => (
                                     <li
                                       key={feature}
-                                      className="flex items-center gap-1.5 text-[10px] text-muted-foreground"
+                                      className="flex items-center gap-2 text-xs text-muted-foreground template-card__feature"
                                     >
                                       <Check className="w-2.5 h-2.5 text-primary/60 flex-shrink-0" />
                                       {feature}

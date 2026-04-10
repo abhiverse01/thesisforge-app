@@ -201,7 +201,10 @@ export async function exportThesis(
 
     // Add figures folder placeholder if listings are enabled
     if (data.options.includeListings) {
-      folder.folder('figures').file('.gitkeep', '');
+      const figuresFolder = folder.folder('figures');
+      if (figuresFolder) {
+        figuresFolder.file('.gitkeep', '');
+      }
     }
 
     const blob = await zip.generateAsync({

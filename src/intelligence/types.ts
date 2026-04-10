@@ -57,6 +57,7 @@ export interface StructureAnalysis {
   totalWords: number;
   wordCounts: Array<{ id: string; title: string; words: number }>;
   issues: StructureIssue[];
+  suggestions: string[];
   balanceScore: number | null;
 }
 
@@ -87,6 +88,12 @@ export interface CompletenessResult {
   earned: number;
   possible: number;
   breakdown: RubricItem[];
+  nextAction: {
+    field: string;
+    label: string;
+    weight: number;
+    action: string;
+  } | null;
   level: 'ready' | 'almost' | 'in-progress' | 'early';
 }
 

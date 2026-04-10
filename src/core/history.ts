@@ -18,8 +18,8 @@ class HistoryStack {
   private future: HistoryEntry[] = [];
 
   /** Push current state. Clears redo stack. */
-  push(state: object, description: string): void {
-    const serialized = JSON.stringify(state);
+  push(state: object | string, description: string): void {
+    const serialized = typeof state === 'string' ? state : JSON.stringify(state);
 
     if (this.present) {
       // Avoid pushing duplicate states
@@ -77,6 +77,13 @@ class HistoryStack {
 
   get size(): number {
     return this.past.length + (this.present ? 1 : 0);
+  }
+
+  /** Clear all history. */
+  clear(): void {
+    this.past = [];
+    this.present = null;
+    this.future = [];
   }
 }
 

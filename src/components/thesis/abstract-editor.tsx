@@ -19,8 +19,6 @@ import {
   Sparkles,
   Tag,
   X,
-  ChevronRight,
-  ChevronLeft,
   Lightbulb,
   Check,
   Type,
@@ -84,8 +82,6 @@ export function AbstractEditor() {
     setAbstract,
     addKeyword,
     removeKeyword,
-    nextStep,
-    prevStep,
   } = useThesisStore();
   const [keywordInput, setKeywordInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -140,10 +136,10 @@ export function AbstractEditor() {
       return { label: "N/A", color: "text-muted-foreground", dot: "bg-muted-foreground" };
     const avg = wordCount / sentenceCount;
     if (avg <= 15)
-      return { label: "Easy", color: "text-emerald-600 dark:text-emerald-400", dot: "bg-emerald-500" };
+      return { label: "Easy", color: "text-[var(--color-text-success)]", dot: "bg-[var(--color-text-success)]" };
     if (avg <= 25)
-      return { label: "Moderate", color: "text-amber-600 dark:text-amber-400", dot: "bg-amber-500" };
-    return { label: "Advanced", color: "text-orange-600 dark:text-orange-400", dot: "bg-orange-500" };
+      return { label: "Moderate", color: "text-[var(--color-text-warning)]", dot: "bg-[var(--color-text-warning)]" };
+    return { label: "Advanced", color: "text-[var(--color-text-danger)]", dot: "bg-[var(--color-text-danger)]" };
   }, [wordCount, sentenceCount]);
 
   const suggestedKeywords = useMemo(
@@ -188,11 +184,6 @@ export function AbstractEditor() {
 
   if (!thesis) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    nextStep();
-  };
-
   const progressPct = Math.min((wordCount / 500) * 100, 100);
 
   return (
@@ -208,7 +199,7 @@ export function AbstractEditor() {
           <Sparkles className="w-3.5 h-3.5" />
           Step {WIZARD_STEPS[2].id} of {WIZARD_STEPS.length}
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+        <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
           Abstract & Keywords
         </h2>
         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
@@ -217,7 +208,7 @@ export function AbstractEditor() {
         </p>
       </motion.div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-4">
         {/* ---- Abstract ---- */}
         <Card>
           <CardHeader className="pb-3">
@@ -257,19 +248,19 @@ export function AbstractEditor() {
             {/* Stats grid: 2x2 mobile, 4-col desktop */}
             {wordCount > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Type className="w-3 h-3 shrink-0" />
                   <span className="font-medium text-foreground tabular-nums">{wordCount}</span> words
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Hash className="w-3 h-3 shrink-0" />
                   <span className="font-medium text-foreground tabular-nums">{charCount}</span> chars
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <AlignLeft className="w-3 h-3 shrink-0" />
                   <span className="font-medium text-foreground tabular-nums">{sentenceCount}</span> sentences
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <BarChart3 className="w-3 h-3 shrink-0" />
                   <span className="font-medium text-foreground tabular-nums">{avgWordsPerSentence}</span> avg/sent
                 </div>
@@ -281,9 +272,9 @@ export function AbstractEditor() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex flex-col sm:flex-row sm:items-center gap-2 text-[11px] text-muted-foreground"
+                className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-muted-foreground"
               >
-                <span className="flex items-center gap-1.5 shrink-0">
+                <span className="flex items-center gap-2 shrink-0">
                   <span className={`w-1.5 h-1.5 rounded-full ${readabilityLevel.dot}`} />
                   Readability:{" "}
                   <span className={`font-medium ${readabilityLevel.color}`}>
@@ -307,7 +298,7 @@ export function AbstractEditor() {
               <Tag className="w-4 h-4 text-primary" />
               Keywords
               {keywords.length > 0 && (
-                <span className="text-[11px] font-normal text-muted-foreground tabular-nums">
+                <span className="text-xs font-normal text-muted-foreground tabular-nums">
                   ({keywords.length})
                 </span>
               )}
@@ -336,7 +327,7 @@ export function AbstractEditor() {
 
             {/* Suggested keywords */}
             {suggestedKeywords.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 {suggestedKeywords
                   .filter(
                     (sk) =>
@@ -347,7 +338,7 @@ export function AbstractEditor() {
                     <button
                       key={sk}
                       type="button"
-                      className="text-[11px] px-2 py-0.5 rounded-full border border-dashed border-primary/30 text-primary/70 hover:bg-primary/10 hover:border-primary/50 transition-colors"
+                      className="text-xs px-2 py-0.5 rounded-full border border-dashed border-primary/30 text-primary/70 hover:bg-primary/10 hover:border-primary/50 transition-colors"
                       onClick={() => handleAddSuggestedKeyword(sk)}
                     >
                       + {sk}
@@ -363,7 +354,7 @@ export function AbstractEditor() {
             {/* Keyword chips */}
             <AnimatePresence mode="popLayout">
               {keywords.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   {keywords.map((kw) => (
                     <motion.div
                       key={kw}
@@ -375,7 +366,7 @@ export function AbstractEditor() {
                     >
                       <Badge
                         variant="secondary"
-                        className="text-xs px-2.5 py-0.5 gap-1 cursor-pointer hover:bg-destructive/10 group"
+                        className="text-xs px-3 py-0.5 gap-1 cursor-pointer hover:bg-destructive/10 group"
                         onClick={() => removeKeyword(kw)}
                       >
                         {kw}
@@ -393,31 +384,7 @@ export function AbstractEditor() {
           </CardContent>
         </Card>
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={prevStep}
-            className="text-muted-foreground"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Back
-          </Button>
-          <Button type="submit" size="sm">
-            {wordCount >= 150 ? (
-              <>
-                <Check className="w-4 h-4 mr-1.5" />
-                Continue
-              </>
-            ) : (
-              "Continue"
-            )}
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }
@@ -430,7 +397,7 @@ function FieldCheck({ filled }: { filled: boolean }) {
         filled ? "opacity-100" : "opacity-0"
       }`}
     >
-      <Check className="w-3 h-3 text-emerald-500" />
+      <Check className="w-3 h-3 text-[var(--color-text-success)]" />
     </span>
   );
 }

@@ -44,7 +44,7 @@ interface StepIndicatorProps {
 }
 
 export function StepIndicator({ className }: StepIndicatorProps) {
-  const { currentStep, selectedTemplate, canGoToStep, setStep } = useThesisStore();
+  const { currentStep, canGoToStep, setStep } = useThesisStore();
 
   const totalSteps = WIZARD_STEPS.length;
   const completionPercent = Math.round(
@@ -71,7 +71,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
             Progress
           </p>
           <div className="flex items-center gap-2.5">
-            <div className="h-1.5 w-24 rounded-full bg-primary/15 overflow-hidden">
+            <div className="h-[3px] w-24 rounded-full bg-primary/15 overflow-hidden">
               <motion.div
                 className="h-full rounded-full bg-primary"
                 layout
@@ -85,7 +85,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
               initial={{ scale: 1.1 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="text-xs font-bold tabular-nums min-w-[36px] text-right text-foreground"
+              className="text-xs font-semibold tabular-nums min-w-[36px] text-right text-foreground"
             >
               {completionPercent}%
             </motion.span>
@@ -128,7 +128,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                     className={cn(
                       "flex flex-col items-center relative z-10 group outline-none",
                       canNav && "cursor-pointer",
-                      !canNav && "cursor-default opacity-60"
+                      !canNav && "cursor-default opacity-45"
                     )}
                   >
                     {/* Step circle */}
@@ -144,7 +144,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                         damping: 20,
                       }}
                       className={cn(
-                        "w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors duration-300 relative",
+                        "w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors duration-200 relative",
                         isCompleted
                           ? "border-primary bg-primary text-primary-foreground"
                           : isCurrent
@@ -179,7 +179,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                             transition={{ duration: 0.2 }}
                             className="flex flex-col items-center leading-none"
                           >
-                            <span className="text-[9px] font-bold tracking-wider opacity-60">
+                            <span className="text-xs font-semibold tracking-wider opacity-60">
                               {step.id}
                             </span>
                             <Icon className="w-4 h-4 mt-px" />
@@ -191,7 +191,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                     {/* Step label */}
                     <span
                       className={cn(
-                        "text-[11px] font-medium mt-2 text-center max-w-[72px] leading-tight transition-colors duration-300",
+                        "text-xs font-medium mt-2 text-center max-w-[72px] leading-tight transition-colors duration-200",
                         isCurrent
                           ? "text-primary font-semibold"
                           : isCompleted
@@ -206,22 +206,22 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                 <TooltipContent side={tooltipSide}
                   className="text-center max-w-[200px]"
                 >
-                  <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                  <div className="flex items-center justify-center gap-2 mb-0.5">
                     <span className="text-xs font-semibold">
                       Step {step.id}: {step.name}
                     </span>
                     {isCompleted && (
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      <span className="text-xs text-[var(--color-text-brand)] font-medium">
                         Completed
                       </span>
                     )}
                     {isCurrent && (
-                      <span className="text-[10px] text-primary font-medium">
+                      <span className="text-xs text-primary font-medium">
                         In Progress
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     {step.description}
                   </p>
                 </TooltipContent>
@@ -238,13 +238,13 @@ export function StepIndicator({ className }: StepIndicatorProps) {
           <span className="text-xs font-semibold text-foreground">
             Step {currentStep} of {totalSteps}
           </span>
-          <span className="text-[10px] font-medium text-primary tabular-nums">
+          <span className="text-xs font-medium text-primary tabular-nums">
             {completionPercent}%
           </span>
         </div>
 
         {/* Mobile progress bar */}
-        <div className="h-1 rounded-full bg-primary/15 overflow-hidden mb-3">
+        <div className="h-[3px] rounded-full bg-primary/15 overflow-hidden mb-3">
           <motion.div
             className="h-full rounded-full bg-primary"
             layout
@@ -255,7 +255,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
         </div>
 
         {/* Step number tabs — scrollable row with abbreviated names */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
           {WIZARD_STEPS.map((step, index) => {
             const isCompleted = currentStep > step.id;
             const isCurrent = currentStep === step.id;
@@ -274,7 +274,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                 layout
                 whileTap={canNav ? { scale: 0.96 } : undefined}
                 className={cn(
-                  "flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-medium transition-all duration-200 outline-none",
+                  "flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-[background-color,color,transform] duration-150 ease-out outline-none",
                   isCurrent &&
                     "bg-primary text-primary-foreground shadow-sm",
                   isCompleted &&
@@ -289,7 +289,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
               >
                 <span
                   className={cn(
-                    "w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0",
+                    "w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0",
                     isCurrent
                       ? "bg-primary-foreground/20 text-primary-foreground"
                       : isCompleted
@@ -303,7 +303,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
                     step.id
                   )}
                 </span>
-                <span className="whitespace-nowrap">
+                <span className="whitespace-nowrap tracking-wide">
                   {stepAbbreviations[index]}
                 </span>
               </motion.button>
@@ -319,7 +319,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
             transition={{ duration: 0.2 }}
-            className="text-center text-[11px] text-muted-foreground font-medium mt-2"
+            className="text-center text-xs text-muted-foreground font-medium mt-2"
           >
             {WIZARD_STEPS[currentStep - 1].description}
           </motion.p>

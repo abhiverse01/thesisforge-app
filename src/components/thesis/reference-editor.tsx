@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useThesisStore } from "@/lib/thesis-store";
 import { WIZARD_STEPS } from "@/lib/thesis-types";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+// ScrollArea removed - main element handles scrolling via h-screen layout
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,8 +35,6 @@ import {
 import {
   Plus,
   Trash2,
-  ChevronRight,
-  ChevronLeft,
   ChevronDown,
   Quote,
   BookOpen,
@@ -51,10 +49,11 @@ import {
   Search,
   Copy,
   X,
-  Check,
+  Zap,
 } from "lucide-react";
 import type { ReferenceType, ThesisReference } from "@/lib/thesis-types";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 // ============================================================
 // Reference type configuration
@@ -74,15 +73,15 @@ const refTypeConfig: Record<
     label: "Journal Article",
     shortLabel: "Article",
     icon: FileText,
-    color: "text-sky-500",
-    bgColor: "bg-sky-500",
+    color: "text-[var(--c-brand-600,#534AB7)]",
+    bgColor: "bg-[var(--c-brand-600,#534AB7)]",
   },
   book: {
     label: "Book",
     shortLabel: "Book",
     icon: BookOpen,
-    color: "text-emerald-500",
-    bgColor: "bg-emerald-500",
+    color: "text-[var(--color-text-success)]",
+    bgColor: "bg-[var(--color-text-success)]",
   },
   inproceedings: {
     label: "Conference",
@@ -95,8 +94,8 @@ const refTypeConfig: Record<
     label: "Tech Report",
     shortLabel: "Tech Rpt",
     icon: FlaskConical,
-    color: "text-amber-500",
-    bgColor: "bg-amber-500",
+    color: "text-[var(--color-text-warning)]",
+    bgColor: "bg-[var(--color-text-warning)]",
   },
   thesis: {
     label: "Thesis",
@@ -116,8 +115,8 @@ const refTypeConfig: Record<
     label: "Other",
     shortLabel: "Other",
     icon: HelpCircle,
-    color: "text-gray-500",
-    bgColor: "bg-gray-500",
+    color: "text-slate-500",
+    bgColor: "bg-slate-500",
   },
 };
 
@@ -138,6 +137,100 @@ const SORT_CYCLE: SortOrder[] = ["default", "year-desc", "author"];
 // ============================================================
 // BibTeX & plain-text import parsers
 // ============================================================
+
+function detectCitationFormat(raw: string): 'bibtex' | 'vancouver' | 'mla' | 'apa' {
+  if (raw.trim().startsWith("@")) return "bibtex";
+  if (/^\w+\s\w,/.test(raw)) return "vancouver";
+  if (/^"[^"]+"\s/.test(raw.trim())) return "mla";
+  return "apa";
+}
+
+function parseVancouverLine(line: string, idx: number): ThesisReference {
+  // Vancouver: Smith J, Jones A. Title. J Name. 2021;14(3):22-45.
+  const yearMatch = line.match(/\b(19|20)\d{2}\b/);
+  const year = yearMatch ? yearMatch[0] : "";
+
+  // Authors are everything before the first ". " that ends with a period after initials
+  const firstDot = line.indexOf('. ');
+  let authors = "Unknown Author";
+  let remaining = line;
+  if (firstDot > 0) {
+    authors = line.slice(0, firstDot).trim();
+    remaining = line.slice(firstDot + 2);
+  }
+
+  // Title is the next sentence
+  const secondDot = remaining.indexOf('. ');
+  let title = "";
+  if (secondDot > 0) {
+    title = remaining.slice(0, secondDot).trim();
+    remaining = remaining.slice(secondDot + 2);
+  } else {
+    title = remaining.replace(/[.;,]+\s*$/, '').trim();
+    remaining = "";
+  }
+
+  // Journal/source is the rest before the year/semicolon
+  if (!title) {
+    title = remaining ? remaining.split(/[\d;]/)[0].trim() : "Untitled";
+  }
+
+  // Extract journal from remaining
+  const journalMatch = remaining.match(/^([^.]+?)[.;,]/);
+  const journal = journalMatch ? journalMatch[1].trim() : undefined;
+
+  return {
+    id: `ref-line-${idx}-${Date.now()}`,
+    type: "article" as ReferenceType,
+    authors: authors.replace(/[.,;:]+$/, "").trim(),
+    title,
+    year,
+    journal,
+  };
+}
+
+function parseMlaLine(line: string, idx: number): ThesisReference {
+  // MLA: Smith, John. "Title." Journal Name, vol. 14, no. 3, 2021, pp. 22-45.
+  const yearMatch = line.match(/\b(19|20)\d{2}\b/);
+  const year = yearMatch ? yearMatch[0] : "";
+
+  const doiMatch = line.match(/(10\.\d{4,}\/[^\s,;]+)/);
+  const doi = doiMatch ? doiMatch[1] : "";
+
+  // Title is in quotes
+  const titleMatch = line.match(/["\u201c\u201d]([^\u201c\u201d"]+)["\u201d\u201c]/);
+  let title = "";
+  if (titleMatch) {
+    title = titleMatch[1].trim();
+  }
+
+  // Authors are before the quoted title
+  let authors = "Unknown Author";
+  if (titleMatch) {
+    const beforeTitle = line.slice(0, titleMatch.index).replace(/[.,;:]+$/, "").trim();
+    if (beforeTitle) authors = beforeTitle;
+  }
+
+  // Journal follows after the closing quote
+  let journal: string | undefined;
+  if (titleMatch) {
+    const afterTitle = line.slice((titleMatch.index || 0) + titleMatch[0].length);
+    const journalMatch = afterTitle.match(/^\.\s*([^,]+)/);
+    if (journalMatch) {
+      journal = journalMatch[1].replace(/^["\s]+/, "").trim();
+    }
+  }
+
+  return {
+    id: `ref-line-${idx}-${Date.now()}`,
+    type: "article" as ReferenceType,
+    authors,
+    title,
+    year,
+    doi,
+    journal,
+  };
+}
 
 function parseBibTeXEntries(text: string): ThesisReference[] {
   const refs: ThesisReference[] = [];
@@ -210,11 +303,19 @@ function parseBibTeXEntries(text: string): ThesisReference[] {
 }
 
 function parsePlainLines(text: string): ThesisReference[] {
-  return text
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line, idx) => {
+  const format = detectCitationFormat(text);
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+
+  if (format === 'vancouver') {
+    return lines.map((line, idx) => parseVancouverLine(line, idx));
+  }
+
+  if (format === 'mla') {
+    return lines.map((line, idx) => parseMlaLine(line, idx));
+  }
+
+  // APA fallback (existing logic)
+  return lines.map((line, idx) => {
       const yearMatch = line.match(/\b(19|20)\d{2}\b/);
       const year = yearMatch ? yearMatch[0] : "";
       const doiMatch = line.match(/(10\.\d{4,}\/[^\s,;]+)/);
@@ -286,7 +387,6 @@ export function ReferenceEditor() {
     removeReference,
     updateReference,
     bulkImportReferences,
-    undoDeleteReference,
   } = useThesisStore();
 
   // ----- State (ALL hooks before conditional return) -----
@@ -298,6 +398,8 @@ export function ReferenceEditor() {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [expandedRefId, setExpandedRefId] = useState<string | null>(null);
   const [parsedFields, setParsedFields] = useState<Set<string>>(new Set());
+  const [quickAddInput, setQuickAddInput] = useState("");
+  const quickAddRef = useRef<HTMLInputElement>(null);
 
   // ----- Derived data (safe even when thesis is null) -----
   const references = thesis?.references ?? [];
@@ -366,6 +468,16 @@ export function ReferenceEditor() {
     bulkImportReferences([copy]);
   };
 
+  const handleQuickAdd = () => {
+    if (!quickAddInput.trim()) return;
+    const parsed = parseImportText(quickAddInput);
+    if (parsed.length > 0) {
+      bulkImportReferences(parsed);
+      toast.success(`Added ${parsed.length} reference${parsed.length > 1 ? 's' : ''}`, { duration: 2000 });
+      setQuickAddInput("");
+    }
+  };
+
   const handleBulkImport = () => {
     if (!bulkImportText.trim()) return;
     const parsed = parseImportText(bulkImportText);
@@ -384,6 +496,7 @@ export function ReferenceEditor() {
         if (ref.bookTitle) fieldsToFlash.add(`${ref.id}:bookTitle`);
         if (ref.publisher) fieldsToFlash.add(`${ref.id}:publisher`);
         if (ref.doi) fieldsToFlash.add(`${ref.id}:doi`);
+        if (ref.url) fieldsToFlash.add(`${ref.id}:url`);
       });
       setParsedFields(fieldsToFlash);
 
@@ -428,25 +541,39 @@ export function ReferenceEditor() {
       >
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
           <FileText className="w-3.5 h-3.5" />
-          Step {WIZARD_STEPS[4].id} of {WIZARD_STEPS.length}
+          Step {WIZARD_STEPS[3].id} of {WIZARD_STEPS.length}
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          References &amp; Citations
+        <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+          Add Your References
         </h2>
         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
           Add the sources cited in your thesis. Each reference will be
-          formatted according to your chosen citation style.
+          formatted according to your chosen citation style and exported as BibTeX.
         </p>
       </motion.div>
 
       <div className="space-y-5">
+        {/* ---------- Quick Add Paste Row ---------- */}
+        <div className="relative">
+          <Zap className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            ref={quickAddRef}
+            value={quickAddInput}
+            onChange={(e) => setQuickAddInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleQuickAdd(); }}
+            onBlur={() => { if (quickAddInput.trim()) handleQuickAdd(); }}
+            className="pl-8 h-9 text-xs"
+            placeholder="Paste a citation to quick-add... (APA, Vancouver, MLA, or BibTeX)"
+          />
+        </div>
+
         {/* ---------- Action Row: Buttons + Search ---------- */}
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             type="button"
             variant="default"
             size="sm"
-            className="gap-1.5 text-sm"
+            className="gap-2 text-sm"
             onClick={addReference}
           >
             <Plus className="w-4 h-4" />
@@ -456,7 +583,7 @@ export function ReferenceEditor() {
             type="button"
             variant="outline"
             size="sm"
-            className="gap-1.5 text-sm"
+            className="gap-2 text-sm"
             onClick={() => setShowBulkImport(!showBulkImport)}
           >
             <Upload className="w-4 h-4" />
@@ -494,7 +621,7 @@ export function ReferenceEditor() {
                 <Badge
                   key={type}
                   variant="secondary"
-                  className="text-[10px] gap-1"
+                  className="text-xs gap-1 tabular-nums"
                 >
                   {count} {cfg.shortLabel}
                   {count !== 1 ? "s" : ""}
@@ -509,7 +636,7 @@ export function ReferenceEditor() {
               <>
                 <Badge
                   variant="outline"
-                  className="text-[10px] text-muted-foreground hidden sm:inline-flex"
+                  className="text-xs text-muted-foreground hidden sm:inline-flex"
                 >
                   {sortOrder === "default" ? "" : "Sort: "}
                   {sortLabel}
@@ -529,7 +656,7 @@ export function ReferenceEditor() {
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
                       <p>Sort: {sortLabel}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         Click to cycle sort order
                       </p>
                     </TooltipContent>
@@ -546,7 +673,7 @@ export function ReferenceEditor() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-[10px] gap-1 text-muted-foreground"
+                    className="h-7 text-xs gap-1 text-muted-foreground"
                     onClick={toggleCompactView}
                   >
                     {compactView ? "Expand All" : "Compact View"}
@@ -584,7 +711,7 @@ export function ReferenceEditor() {
                     className="text-xs min-h-[120px] font-mono"
                     placeholder={`Paste references here. Supports BibTeX or one-per-line:\n\n@article{smith2024,\n  author = {Smith, J.},\n  title = {A Great Paper},\n  journal = {Nature},\n  year = {2024}\n}\n\nDoe, J., "Data Science Handbook", Springer, 2023`}
                   />
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Paste BibTeX entries or plain-text lines (one reference per
                     line). BibTeX is auto-detected.
                   </p>
@@ -616,8 +743,7 @@ export function ReferenceEditor() {
         </AnimatePresence>
 
         {/* ---------- References List ---------- */}
-        <ScrollArea className="max-h-[calc(100vh-460px)]">
-          <div className="space-y-2 pr-3">
+        <div className="space-y-2">
             {references.length === 0 ? (
               /* ---- Empty state ---- */
               <motion.div
@@ -630,14 +756,14 @@ export function ReferenceEditor() {
                   </div>
                   <h3 className="text-sm font-semibold mb-1">No references added</h3>
                   <p className="text-xs text-muted-foreground max-w-[240px] mb-4">
-                    Paste a citation or fill in the fields manually. ThesisForge handles the BibTeX.
+                    Paste a citation or fill in the fields manually.
                   </p>
                   <div className="flex gap-2">
                     <Button
                       type="button"
                       size="sm"
                       onClick={addReference}
-                      className="gap-1.5"
+                      className="gap-2"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Add a reference
@@ -647,7 +773,7 @@ export function ReferenceEditor() {
                       size="sm"
                       variant="outline"
                       onClick={() => setShowBulkImport(true)}
-                      className="gap-1.5"
+                      className="gap-2"
                     >
                       <Upload className="w-3.5 h-3.5" />
                       Bulk Import
@@ -696,7 +822,7 @@ export function ReferenceEditor() {
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <Card className="overflow-hidden hover:shadow-sm transition-shadow">
+                      <Card className="overflow-hidden hover:shadow-sm transition-[border-color,box-shadow] duration-150">
                         <CardContent className="p-0">
                           <div className="flex">
                             {/* Left color stripe */}
@@ -709,7 +835,7 @@ export function ReferenceEditor() {
                               <div className="flex items-center gap-2 sm:gap-3">
                                 {/* Number badge */}
                                 <div className="w-6 h-6 rounded bg-secondary flex items-center justify-center shrink-0">
-                                  <span className="text-[10px] font-bold text-muted-foreground">
+                                  <span className="text-xs font-semibold text-muted-foreground">
                                     {index + 1}
                                   </span>
                                 </div>
@@ -717,7 +843,7 @@ export function ReferenceEditor() {
                                 {/* Type badge (small) */}
                                 <Badge
                                   variant="secondary"
-                                  className="text-[9px] shrink-0 gap-1"
+                                  className="text-xs shrink-0 gap-1"
                                 >
                                   <TypeIcon
                                     className={`w-2.5 h-2.5 ${typeConfig.color}`}
@@ -740,7 +866,7 @@ export function ReferenceEditor() {
                                   <p className="text-sm font-medium truncate leading-snug">
                                     {ref.title || "Untitled Reference"}
                                   </p>
-                                  <p className="text-[11px] text-muted-foreground truncate">
+                                  <p className="text-xs text-muted-foreground truncate">
                                     {ref.authors || "No author"}
                                     {ref.year
                                       ? ` (${ref.year})`
@@ -869,7 +995,7 @@ export function ReferenceEditor() {
                                     exit={{ height: 0, opacity: 0 }}
                                     transition={{
                                       duration: 0.2,
-                                      ease: "easeInOut",
+                                      ease: [0.4, 0, 0.2, 1],
                                     }}
                                     className="overflow-hidden"
                                   >
@@ -879,7 +1005,7 @@ export function ReferenceEditor() {
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {/* Type */}
                                         <div className="space-y-1">
-                                          <Label className="text-[10px] font-medium text-muted-foreground">
+                                          <Label className="text-xs font-medium text-muted-foreground">
                                             Type
                                           </Label>
                                           <Select
@@ -913,7 +1039,7 @@ export function ReferenceEditor() {
 
                                         {/* Authors */}
                                         <div className="space-y-1">
-                                          <Label className="text-[10px] font-medium text-muted-foreground">
+                                          <Label className="text-xs font-medium text-muted-foreground">
                                             Authors
                                           </Label>
                                           <Input
@@ -930,7 +1056,7 @@ export function ReferenceEditor() {
 
                                         {/* Title */}
                                         <div className="sm:col-span-2 space-y-1">
-                                          <Label className="text-[10px] font-medium text-muted-foreground">
+                                          <Label className="text-xs font-medium text-muted-foreground">
                                             Title
                                           </Label>
                                           <Input
@@ -950,7 +1076,7 @@ export function ReferenceEditor() {
                                           ref.type ===
                                             "inproceedings") && (
                                           <div className="space-y-1">
-                                            <Label className="text-[10px] font-medium text-muted-foreground">
+                                            <Label className="text-xs font-medium text-muted-foreground">
                                               {ref.type === "article"
                                                 ? "Journal"
                                                 : "Conference / Book Title"}
@@ -983,7 +1109,7 @@ export function ReferenceEditor() {
                                         {(ref.type === "book" ||
                                           ref.type === "techreport") && (
                                           <div className="space-y-1">
-                                            <Label className="text-[10px] font-medium text-muted-foreground">
+                                            <Label className="text-xs font-medium text-muted-foreground">
                                               {ref.type === "book"
                                                 ? "Publisher"
                                                 : "Institution"}
@@ -1011,7 +1137,7 @@ export function ReferenceEditor() {
                                         {/* Edition (book) */}
                                         {ref.type === "book" && (
                                           <div className="space-y-1">
-                                            <Label className="text-[10px] font-medium text-muted-foreground">
+                                            <Label className="text-xs font-medium text-muted-foreground">
                                               Edition
                                             </Label>
                                             <Input
@@ -1033,7 +1159,7 @@ export function ReferenceEditor() {
                                         {/* School (thesis) */}
                                         {ref.type === "thesis" && (
                                           <div className="space-y-1">
-                                            <Label className="text-[10px] font-medium text-muted-foreground">
+                                            <Label className="text-xs font-medium text-muted-foreground">
                                               Institution / School
                                             </Label>
                                             <Input
@@ -1054,7 +1180,7 @@ export function ReferenceEditor() {
 
                                         {/* Year with validation */}
                                         <div className="space-y-1">
-                                          <Label className="text-[10px] font-medium text-muted-foreground">
+                                          <Label className="text-xs font-medium text-muted-foreground">
                                             Year
                                           </Label>
                                           <Input
@@ -1070,13 +1196,13 @@ export function ReferenceEditor() {
                                             placeholder="2024"
                                             className={`h-8 text-xs ${
                                               !yearValid
-                                                ? "border-red-300 focus-visible:ring-red-300 dark:border-red-700"
+                                                ? "border-destructive/50 focus-visible:ring-destructive/50"
                                                 : ""
                                             }`}
                                             inputMode="numeric"
                                           />
                                           {!yearValid && (
-                                            <p className="text-[10px] text-red-500">
+                                            <p className="text-xs text-destructive">
                                               Year must be a 4-digit number
                                             </p>
                                           )}
@@ -1088,7 +1214,7 @@ export function ReferenceEditor() {
                                             "inproceedings") && (
                                           <>
                                             <div className="space-y-1">
-                                              <Label className="text-[10px] font-medium text-muted-foreground">
+                                              <Label className="text-xs font-medium text-muted-foreground">
                                                 Volume
                                               </Label>
                                               <Input
@@ -1109,7 +1235,7 @@ export function ReferenceEditor() {
                                               />
                                             </div>
                                             <div className="space-y-1">
-                                              <Label className="text-[10px] font-medium text-muted-foreground">
+                                              <Label className="text-xs font-medium text-muted-foreground">
                                                 Pages
                                               </Label>
                                               <Input
@@ -1134,7 +1260,7 @@ export function ReferenceEditor() {
 
                                         {/* DOI / URL (simplified — no validation errors) */}
                                         <div className="sm:col-span-2 space-y-1">
-                                          <Label className="text-[10px] font-medium text-muted-foreground">
+                                          <Label className="text-xs font-medium text-muted-foreground">
                                             DOI / URL
                                           </Label>
                                           <Input
@@ -1149,11 +1275,11 @@ export function ReferenceEditor() {
                                                 isUrl
                                                   ? {
                                                       url: val,
-                                                      doi: undefined,
+                                                      doi: "",
                                                     }
                                                   : {
                                                       doi: val,
-                                                      url: undefined,
+                                                      url: "",
                                                     },
                                               );
                                             }}
@@ -1164,7 +1290,7 @@ export function ReferenceEditor() {
 
                                         {/* Note */}
                                         <div className="sm:col-span-2 space-y-1">
-                                          <Label className="text-[10px] font-medium text-muted-foreground">
+                                          <Label className="text-xs font-medium text-muted-foreground">
                                             Note (optional)
                                           </Label>
                                           <Input
@@ -1193,8 +1319,6 @@ export function ReferenceEditor() {
               </AnimatePresence>
             )}
           </div>
-        </ScrollArea>
-
       </div>
     </div>
   );

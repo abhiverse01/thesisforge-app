@@ -141,6 +141,41 @@ export function extractKeywords(
     scores[bigram] = score * 1.4;
   }
 
+  // Bug 10: Boost proper nouns — words that appear capitalized mid-sentence
+  // Scan original text (not lowercased) for capitalized words not at sentence start
+  const allOriginalText = chapters
+    .map((ch) => {
+      return [
+        ch.content || '',
+        ...(ch.subSections || []).map((ss) => ss.content || ''),
+      ].join(' ');
+    })
+    .join(' ');
+
+  // Collect words that start sentences (so we can exclude them)
+  const sentenceStarters = new Set<string>();
+  const startPattern = /(?:^|[.!?]\s+)([A-Z][a-z]{2,})/g;
+  let ssMatch: RegExpExecArray | null;
+  while ((ssMatch = startPattern.exec(allOriginalText)) !== null) {
+    sentenceStarters.add(ssMatch[1].toLowerCase());
+  }
+
+  // Find capitalized words mid-sentence (likely proper nouns)
+  const midSentenceCapitalized = allOriginalText.match(/(?<=[a-z]\s)([A-Z][a-z]{2,})/g) || [];
+  const properNouns = new Set<string>();
+  for (const word of midSentenceCapitalized) {
+    if (!sentenceStarters.has(word.toLowerCase()) && !ACADEMIC_STOPWORDS.has(word.toLowerCase())) {
+      properNouns.add(word.toLowerCase());
+    }
+  }
+
+  // Boost proper noun scores by 1.6x
+  for (const pn of properNouns) {
+    if (scores[pn] !== undefined) {
+      scores[pn] *= 1.6;
+    }
+  }
+
   return Object.entries(scores)
     .sort((a, b) => b[1] - a[1])
     .slice(0, topN)

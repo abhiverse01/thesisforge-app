@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Google Sans', 'Poppins', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter', 'SF Pro Text', system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -173,6 +173,10 @@
     @apply bg-background text-foreground;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+  textarea,
+  .prose-content {
+    line-height: 1.65;
+  }
 }
 
 /* ============================================================
@@ -203,8 +207,8 @@
    Custom Scrollbar — 6px Round, Primary on Hover
    ============================================================ */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -213,11 +217,11 @@
 
 ::-webkit-scrollbar-thumb {
   background: oklch(0.78 0.01 247);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.50 0.22 264);
+  background: var(--primary);
 }
 
 .dark ::-webkit-scrollbar-thumb {
@@ -225,30 +229,31 @@
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.65 0.22 259);
+  background: var(--primary);
 }
 
 /* ============================================================
    Professional Micro-Interactions
    ============================================================ */
 
-/* Button hover: scale + shadow */
+/* Button hover: scale + shadow — primary action buttons only */
 @layer base {
-  button:not(:disabled):hover {
+  button.btn-primary:not(:disabled):hover,
+  button.btn-next:not(:disabled):hover {
     transform: scale(1.02);
     box-shadow: 0 4px 12px 0 oklch(0.50 0.22 264 / 0.15);
   }
-
-  button:not(:disabled):active {
+  button.btn-primary:not(:disabled):active,
+  button.btn-next:not(:disabled):active {
     transform: scale(0.98);
     box-shadow: 0 1px 2px 0 oklch(0.50 0.22 264 / 0.1);
   }
-
-  .dark button:not(:disabled):hover {
+  .dark button.btn-primary:not(:disabled):hover,
+  .dark button.btn-next:not(:disabled):hover {
     box-shadow: 0 4px 12px 0 oklch(0.65 0.22 259 / 0.2);
   }
-
-  .dark button:not(:disabled):active {
+  .dark button.btn-primary:not(:disabled):active,
+  .dark button.btn-next:not(:disabled):active {
     box-shadow: 0 1px 2px 0 oklch(0.65 0.22 259 / 0.15);
   }
 }
@@ -258,7 +263,7 @@
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
   textarea:focus,
   select:focus {
-    outline: 2px solid oklch(0.50 0.22 264);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
     border-radius: calc(var(--radius) - 2px);
   }
@@ -266,13 +271,13 @@
   .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
   .dark textarea:focus,
   .dark select:focus {
-    outline-color: oklch(0.65 0.22 259);
+    outline-color: var(--ring);
   }
 }
 
 /* Card hover lift effect */
 .card-hover {
-  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--dur-normal) var(--ease-out-smooth), box-shadow var(--dur-normal) var(--ease-out-smooth);
 }
 
 .card-hover:hover {
@@ -346,12 +351,8 @@
     box-shadow: 0 0 0 0 oklch(0.50 0.22 264 / 0.25);
   }
   50% {
-    box-shadow: 0 0 0 10px oklch(0.50 0.22 264 / 0);
+    box-shadow: 0 0 0 12px oklch(0.50 0.22 264 / 0);
   }
-}
-
-.dark .step-active {
-  animation: stepPulseDark 2s ease-in-out infinite;
 }
 
 @keyframes stepPulseDark {
@@ -359,12 +360,17 @@
     box-shadow: 0 0 0 0 oklch(0.65 0.22 259 / 0.25);
   }
   50% {
-    box-shadow: 0 0 0 10px oklch(0.65 0.22 259 / 0);
+    box-shadow: 0 0 0 12px oklch(0.65 0.22 259 / 0);
   }
 }
 
-.step-active {
-  animation: stepPulse 2s ease-in-out infinite;
+@media (prefers-reduced-motion: no-preference) {
+  .step-active {
+    animation: stepPulse 2s ease-in-out infinite;
+  }
+  .dark .step-active {
+    animation: stepPulseDark 2s ease-in-out infinite;
+  }
 }
 
 /* ============================================================
@@ -375,23 +381,25 @@
   overflow: hidden;
 }
 
-.ripple {
-  position: absolute;
-  border-radius: 50%;
-  background: oklch(0.50 0.22 264 / 0.15);
-  transform: scale(0);
-  animation: ripple-anim 0.6s linear;
-  pointer-events: none;
-}
-
-.dark .ripple {
-  background: oklch(0.65 0.22 259 / 0.2);
-}
-
 @keyframes ripple-anim {
   to {
     transform: scale(4);
     opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: oklch(0.50 0.22 264 / 0.15);
+    transform: scale(0);
+    animation: ripple-anim 0.6s linear;
+    pointer-events: none;
+  }
+
+  .dark .ripple {
+    background: oklch(0.65 0.22 259 / 0.2);
   }
 }
 
@@ -460,11 +468,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
   font-family: 'Google Sans Mono', monospace;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   color: oklch(0.30 0.015 260);
   background: linear-gradient(
@@ -475,7 +483,7 @@
   border: 1px solid oklch(0.88 0.008 80);
   border-bottom-width: 2px;
   border-bottom-color: oklch(0.82 0.01 80);
-  border-radius: 5px;
+  border-radius: var(--radius-md);
   box-shadow:
     0 1px 2px oklch(0 0 0 / 0.06),
     inset 0 1px 0 oklch(1 0 0 / 0.8);
@@ -514,18 +522,9 @@
   50% { background-position: 100% 50%; }
 }
 
-.hero-gradient {
-  background-size: 200% 200%;
-  animation: gradientShift 8s ease infinite;
-}
-
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-.float-animation {
-  animation: float 3s ease-in-out infinite;
+  50% { transform: translateY(-12px); }
 }
 
 /* Save indicator pulse */
@@ -534,21 +533,32 @@
   100% { opacity: 0; transform: translateY(-4px); }
 }
 
-.save-indicator {
-  animation: savePulse 1.5s ease-out forwards;
+@media (prefers-reduced-motion: no-preference) {
+  .hero-gradient {
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
+  }
+
+  .float-animation {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .save-indicator {
+    animation: savePulse 1.5s ease-out forwards;
+  }
 }
 
 /* ============================================================
    Enhanced Focus Styles — Accessible & Google-like
    ============================================================ */
 :focus-visible {
-  outline: 2px solid oklch(0.50 0.22 264);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .dark :focus-visible {
-  outline-color: oklch(0.65 0.22 259);
+  outline-color: var(--ring);
 }
 
 /* ============================================================
@@ -560,23 +570,17 @@
 }
 
 /* ============================================================
-   Smooth Theme Transition — 200ms ease-in-out
+   Header frosted glass — only on scroll
    ============================================================ */
-*,
-*::before,
-*::after {
-  transition-property: color, background-color, border-color, box-shadow;
-  transition-duration: 200ms;
-  transition-timing-function: ease-in-out;
+.header-scrolled {
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
 }
 
-/* Exclude elements that need instant transitions or their own timing */
-input, textarea, select, video, canvas, img, [role="slider"],
-[style*="transition"], .no-theme-transition,
-.animate-in, .animate-fade, .animate-scale,
-[style*="animation"] {
-  transition-property: none;
-}
+/* ============================================================
+   Theme Transition — Removed wildcard for performance.
+   Component-specific transitions handle their own timing.
+   ============================================================ */
 
 /* ============================================================
    Skeleton Loading Animation
@@ -584,7 +588,6 @@ input, textarea, select, video, canvas, img, [role="slider"],
 .skeleton {
   background: linear-gradient(90deg, oklch(0.93 0.005 260) 25%, oklch(0.96 0.005 260) 50%, oklch(0.93 0.005 260) 75%);
   background-size: 200% 100%;
-  animation: skeleton-loading 1.5s ease-in-out infinite;
   border-radius: var(--radius);
 }
 
@@ -596,6 +599,12 @@ input, textarea, select, video, canvas, img, [role="slider"],
 @keyframes skeleton-loading {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+  }
 }
 
 /* ============================================================
@@ -623,6 +632,12 @@ input, textarea, select, video, canvas, img, [role="slider"],
   50% { transform: scale(1.05); }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .count-pulse {
+    animation: countPulse 0.3s var(--ease-bounce);
+  }
+}
+
 /* ============================================================
    Card Shimmer Effect — Feature Cards Hover
    ============================================================ */
@@ -644,7 +659,7 @@ input, textarea, select, video, canvas, img, [role="slider"],
     oklch(0.50 0.22 264 / 0.03),
     transparent
   );
-  transition: left 0.5s ease;
+  transition: left var(--dur-slow) var(--ease-out-smooth);
   pointer-events: none;
   z-index: 1;
 }
@@ -685,17 +700,18 @@ input, textarea, select, video, canvas, img, [role="slider"],
   50% { box-shadow: 0 0 0 12px oklch(0.50 0.22 264 / 0); }
 }
 
-.dark .cta-pulse {
-  animation: ctaPulseDark 2s ease-in-out infinite;
-}
-
 @keyframes ctaPulseDark {
   0%, 100% { box-shadow: 0 0 0 0 oklch(0.65 0.22 259 / 0.4); }
   50% { box-shadow: 0 0 0 12px oklch(0.65 0.22 259 / 0); }
 }
 
-.cta-pulse {
-  animation: ctaPulse 2s ease-in-out infinite;
+@media (prefers-reduced-motion: no-preference) {
+  .cta-pulse {
+    animation: ctaPulse 2s ease-in-out infinite;
+  }
+  .dark .cta-pulse {
+    animation: ctaPulseDark 2s ease-in-out infinite;
+  }
 }
 
 /* ============================================================
@@ -725,8 +741,9 @@ input, textarea, select, video, canvas, img, [role="slider"],
    Section Heading — Professional Style
    ============================================================ */
 .section-heading {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: var(--text-2xl, 1.5rem);
+  font-weight: 600;
+  color: var(--color-text-primary);
   letter-spacing: -0.025em;
   line-height: 1.2;
 }
@@ -735,46 +752,48 @@ input, textarea, select, video, canvas, img, [role="slider"],
    Animation Utility Classes
    ============================================================ */
 
-/* Fade + slide up entrance */
-@keyframes animateIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
+@media (prefers-reduced-motion: no-preference) {
+  /* Fade + slide up entrance */
+  @keyframes animateIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .animate-in {
+    animation: animateIn var(--dur-slow) var(--ease-out-snap) both;
   }
-}
 
-.animate-in {
-  animation: animateIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* Simple fade */
-@keyframes animateFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.animate-fade {
-  animation: animateFade 0.3s ease-in-out both;
-}
-
-/* Pop-in scale effect */
-@keyframes animateScale {
-  from {
-    opacity: 0;
-    transform: scale(0.92);
+  /* Simple fade */
+  @keyframes animateFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
 
-.animate-scale {
-  animation: animateScale 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  .animate-fade {
+    animation: animateFade var(--dur-normal) var(--ease-in-out) both;
+  }
+
+  /* Pop-in scale effect */
+  @keyframes animateScale {
+    from {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-scale {
+    animation: animateScale var(--dur-normal) var(--ease-out-snap) both;
+  }
 }
 
 /* ============================================================
@@ -785,17 +804,18 @@ input, textarea, select, video, canvas, img, [role="slider"],
   100% { background-color: transparent; }
 }
 
-.field-fill-flash {
-  animation: fieldFillFlash 0.6s ease-out;
-}
-
-.dark .field-fill-flash {
-  animation-name: fieldFillFlashDark;
-}
-
 @keyframes fieldFillFlashDark {
   0% { background-color: oklch(0.65 0.15 42 / 0.25); }
   100% { background-color: transparent; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .field-fill-flash {
+    animation: fieldFillFlash 0.6s ease-out;
+  }
+  .dark .field-fill-flash {
+    animation-name: fieldFillFlashDark;
+  }
 }
 
 /* ============================================================
@@ -907,13 +927,15 @@ input, textarea, select, video, canvas, img, [role="slider"],
   }
 }
 
-/* Toast animation */
-.toast-appear {
-  animation: tf-toast-in var(--dur-normal) var(--ease-out-snap) both;
-}
-@keyframes tf-toast-in {
-  from { opacity: 0; transform: translateY(12px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+@media (prefers-reduced-motion: no-preference) {
+  /* Toast animation */
+  .toast-appear {
+    animation: tf-toast-in var(--dur-normal) var(--ease-out-snap) both;
+  }
+  @keyframes tf-toast-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  }
 }
 
 /* Field fill flash — for smart paste detection */
@@ -983,6 +1005,18 @@ input, textarea, select, video, canvas, img, [role="slider"],
 }
 
 /* ============================================================
+   LaTeX Code Block Styling — tabular-nums for alignment
+   ============================================================ */
+.latex-code-block {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Line numbers styling — tabular-nums */
+.line-numbers .line::before {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
    Responsive Text Utilities
    ============================================================ */
 .text-balance {
@@ -991,4 +1025,271 @@ input, textarea, select, video, canvas, img, [role="slider"],
 
 .text-pretty {
   text-wrap: pretty;
+}
+
+/* ============================================================
+   Utility Classes — Token-Based Helpers
+   ============================================================ */
+
+/* 4px Grid Enforcement — Tabular numeric alignment for all numbers in scores/stats */
+.score-number, .word-count, .stat-value, .tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Line length control — max 62ch for body text paragraphs */
+.body-text, .hint, .step-description {
+  max-width: 62ch;
+}
+
+/* Exception for full-width containers */
+.max-w-4xl, .max-w-full, textarea, .latex-code-block, pre {
+  max-width: none;
+}
+
+/* Card selection ring animation — for template card selected checkmark */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes check-pop {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+}
+
+/* Scrollbar-none utility */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============================================================
+   Reduced Motion — Inline Style Animation Kill Switch
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  [style*="floatShape"],
+  [style*="float-shape"] {
+    animation: none !important;
+  }
+}
+
+/* ============================================================
+   Dark Mode — Semantic Fill Overrides
+   ============================================================ */
+.dark .bg-red-500\/10 { background-color: rgba(226, 75, 74, 0.12); }
+.dark .bg-amber-500\/10 { background-color: rgba(186, 117, 23, 0.12); }
+.dark .bg-green-500\/10 { background-color: rgba(29, 158, 117, 0.12); }
+.dark .bg-blue-500\/10 { background-color: rgba(55, 138, 221, 0.12); }
+.dark .bg-emerald-500\/10 { background-color: rgba(29, 158, 117, 0.12); }
+.dark .bg-violet-500\/10 { background-color: rgba(127, 119, 221, 0.12); }
+.dark .bg-purple-500\/10 { background-color: rgba(127, 119, 221, 0.12); }
+.dark .bg-gray-500\/10 { background-color: rgba(156, 163, 175, 0.12); }
+.dark .bg-destructive\/5 { background-color: rgba(226, 75, 74, 0.08); }
+.dark .bg-destructive\/10 { background-color: rgba(226, 75, 74, 0.12); }
+
+/* ============================================================
+   Dark Mode — LaTeX Code Block Override
+   ============================================================ */
+.dark .latex-code-block pre {
+  background: #0D1117 !important;
+}
+
+/* ============================================================
+   Dark Mode — Input Field Overrides
+   ============================================================ */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.dark textarea,
+.dark select {
+  background: var(--color-bg-subtle, oklch(0.215 0.018 260));
+  color: var(--color-text-primary, oklch(0.941 0.006 247));
+  border-color: var(--color-border-default, oklch(0.28 0.02 260));
+}
+
+/* ============================================================
+   Typography Scale — 10 Levels
+   ============================================================*/
+.page-title {
+  font-size: var(--text-3xl, 38px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+.section-title {
+  font-size: var(--text-xl, 24px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+.card-title {
+  font-size: var(--text-lg, 20px);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+.subsection {
+  font-size: var(--text-md, 17px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+}
+.body-text {
+  font-size: var(--text-base, 15px);
+  font-weight: 400;
+  line-height: 1.65;
+}
+
+/* ============================================================
+   Component CSS — Intelligence Issue Cards (Semantic)
+   ============================================================*/
+.issue-card--error {
+  background: var(--color-fill-danger, #FCEBEB);
+  border-left-color: #E24B4A;
+  color: #7A1F1F;
+}
+.issue-card--warning {
+  background: var(--color-fill-warning, #FAEEDA);
+  border-left-color: #BA7517;
+  color: #5C3508;
+}
+.issue-card--suggestion {
+  background: var(--color-fill-info, #E6F1FB);
+  border-left-color: #378ADD;
+  color: #0A3B6B;
+}
+.issue-card--success {
+  background: var(--color-fill-success, #EAF3DE);
+  border-left-color: #1D9E75;
+  color: #064830;
+}
+
+.dark .issue-card--error { color: #F4A0A0; background: rgba(226, 75, 74, 0.12); }
+.dark .issue-card--warning { color: #F5C87A; background: rgba(186, 117, 23, 0.12); }
+.dark .issue-card--suggestion { color: #85C8F5; background: rgba(55, 138, 221, 0.12); }
+.dark .issue-card--success { color: #7DDCBA; background: rgba(29, 158, 117, 0.12); }
+
+/* ============================================================
+   Component CSS — Reference Type Accent Bars
+   ============================================================*/
+.reference-item[data-type="article"]       { border-left: 3px solid #534AB7; }
+.reference-item[data-type="book"]          { border-left: 3px solid #1D9E75; }
+.reference-item[data-type="inproceedings"] { border-left: 3px solid #D85A30; }
+.reference-item[data-type="online"]        { border-left: 3px solid #378ADD; }
+.reference-item[data-type="thesis"]        { border-left: 3px solid #BA7517; }
+
+/* ============================================================
+   Component CSS — Step Dot Navigation
+   ============================================================*/
+.step-dot--active {
+  background: var(--color-fill-brand, #EEEDFE);
+  color: var(--color-text-brand, #534AB7);
+}
+.step-dot--complete {
+  cursor: pointer;
+  color: var(--color-text-success, #0F6E56);
+}
+.step-dot--complete:hover {
+  background: var(--color-fill-success, #EAF3DE);
+}
+.step-dot--future {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Component CSS — Next Button (Most Important CTA)
+   ============================================================*/
+.btn-next {
+  min-width: 140px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  transition:
+    background-color 150ms var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1)),
+    box-shadow 150ms var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1)),
+    transform 80ms var(--ease-out-snap, cubic-bezier(0.16,1,0.3,1));
+}
+.btn-next:hover:not(:disabled) {
+  box-shadow: var(--shadow-md);
+}
+.btn-next:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn-next:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   Component CSS — Template Card Selected Checkmark
+   ============================================================*/
+.template-card--selected::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--c-brand-600, #534AB7);
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='10' viewBox='0 0 12 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 5L4.5 8.5L11 1.5' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .template-card--selected::after {
+    animation: check-pop 200ms var(--ease-bounce, cubic-bezier(0.34,1.56,0.64,1)) both;
+  }
+}
+
+/* ============================================================
+   Component CSS — Template Card Feature Dot
+   ============================================================*/
+.template-card__feature::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-border-strong);
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Component CSS — Issue Card Fix Button
+   ============================================================*/
+.issue-card__fix-btn {
+  align-self: flex-start;
+  font-size: var(--text-xs, 11px);
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid currentColor;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity var(--dur-instant, 80ms);
+}
+.issue-card__fix-btn:hover { opacity: 1; }
+
+/* ============================================================
+   Component CSS — Chapter Drag Handle
+   ============================================================*/
+.chapter-drag-handle {
+  cursor: grab;
+  padding: 0 var(--space-2, 8px);
+  color: var(--color-text-tertiary);
+  opacity: 0;
+  transition: opacity var(--dur-fast, 150ms) var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1));
+}
+.chapter-item:hover .chapter-drag-handle { opacity: 1; }
+
+/* ============================================================
+   Component CSS — Chapter Textarea Placeholder
+   ============================================================*/
+.chapter-body-textarea::placeholder {
+  color: var(--color-text-tertiary);
+  font-style: italic;
 }
