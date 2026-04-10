@@ -15,6 +15,7 @@ import type { ParsedCitation } from './types';
  * - Empty string → returns type "article", _parseScore 0
  * - Single word → returns minimal parse
  * - Malformed input → low confidence, no false positives
+ * - No parenthesized year → falls back to bare year, skips title extraction
  *
  * Performance budget: < 2ms per call
  */
@@ -26,13 +27,11 @@ export function parseCitationText(raw: string): ParsedCitation {
   };
 
   if (!raw || typeof raw !== 'string') {
-    result._parseScore = 0;
     return result;
   }
 
   const text = raw.trim();
   if (text.length < 5) {
-    result._parseScore = 0;
     return result;
   }
 
@@ -57,9 +56,11 @@ export function parseCitationText(raw: string): ParsedCitation {
   // --- Year extraction ---
   // Parenthesized year: (2021) or (2021, March) or (n.d.)
   const yearMatch = text.match(/\((\d{4})[^)]*\)/);
+  let hasParenYear = false;
   if (yearMatch) {
     result.year = yearMatch[1];
     result._confidence.year = 0.95;
+    hasParenYear = true;
   } else {
     // Fallback: bare 4-digit year (19xx or 20xx)
     const bareYear = text.match(/\b(19|20)\d{2}\b/);
@@ -71,7 +72,6 @@ export function parseCitationText(raw: string): ParsedCitation {
 
   // --- Author extraction ---
   // APA: "Smith, J., & Jones, A." or "Smith, John"
-  // Vancouver: "Smith J, Jones A"
   const apaAuthors = text.match(
     /^([A-Z\u00C0-\u024F][a-zA-Z\u00C0-\u024F\u00E9\-]+\s*,\s*[A-Z]\.(?:\s*,?\s*&?\s*[A-Z\u00C0-\u024F][a-zA-Z\u00C0-\u024F\-]+\s*,\s*[A-Z]\.)*)/
   );
@@ -90,30 +90,31 @@ export function parseCitationText(raw: string): ParsedCitation {
   }
 
   // --- Title extraction ---
-  // In APA: comes after year paren, ends before journal/publisher name
-  const afterYear = text.replace(/^.*?\(\d{4}[^)]*\)\.?\s*/, '');
-  const titleMatch = afterYear.match(/^([^.!?]+?)\.\s+[A-Z]/);
-  if (titleMatch) {
-    result.title = titleMatch[1].trim();
-    result._confidence.title = 0.75;
-  } else if (afterYear.length > 10) {
-    // Fallback: take the first sentence-like chunk
-    const fallbackTitle = afterYear.match(/^(.{10,80}?)[.,:]/);
-    if (fallbackTitle) {
-      result.title = fallbackTitle[1].trim();
-      result._confidence.title = 0.4;
+  // FIX: Only extract title when we have a parenthesized year as anchor.
+  // Without a year anchor, "Smith, J. (2021). Deep learning. Journal..." is parseable,
+  // but "Smith J Some random text" would match author as title.
+  if (hasParenYear) {
+    const afterYear = text.replace(/^.*?\(\d{4}[^)]*\)\.?\s*/, '');
+    // Title ends at the first period followed by a capital letter (journal name)
+    const titleMatch = afterYear.match(/^([^.!?]+?)\.\s+[A-Z]/);
+    if (titleMatch) {
+      const candidate = titleMatch[1].trim();
+      // Sanity: title should be at least 5 chars and not look like an author string
+      if (candidate.length >= 5 && !/^[A-Z][a-z]+,?\s*[A-Z]\.?$/.test(candidate)) {
+        result.title = candidate;
+        result._confidence.title = 0.75;
+      }
     }
-  }
 
-  // --- Journal / booktitle extraction ---
-  // Typically: Sentence after title, followed by volume(issue) or page numbers
-  const titleStripped = result.title ? afterYear.replace(result.title, '') : afterYear;
-  const journalMatch = titleStripped.match(/\.\s+([A-Z][^,.\d]+?)(?:,\s*\d|\.\s*\d|$)/);
-  if (journalMatch) {
-    const journal = journalMatch[1].trim();
-    if (journal.length > 3 && journal.length < 100) {
-      result.journal = journal;
-      result._confidence.journal = 0.7;
+    // --- Journal / booktitle extraction (only when we have a year anchor) ---
+    const titleStripped = result.title ? afterYear.replace(escapeRegex(result.title), '') : afterYear;
+    const journalMatch = titleStripped.match(/\.\s+([A-Z][^,.\d]+?)(?:,\s*\d|\.\s*\d|$)/);
+    if (journalMatch) {
+      const journal = journalMatch[1].trim();
+      if (journal.length > 3 && journal.length < 100) {
+        result.journal = journal;
+        result._confidence.journal = 0.7;
+      }
     }
   }
 
@@ -140,7 +141,7 @@ export function parseCitationText(raw: string): ParsedCitation {
   } else if (/\bPhD\b|\bDissertation\b/i.test(text)) {
     result.type = 'thesis';
     result.school = '';
-    result._confidence.school = 0.3; // Needs manual fill
+    result._confidence.school = 0.3;
   } else if (/\bMaster'?s?\s*Thesis\b/i.test(text)) {
     result.type = 'thesis';
     result.school = '';
@@ -160,6 +161,14 @@ export function parseCitationText(raw: string): ParsedCitation {
 }
 
 /**
+ * Escape a string for use in a RegExp replacement.
+ * Prevents regex special characters in title from corrupting the match.
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Normalize APA author string: "Smith, J., & Jones, A." → "Smith, J. and Jones, A."
  */
 function normalizeAuthors(raw: string): string {
@@ -170,11 +179,18 @@ function normalizeAuthors(raw: string): string {
 
 /**
  * Normalize Vancouver-style authors: "Smith J, Jones A" → "Smith, J. and Jones, A."
+ * FIX: Simplified single-pass approach instead of broken multi-replace chain.
  */
 function normalizeAuthorsVancouver(raw: string): string {
-  return raw
-    .replace(/\b([A-Z][a-z]+)\s+([A-Z])\.?\b/g, '$1, $2.')
-    .replace(/\s*,\s*/g, ' and ')
-    .replace(/\band\b/g, ',')
-    .replace(/,\s*$/, '');
+  // Split on commas, normalize each part, rejoin
+  const parts = raw.split(/\s*,\s*/).filter(Boolean);
+  return parts
+    .map((part) => {
+      const trimmed = part.trim();
+      // Match "Smith J" or "Smith" → "Smith, J."
+      const m = trimmed.match(/^([A-Z][a-zA-Z\u00C0-\u024F]+)\s+([A-Z])\.?\s*$/);
+      if (m) return `${m[1]}, ${m[2]}.`;
+      return trimmed;
+    })
+    .join(' and ');
 }
