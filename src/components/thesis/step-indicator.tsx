@@ -13,7 +13,6 @@ import {
 import {
   FileText,
   UserRound,
-  AlignLeft,
   BookOpen,
   Quote,
   Download,
@@ -21,11 +20,10 @@ import {
   Settings,
 } from "lucide-react";
 
-// 7 step icons: Template, Metadata, Abstract, Chapters, References, Format, Generate
+// 6 step icons: Template, Metadata, Chapters, References, Format, Generate
 const stepIcons = [
   FileText,
   UserRound,
-  AlignLeft,
   BookOpen,
   Quote,
   Settings,
@@ -35,7 +33,6 @@ const stepIcons = [
 const stepAbbreviations = [
   "Template",
   "Metadata",
-  "Abstract",
   "Chapters",
   "Refs",
   "Format",

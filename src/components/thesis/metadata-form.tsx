@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useThesisStore } from "@/lib/thesis-store";
-import { WIZARD_STEPS } from "@/lib/thesis-types";
+import { WIZARD_STEPS, ABSTRACT_WORD_LIMITS } from "@/lib/thesis-types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -98,12 +98,13 @@ function FieldCheck({ filled }: { filled: boolean }) {
 }
 
 export function MetadataForm() {
-  const { thesis, updateMetadata, nextStep, prevStep, updateOptions } =
+  const { thesis, updateMetadata, nextStep, prevStep, updateOptions, setAbstract, addKeyword, removeKeyword } =
     useThesisStore();
   const [suggestedUniversities, setSuggestedUniversities] = useState<
     string[]
   >([]);
   const [suggestedLocations, setSuggestedLocations] = useState<string[]>([]);
+  const [keywordInput, setKeywordInput] = useState("");
 
   const _metadata = thesis?.metadata;
 
@@ -132,6 +133,10 @@ export function MetadataForm() {
   if (!thesis) return null;
 
   const { metadata, options } = thesis;
+
+  // Abstract word count with template-aware limit
+  const abstractWordLimit = ABSTRACT_WORD_LIMITS[thesis.type] || 300;
+  const abstractWordCount = thesis.abstract.trim() ? thesis.abstract.trim().split(/\s+/).filter(Boolean).length : 0;
 
   // Auto-fill suggestions
   const handleSuggestUniversity = () => {
@@ -739,6 +744,98 @@ export function MetadataForm() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </CardContent>
+            </Card>
+
+            {/* ---- Abstract & Keywords ---- */}
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Type className="w-4 h-4 text-primary" />
+                  Abstract & Keywords
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="abstract"
+                      className="text-xs font-medium flex items-center gap-1.5"
+                    >
+                      Abstract
+                    </Label>
+                    {thesis.abstract.trim() && (
+                      <span className={cn(
+                        "text-[10px] font-medium tabular-nums",
+                        abstractWordCount > abstractWordLimit
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-muted-foreground"
+                      )}>
+                        {abstractWordCount} / {abstractWordLimit} words
+                        {abstractWordCount > abstractWordLimit && " (over limit)"}
+                      </span>
+                    )}
+                  </div>
+                  <Textarea
+                    id="abstract"
+                    placeholder="Write your abstract here. Summarize the research problem, methodology, key findings, and conclusions..."
+                    value={thesis.abstract}
+                    onChange={(e) => {
+                      setAbstract(e.target.value);
+                    }}
+                    className="text-sm min-h-[120px] resize-y"
+                  />
+                  {abstractWordCount > abstractWordLimit && (
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+                      Your abstract exceeds the recommended word limit ({abstractWordLimit} for this template). This is a soft cap — you can still proceed.
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="keywords-input"
+                    className="text-xs font-medium flex items-center gap-1.5"
+                  >
+                    Keywords
+                  </Label>
+                  <Input
+                    id="keywords-input"
+                    placeholder="Type a keyword and press Enter to add it..."
+                    value={keywordInput}
+                    onChange={(e) => setKeywordInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && keywordInput.trim()) {
+                        e.preventDefault();
+                        addKeyword(keywordInput.trim());
+                        setKeywordInput("");
+                      }
+                    }}
+                    className="text-sm"
+                  />
+                  {thesis.keywords.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {thesis.keywords.map((kw) => (
+                        <span
+                          key={kw}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-medium"
+                        >
+                          {kw}
+                          <button
+                            type="button"
+                            onClick={() => removeKeyword(kw)}
+                            className="text-primary/60 hover:text-primary ml-0.5"
+                            aria-label={`Remove keyword: ${kw}`}
+                          >
+                            <span className="text-xs leading-none">&times;</span>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">
+                    Separate keywords with commas or press Enter after each one. Keywords appear in the PDF metadata.
+                  </p>
+                </div>
               </CardContent>
             </Card>
 

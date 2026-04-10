@@ -818,7 +818,7 @@ export function Homepage() {
             </strong>
             {/* Version badge */}
             <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-mono font-medium bg-muted/80 text-muted-foreground border border-border/50">
-              v1.0
+              v2.0
             </span>
           </p>
           <div className="flex items-center justify-center gap-3 mt-2 flex-wrap">
@@ -841,7 +841,7 @@ export function Homepage() {
             </a>
           </div>
           <p className="text-[10px] text-muted-foreground/50 mt-3">
-            ThesisForge — Open-source academic LaTeX thesis generator
+            ThesisForge v2.0 — AST-based academic LaTeX thesis generator
           </p>
         </div>
       </section>

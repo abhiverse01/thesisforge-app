@@ -5,15 +5,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useThesisStore, type WizardStep } from "@/lib/thesis-store";
-import { StepIndicator } from "@/components/thesis/step-indicator";
-import { TemplateSelector } from "@/components/thesis/template-selector";
+import { StepIndicator } from "@components/thesis/step-indicator";
+import { TemplateSelector } from "components/thesis/template-selector";
 import { MetadataForm } from "@/components/thesis/metadata-form";
-import { AbstractEditor } from "@/components/thesis/abstract-editor";
 import { ChapterEditor } from "@/components/thesis/chapter-editor";
 import { ReferenceEditor } from "@/components/thesis/reference-editor";
 import { FormatEditor } from "@/components/thesis/format-editor";
 import { GeneratePreview } from "@/components/thesis/generate-preview";
 import { Homepage } from "@/components/thesis/homepage";
+import { SaveIndicator } from "@/components/thesis/save-indicator";
 import { saveDraft, loadDraft, clearDraft, createSnapshot } from "@/core/persistence";
 import { Button } from "@/components/ui/button";
 import {
@@ -78,12 +78,11 @@ const STEP_NAV: {
   description: string;
 }[] = [
   { step: 1, name: "Template", description: "Choose thesis type" },
-  { step: 2, name: "Metadata", description: "Title, author, info" },
-  { step: 3, name: "Abstract", description: "Write your abstract" },
-  { step: 4, name: "Chapters", description: "Add chapter content" },
-  { step: 5, name: "References", description: "Manage citations" },
-  { step: 6, name: "Format", description: "Configure output" },
-  { step: 7, name: "Generate", description: "Export LaTeX" },
+  { step: 2, name: "Metadata", description: "Title, abstract & info" },
+  { step: 3, name: "Chapters", description: "Write content" },
+  { step: 4, name: "References", description: "Manage citations" },
+  { step: 5, name: "Format", description: "Configure output" },
+  { step: 6, name: "Generate", description: "Preview & download" },
 ];
 
 // ============================================================
@@ -108,23 +107,12 @@ const KONAMI_CODE = [
 // ============================================================
 
 export default function Home() {
-  const {
-    wizardStarted,
-    currentStep,
-    selectedTemplate,
-    thesis,
-    lastDeletedChapter,
-    lastDeletedReference,
-    reset,
-    goToHome,
-    nextStep,
-    prevStep,
-    setStep,
-    undoDeleteChapter,
-    undoDeleteReference,
-    exportProject,
-    importProject,
-  } = useThesisStore();
+  const { currentStep, selectedTemplate, thesis, saveStatus, lastErrors,
+          setStep, nextStep, prevStep, canGoNext,
+          lastDeletedChapter, lastDeletedReference,
+          undoDeleteChapter, undoDeleteReference,
+          exportProject, importProject,
+          reset, goToHome, setSaveStatus } = useThesisStore();
   const { theme, setTheme } = useTheme();
 
   // ---- Dialog states ----

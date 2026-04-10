@@ -117,16 +117,25 @@ export interface ThesisTemplateInfo {
   };
 }
 
-// Step definitions for the wizard
+// Step definitions for the wizard — 6 steps (Abstract merged into Metadata)
 export const WIZARD_STEPS = [
   { id: 1, name: 'Template', description: 'Choose your thesis type' },
-  { id: 2, name: 'Metadata', description: 'Document information' },
-  { id: 3, name: 'Abstract', description: 'Abstract & keywords' },
-  { id: 4, name: 'Chapters', description: 'Write your content' },
-  { id: 5, name: 'References', description: 'Manage citations' },
-  { id: 6, name: 'Format', description: 'Configure output' },
-  { id: 7, name: 'Generate', description: 'Preview & download' },
+  { id: 2, name: 'Metadata', description: 'Title, abstract & info' },
+  { id: 3, name: 'Chapters', description: 'Write your content' },
+  { id: 4, name: 'References', description: 'Manage citations' },
+  { id: 5, name: 'Format', description: 'Configure output' },
+  { id: 6, name: 'Generate', description: 'Preview & download' },
 ] as const;
+
+export const TOTAL_WIZARD_STEPS = 6;
+
+// Abstract word limits per thesis type
+export const ABSTRACT_WORD_LIMITS: Record<ThesisType, number> = {
+  bachelor: 300,
+  master: 500,
+  phd: 700,
+  report: 250,
+};
 
 export const THESIS_TEMPLATES: ThesisTemplateInfo[] = [
   {
