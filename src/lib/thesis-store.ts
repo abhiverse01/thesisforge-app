@@ -1,5 +1,5 @@
 // ============================================================
-// Zustand Store — Thesis State Management
+// Zustand Store — Thesis State Management (Enhanced)
 // ============================================================
 
 import { create } from 'zustand';
@@ -77,6 +77,22 @@ interface ThesisStore {
   setGeneratedLatex: (latex: string) => void;
   toggleLatexPreview: () => void;
 
+  // Undo support
+  lastDeletedChapter: ThesisChapter | null;
+  lastDeletedReference: ThesisReference | null;
+  undoDeleteChapter: () => void;
+  undoDeleteReference: () => void;
+
+  // Export / Import
+  exportProject: () => string;
+  importProject: (jsonString: string) => boolean;
+
+  // Completion
+  getCompletionPercentage: () => number;
+
+  // Navigation helpers
+  goToHome: () => void;
+
   // Reset
   reset: () => void;
 }
@@ -91,6 +107,10 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   generatedLatex: '',
   showLatexPreview: false,
   wizardStarted: false,
+
+  // Undo state
+  lastDeletedChapter: null,
+  lastDeletedReference: null,
 
   // ---- Wizard Lifecycle ----
   startWizard: () => set({ wizardStarted: true, currentStep: 1 }),
@@ -152,7 +172,10 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   removeChapter: (id) =>
     set((s) => {
       if (!s.thesis) return {};
+      // Save deleted chapter for undo
+      const deleted = s.thesis.chapters.find((c) => c.id === id) ?? null;
       return {
+        lastDeletedChapter: deleted,
         thesis: {
           ...s.thesis,
           chapters: s.thesis.chapters
@@ -252,7 +275,10 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   removeReference: (id) =>
     set((s) => {
       if (!s.thesis) return {};
+      // Save deleted reference for undo
+      const deleted = s.thesis.references.find((r) => r.id === id) ?? null;
       return {
+        lastDeletedReference: deleted,
         thesis: {
           ...s.thesis,
           references: s.thesis.references.filter((r) => r.id !== id),
@@ -337,6 +363,113 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
   setGeneratedLatex: (generatedLatex) => set({ generatedLatex }),
   toggleLatexPreview: () => set((s) => ({ showLatexPreview: !s.showLatexPreview })),
 
+  // ---- Undo Support ----
+  undoDeleteChapter: () =>
+    set((s) => {
+      if (!s.lastDeletedChapter || !s.thesis) return {};
+      const restored = { ...s.lastDeletedChapter };
+      // Insert at the end and renumber
+      const updatedChapters = [...s.thesis.chapters, restored].map((c, idx) => ({
+        ...c,
+        number: idx + 1,
+      }));
+      return {
+        lastDeletedChapter: null,
+        thesis: { ...s.thesis, chapters: updatedChapters },
+      };
+    }),
+  undoDeleteReference: () =>
+    set((s) => {
+      if (!s.lastDeletedReference || !s.thesis) return {};
+      const restored = { ...s.lastDeletedReference };
+      return {
+        lastDeletedReference: null,
+        thesis: {
+          ...s.thesis,
+          references: [...s.thesis.references, restored],
+        },
+      };
+    }),
+
+  // ---- Export / Import ----
+  exportProject: () => {
+    const { thesis, selectedTemplate, currentStep } = get();
+    const projectData = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      selectedTemplate,
+      currentStep,
+      thesis,
+    };
+    return JSON.stringify(projectData, null, 2);
+  },
+  importProject: (jsonString: string) => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (!parsed.thesis || !parsed.selectedTemplate) {
+        return false;
+      }
+      set({
+        thesis: parsed.thesis,
+        selectedTemplate: parsed.selectedTemplate as ThesisType,
+        currentStep: (parsed.currentStep as WizardStep) ?? 1,
+        wizardStarted: true,
+        isGenerating: false,
+        generatedLatex: '',
+        showLatexPreview: false,
+        lastDeletedChapter: null,
+        lastDeletedReference: null,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  // ---- Completion Percentage ----
+  getCompletionPercentage: () => {
+    const { thesis } = get();
+    if (!thesis) return 0;
+
+    const { metadata, abstract, keywords, chapters, references } = thesis;
+    let filled = 0;
+    let total = 8;
+
+    // 1. Title
+    if (metadata.title.trim()) filled++;
+
+    // 2. Author
+    if (metadata.author.trim()) filled++;
+
+    // 3. University
+    if (metadata.university.trim()) filled++;
+
+    // 4. Supervisor
+    if (metadata.supervisor.trim()) filled++;
+
+    // 5. Abstract
+    if (abstract.trim()) filled++;
+
+    // 6. Keywords
+    if (keywords.length > 0) filled++;
+
+    // 7. At least one chapter has content
+    if (chapters.some((ch) => ch.content.trim() || ch.subSections.some((ss) => ss.content.trim()))) filled++;
+
+    // 8. At least one reference
+    if (references.length > 0) filled++;
+
+    return Math.round((filled / total) * 100);
+  },
+
+  // ---- Navigation Helpers ----
+  goToHome: () =>
+    set({
+      wizardStarted: false,
+      currentStep: 1,
+      // Keep thesis data intact so user doesn't lose progress
+    }),
+
   // ---- Reset ----
   reset: () =>
     set({
@@ -347,5 +480,7 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
       generatedLatex: '',
       showLatexPreview: false,
       wizardStarted: false,
+      lastDeletedChapter: null,
+      lastDeletedReference: null,
     }),
 }));

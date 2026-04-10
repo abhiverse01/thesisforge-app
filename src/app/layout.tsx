@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/thesis/theme-provider";
 
 const poppins = Poppins({
@@ -70,6 +71,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
+          <SonnerToaster position="bottom-right" richColors closeButton />
         </ThemeProvider>
       </body>
     </html>
