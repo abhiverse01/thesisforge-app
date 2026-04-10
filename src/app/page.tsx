@@ -18,7 +18,6 @@ import IntelligencePanel from "@/components/thesis/intelligence-panel";
 import { SaveIndicator } from "@/components/thesis/save-indicator";
 import { intelligenceScheduler } from "@/intelligence/scheduler";
 import { saveDraft, loadDraft, clearDraft, createSnapshot } from "@/core/persistence";
-import { historyStack } from "@/core/history";
 import { Button } from "@/components/ui/button";
 import {
   FileText,

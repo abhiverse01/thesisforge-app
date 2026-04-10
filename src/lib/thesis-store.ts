@@ -636,7 +636,7 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
       if (!s.thesis) return {};
       const normalized = sanitizeUserInput(rawTitle, 'single-line').trim();
       if (normalized === '') {
-        return { lastErrors: { ...s.lastErrors, [`chapter_${id}_title`]: 'Chapter title cannot be blank.' } } };
+        return { lastErrors: { ...s.lastErrors, [`chapter_${id}_title`]: 'Chapter title cannot be blank.' } };
       }
       const restErrors = { ...s.lastErrors };
       delete restErrors[`chapter_${id}_title`];

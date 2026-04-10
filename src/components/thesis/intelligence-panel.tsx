@@ -814,7 +814,6 @@ export default function IntelligencePanel({ isOpen, onClose, currentStep }: Inte
               </CollapsibleSection>
             )}
           </div>
-        </div>
     </motion.div>
   );
 }
