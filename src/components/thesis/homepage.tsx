@@ -402,19 +402,28 @@ export function Homepage() {
             </div>
           </motion.div>
 
-          {/* Heading */}
+          {/* Heading — Word-by-word fade animation */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
             className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-8 text-balance"
           >
-            Create Your Thesis{" "}
-            <br className="hidden sm:block" />
-            in{" "}
-            <span className="google-gradient-text hero-gradient inline-block">
-              Minutes
-            </span>
+            {"Create Your Thesis in Minutes".split(" ").map((word, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, y: 12 }}
+                animate={mounted ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+                transition={{
+                  duration: 0.4,
+                  delay: mounted ? 0.15 + i * 0.04 : 0,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="inline-block mr-[0.22em]"
+              >
+                {word}
+              </motion.span>
+            ))}
           </motion.h1>
 
           {/* Subtitle with staggered word animation */}

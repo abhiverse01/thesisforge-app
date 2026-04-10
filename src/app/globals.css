@@ -1,3 +1,4 @@
+@import "../ui/tokens.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -774,6 +775,211 @@ input, textarea, select, video, canvas, img, [role="slider"],
 
 .animate-scale {
   animation: animateScale 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ============================================================
+   Field Fill Flash — Smart Paste Detection
+   ============================================================ */
+@keyframes fieldFillFlash {
+  0% { background-color: oklch(0.80 0.12 85 / 0.3); }
+  100% { background-color: transparent; }
+}
+
+.field-fill-flash {
+  animation: fieldFillFlash 0.6s ease-out;
+}
+
+.dark .field-fill-flash {
+  animation-name: fieldFillFlashDark;
+}
+
+@keyframes fieldFillFlashDark {
+  0% { background-color: oklch(0.65 0.15 42 / 0.25); }
+  100% { background-color: transparent; }
+}
+
+/* ============================================================
+   GODMODE 4 — Motion Language
+   ============================================================ */
+
+/* Fade up — for panels, cards entering from below */
+@media (prefers-reduced-motion: no-preference) {
+  .anim-fade-up {
+    animation: tf-fade-up var(--dur-normal) var(--ease-out-snap) both;
+  }
+  @keyframes tf-fade-up {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+  }
+}
+
+/* Pop — for modals, dropdowns */
+@media (prefers-reduced-motion: no-preference) {
+  .anim-pop {
+    animation: tf-pop var(--dur-normal) var(--ease-out-snap) both;
+  }
+  @keyframes tf-pop {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1);    }
+  }
+}
+
+/* Slide in right — for the intelligence sidebar */
+@media (prefers-reduced-motion: no-preference) {
+  .anim-slide-right {
+    animation: tf-slide-right var(--dur-slow) var(--ease-out-snap) both;
+  }
+  @keyframes tf-slide-right {
+    from { opacity: 0; transform: translateX(24px); }
+    to   { opacity: 1; transform: translateX(0);    }
+  }
+}
+
+/* Exit fade — for toasts, error states disappearing */
+@media (prefers-reduced-motion: no-preference) {
+  .anim-exit {
+    animation: tf-exit var(--dur-fast) var(--ease-in-sharp) both forwards;
+  }
+  @keyframes tf-exit {
+    to { opacity: 0; transform: scale(0.96); }
+  }
+}
+
+/* Step transition — wizard step change */
+@media (prefers-reduced-motion: no-preference) {
+  .anim-step-enter {
+    animation: tf-step-enter var(--dur-slow) var(--ease-out-snap) both;
+  }
+  .anim-step-exit {
+    animation: tf-step-exit var(--dur-fast) var(--ease-in-sharp) both forwards;
+  }
+  @keyframes tf-step-enter {
+    from { opacity: 0; transform: translateX(16px) scale(0.99); }
+    to   { opacity: 1; transform: translateX(0)    scale(1);    }
+  }
+  @keyframes tf-step-exit {
+    to   { opacity: 0; transform: translateX(-12px) scale(0.99); }
+  }
+}
+
+/* Number counter — score ring animation */
+@media (prefers-reduced-motion: no-preference) {
+  .anim-count-up {
+    animation: tf-count-up var(--dur-sluggish) var(--ease-out-smooth) both;
+  }
+  @keyframes tf-count-up {
+    from { opacity: 0.4; }
+    to   { opacity: 1; }
+  }
+}
+
+/* Ring pulse — for level-up moment */
+@media (prefers-reduced-motion: no-preference) {
+  .score-ring--levelup .score-ring__fill {
+    animation: tf-ring-pulse 400ms var(--ease-bounce) both;
+  }
+  @keyframes tf-ring-pulse {
+    0%   { stroke-width: 6; }
+    50%  { stroke-width: 9; }
+    100% { stroke-width: 6; }
+  }
+}
+
+/* Skeleton shimmer — smooth, non-jarring */
+.skeleton-shimmer {
+  background: var(--color-bg-muted);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: tf-shimmer 1.4s ease-in-out infinite;
+  }
+  @keyframes tf-shimmer {
+    to { transform: translateX(100%); }
+  }
+}
+
+/* Toast animation */
+.toast-appear {
+  animation: tf-toast-in var(--dur-normal) var(--ease-out-snap) both;
+}
+@keyframes tf-toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* Field fill flash — for smart paste detection */
+@media (prefers-reduced-motion: no-preference) {
+  .field-fill-flash {
+    animation: tf-field-fill 600ms ease both;
+  }
+  @keyframes tf-field-fill {
+    0%   { background-color: var(--color-fill-brand); }
+    100% { background-color: transparent; }
+  }
+}
+
+/* Chapter item slide-in */
+@media (prefers-reduced-motion: no-preference) {
+  .chapter-slide-in {
+    animation: tf-chapter-in var(--dur-normal) var(--ease-out-snap) both;
+  }
+  @keyframes tf-chapter-in {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+}
+
+/* Export success checkmark */
+@media (prefers-reduced-motion: no-preference) {
+  .export-success {
+    animation: tf-export-success 600ms var(--ease-out-snap) both;
+  }
+  @keyframes tf-export-success {
+    0%   { transform: scale(0); opacity: 0; }
+    60%  { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+}
+
+/* Micro-interaction: template card lift */
+.card-lift {
+  transition: transform var(--dur-fast) var(--ease-out-snap), box-shadow var(--dur-normal) var(--ease-out-smooth);
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Micro-interaction: template card select ring pulse */
+@media (prefers-reduced-motion: no-preference) {
+  .card-select-pulse {
+    animation: tf-card-pulse 150ms var(--ease-bounce) both;
+  }
+  @keyframes tf-card-pulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+}
+
+/* Word milestone badge */
+@media (prefers-reduced-motion: no-preference) {
+  .word-milestone {
+    animation: tf-milestone var(--dur-normal) var(--ease-out-snap) both;
+  }
+  @keyframes tf-milestone {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 }
 
 /* ============================================================

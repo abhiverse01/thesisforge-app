@@ -58,6 +58,7 @@ export function GeneratePreview() {
   const [activeTab, setActiveTab] = useState("tex");
   const [copied, setCopied] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
   const confettiShown = useRef(false);
 
   // Auto-generate on mount
@@ -137,10 +138,12 @@ export function GeneratePreview() {
         });
         return;
       }
-      toast.success("ZIP downloaded", {
-        description: "Includes main.tex, references.bib, and README.md",
-        duration: 3000,
+      toast.success("Your thesis is ready", {
+        description: "Compile it in Overleaf to get your PDF.",
+        duration: 5000,
       });
+      setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 2500);
     } catch (err) {
       toast.error("Export failed", {
         description:
@@ -556,8 +559,17 @@ export function GeneratePreview() {
             size="lg"
             disabled={isGenerating}
           >
-            <FileDown className="w-4 h-4" />
-            Download ZIP
+            {exportSuccess ? (
+              <>
+                <Check className="w-4 h-4" />
+                Downloaded!
+              </>
+            ) : (
+              <>
+                <FileDown className="w-4 h-4" />
+                Export ZIP
+              </>
+            )}
           </Button>
           <Button
             variant="outline"

@@ -171,10 +171,23 @@ export function FormatEditor() {
   const { thesis, updateOptions, nextStep, prevStep, selectedTemplate } = useThesisStore();
   const [showAdvanced, setShowAdvanced] = React.useState(false);
 
-  if (!thesis) return null;
-
-  const { options } = thesis;
+  const options = thesis?.options;
   const template = THESIS_TEMPLATES.find((t) => t.type === selectedTemplate);
+
+  const preamblePreview = useMemo(() => {
+    if (!options) return '';
+    const lines = [
+      `\\documentclass[${options.fontSize},${options.paperSize}]{report}`,
+      `\\usepackage[${options.marginSize}]{geometry}`,
+    ];
+    if (options.lineSpacing === 'onehalf') lines.push('\\onehalfspacing');
+    else if (options.lineSpacing === 'double') lines.push('\\doublespacing');
+    lines.push(`\\bibliographystyle{${options.citationStyle}}`);
+    lines.push(`\\setcounter{tocdepth}{${options.tocDepth}}`);
+    return lines.join('\n');
+  }, [options]);
+
+  if (!thesis) return null;
 
   const handleChange = (key: string, value: string | number | boolean) => {
     updateOptions({ [key]: value });
@@ -187,18 +200,6 @@ export function FormatEditor() {
       duration: 1500,
     });
   };
-
-  const preamblePreview = useMemo(() => {
-    const lines = [
-      `\\documentclass[${options.fontSize},${options.paperSize}]{report}`,
-      `\\usepackage[${options.marginSize}]{geometry}`,
-    ];
-    if (options.lineSpacing === 'onehalf') lines.push('\\onehalfspacing');
-    else if (options.lineSpacing === 'double') lines.push('\\doublespacing');
-    lines.push(`\\bibliographystyle{${options.citationStyle}}`);
-    lines.push(`\\setcounter{tocdepth}{${options.tocDepth}}`);
-    return lines.join('\n');
-  }, [options]);
 
   return (
     <motion.div

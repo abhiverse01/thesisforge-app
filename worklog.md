@@ -1,39 +1,55 @@
 ---
 Task ID: 1
-Agent: Main Agent
-Task: BUG HUNT · FIX · REGRESSION GUARD — ThesisForge surgical bug fix across 6 failure zones
+Agent: main
+Task: GODMODE 4 — UI EXCELLENCE · PRODUCTION POLISH · WOW LAYER
 
 Work Log:
-- Read all core source files (fsm.ts, persistence.ts, serializer.ts, export.ts, validators.ts, ast.ts, ast-builder.ts, templates.ts, bib.ts, linter.ts, latex-escape.ts, thesis-types.ts, thesis-store.ts)
-- Read all component files (generate-preview.tsx, chapter-editor.tsx, save-indicator.tsx)
-- Read main page.tsx
+- Explored full ThesisForge codebase: 35+ files across src/components, src/core, src/intelligence, src/lib, src/ui
+- Read and analyzed all key files: page.tsx, layout.tsx, globals.css, thesis-store.ts, thesis-types.ts, all thesis components
+- Identified existing patterns: Next.js 16 + React 19 + Tailwind CSS 4 + Framer Motion + shadcn/ui + Zustand + Sonner
 
-- Created src/core/fsmGuard.ts (Zone 1A — FSM State Validator)
-- Fixed cite key generation in ast-builder.ts, bib.ts, latex-generator.ts (Zone 3B)
-- Fixed empty chapter body handling in ast-builder.ts (Zone 3C)
-- Created src/core/latexAssertions.ts (Zone 3A — LaTeX Contract Assertions)
-- Created src/utils/inputSanitizer.ts (Zone 6A — Input Sanitizer)
-- Added sanitizeChapterBody to latex-escape.ts (Zone 6B — LaTeX injection)
-- Rewrote src/core/persistence.ts (Zones 2A/2B/2C/5A/5B):
-  - QuotaExceededError handling + emergency JSON backup
-  - Additive-only DB migration (v2→v3)
-  - Version stamps + cross-tab conflict detection
-  - Defensive draft loader with sanitizeDraft()
-  - In-memory fallback for private mode
-- Updated thesis-store.ts (Zones 1C/4A/4B):
-  - Template switch resets chapters, preserves metadata
-  - Stale error clearing on field change
-  - Added isGenerating/setGenerating for export spinner
-  - Added clearFieldError utility
-- Fixed export.ts (Zone 3A — LaTeX assertions before export)
-- Fixed generate-preview.tsx (Zone 4B — finally blocks for spinner)
-- Fixed chapter-editor.tsx (Zone 6D — debounced word count)
-- Created src/tests/guards.ts (Regression Guard System — 35 tests)
+- Created src/ui/tokens.css with complete design token system:
+  - Brand color palette (brand-50 through brand-900)
+  - Semantic surfaces, text, borders, status fills
+  - Typography scale (11px-38px), weights, line-heights, tracking
+  - 4px-based spacing scale (space-1 through space-24)
+  - Border radius tokens (sm through full)
+  - Elevation shadow tokens (sm through xl)
+  - Z-index scale (base through tooltip)
+  - Motion timing tokens (6 durations + 5 easing curves)
+  - Dark mode overrides using .dark class selector
+
+- Added tokens.css import to globals.css at top
+- Added 15+ motion language animation classes to globals.css:
+  - anim-fade-up, anim-pop, anim-slide-right, anim-exit
+  - anim-step-enter, anim-step-exit
+  - anim-count-up, score-ring--levelup
+  - skeleton-shimmer, toast-appear
+  - field-fill-flash, chapter-slide-in, export-success
+  - card-lift, card-select-pulse, word-milestone
+  - All wrapped in @media (prefers-reduced-motion: no-preference)
+
+- Verified existing bugs (cn import + suppressHydrationWarning) — both already fixed
+- Added SaveIndicator to header in page.tsx
+- Added Ctrl+Enter keyboard shortcut for next step advancement
+- Enhanced CompletenessRing with token-based colors and level-up detection
+- Added confetti burst on 90% score milestone
+- Enhanced chapter editor empty state with styled illustration + CTA
+- Enhanced reference editor empty state with styled illustration + CTA
+- Added word count milestone badges (500/1000/2000) in chapter editor
+- Added hero title word-by-word stagger animation
+- Added export success button state with checkmark transient
+- Added keyboard shortcut discovery tooltip on first Ctrl+S
+- Updated error messages to human-written style
+- Added smart paste detection flash on reference auto-populate
+- Added dynamic sidebar heading (shows thesis title when score > 40%)
+- Added lint panel "all clear" success state
+- Fixed pre-existing lint error in format-editor.tsx (conditional useMemo)
 
 Stage Summary:
-- 6 Failure Zones addressed with detection/fix/guard triad
-- 35 regression guard tests created covering FSM, LaTeX, persistence, and input safety
-- All new code annotated with FIX(ZONE-X) comments
-- Lint passes (only pre-existing format-editor.tsx conditional hook error remains)
-- New files: fsmGuard.ts, latexAssertions.ts, inputSanitizer.ts, tests/guards.ts
-- Modified files: latex-escape.ts, ast-builder.ts, bib.ts, latex-generator.ts, persistence.ts, thesis-store.ts, export.ts, generate-preview.tsx, chapter-editor.tsx
+- All 8 layers of GODMODE 4 implemented
+- 0 lint errors, 0 lint warnings
+- Design token system established as foundation
+- Motion language with accessibility (reduced-motion support)
+- All wow-layer moments implemented
+- Production polish: human error messages, empty states, micro-interactions

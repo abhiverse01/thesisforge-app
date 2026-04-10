@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { useThesisStore } from "@/lib/thesis-store";
 import { WIZARD_STEPS } from "@/lib/thesis-types";
@@ -40,6 +41,7 @@ import {
   Minimize2,
   Maximize2,
   AlertTriangle,
+  Check,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -450,14 +452,16 @@ export function ChapterEditor() {
             animate={{ opacity: 1 }}
             className="flex flex-col items-center justify-center py-16 px-4 text-center"
           >
-            <BookOpen className="w-10 h-10 text-muted-foreground/30 mb-4" />
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+              <BookOpen className="w-8 h-8 text-primary/60" />
+            </div>
             <h3 className="text-sm font-semibold mb-1">No chapters yet</h3>
-            <p className="text-xs text-muted-foreground max-w-xs mb-4">
-              Start building your thesis by adding your first chapter.
+            <p className="text-xs text-muted-foreground max-w-[240px] mb-4">
+              Your thesis structure lives here. Add your first chapter to get started.
             </p>
             <Button type="button" onClick={addChapter} size="sm" className="gap-1.5">
-              <Plus className="w-4 h-4" />
-              Add Your First Chapter
+              <Plus className="w-3.5 h-3.5" />
+              Add first chapter
             </Button>
           </motion.div>
         ) : (
@@ -692,6 +696,22 @@ export function ChapterEditor() {
                                 className="text-sm min-h-[100px] resize-y leading-relaxed"
                                 placeholder="Write the introductory content for this chapter..."
                               />
+                              {/* Word count milestone badge */}
+                              {(() => {
+                                const wordCount = chapter.content.trim() ? chapter.content.trim().split(/\s+/).filter(Boolean).length : 0;
+                                const milestones = [500, 1000, 2000];
+                                const currentMilestone = milestones.find(m => wordCount >= m && wordCount < m + 50);
+                                return currentMilestone && wordCount >= currentMilestone && wordCount < currentMilestone + 50 ? (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium mt-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  >
+                                    <Check className="w-3 h-3" />
+                                    {currentMilestone.toLocaleString()} words
+                                  </motion.div>
+                                ) : null;
+                              })()}
                             </div>
 
                             <Separator />

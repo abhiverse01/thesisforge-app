@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useThesisStore } from "@/lib/thesis-store";
 import { WIZARD_STEPS } from "@/lib/thesis-types";
@@ -51,8 +51,10 @@ import {
   Search,
   Copy,
   X,
+  Check,
 } from "lucide-react";
 import type { ReferenceType, ThesisReference } from "@/lib/thesis-types";
+import { cn } from "@/lib/utils";
 
 // ============================================================
 // Reference type configuration
@@ -297,6 +299,7 @@ export function ReferenceEditor() {
   const [bulkImportText, setBulkImportText] = useState("");
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [expandedRefId, setExpandedRefId] = useState<string | null>(null);
+  const [parsedFields, setParsedFields] = useState<Set<string>>(new Set());
 
   // ----- Derived data (safe even when thesis is null) -----
   const references = thesis?.references ?? [];
@@ -372,6 +375,24 @@ export function ReferenceEditor() {
       bulkImportReferences(parsed);
       setBulkImportText("");
       setShowBulkImport(false);
+
+      // Mark imported reference IDs to trigger flash animation on their fields
+      const fieldsToFlash = new Set<string>();
+      parsed.forEach((ref) => {
+        if (ref.authors) fieldsToFlash.add(`${ref.id}:authors`);
+        if (ref.title) fieldsToFlash.add(`${ref.id}:title`);
+        if (ref.year) fieldsToFlash.add(`${ref.id}:year`);
+        if (ref.journal) fieldsToFlash.add(`${ref.id}:journal`);
+        if (ref.bookTitle) fieldsToFlash.add(`${ref.id}:bookTitle`);
+        if (ref.publisher) fieldsToFlash.add(`${ref.id}:publisher`);
+        if (ref.doi) fieldsToFlash.add(`${ref.id}:doi`);
+      });
+      setParsedFields(fieldsToFlash);
+
+      // Clear flash after 600ms
+      setTimeout(() => {
+        setParsedFields(new Set());
+      }, 600);
     }
   };
 
@@ -603,21 +624,19 @@ export function ReferenceEditor() {
         <ScrollArea className="max-h-[calc(100vh-460px)]">
           <div className="space-y-2 pr-3">
             {references.length === 0 ? (
-              /* ---- Empty state (clean) ---- */
+              /* ---- Empty state ---- */
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <div className="flex flex-col items-center justify-center py-16 space-y-3">
-                  <Quote className="w-8 h-8 text-muted-foreground/30" />
-                  <div className="text-center max-w-xs space-y-1">
-                    <h3 className="text-sm font-semibold">
-                      No references yet
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Add references manually or bulk import from BibTeX.
-                    </p>
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                    <Quote className="w-8 h-8 text-primary/60" />
                   </div>
+                  <h3 className="text-sm font-semibold mb-1">No references added</h3>
+                  <p className="text-xs text-muted-foreground max-w-[240px] mb-4">
+                    Paste a citation or fill in the fields manually. ThesisForge handles the BibTeX.
+                  </p>
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -625,8 +644,8 @@ export function ReferenceEditor() {
                       onClick={addReference}
                       className="gap-1.5"
                     >
-                      <Plus className="w-4 h-4" />
-                      Add Reference
+                      <Plus className="w-3.5 h-3.5" />
+                      Add a reference
                     </Button>
                     <Button
                       type="button"
@@ -635,7 +654,7 @@ export function ReferenceEditor() {
                       onClick={() => setShowBulkImport(true)}
                       className="gap-1.5"
                     >
-                      <Upload className="w-4 h-4" />
+                      <Upload className="w-3.5 h-3.5" />
                       Bulk Import
                     </Button>
                   </div>
@@ -910,7 +929,7 @@ export function ReferenceEditor() {
                                               })
                                             }
                                             placeholder="Author, A. B. and Author, C."
-                                            className="h-8 text-xs"
+                                            className={cn("h-8 text-xs", parsedFields.has(`${ref.id}:authors`) && "field-fill-flash")}
                                           />
                                         </div>
 
@@ -927,7 +946,7 @@ export function ReferenceEditor() {
                                               })
                                             }
                                             placeholder="Title of the work"
-                                            className="h-8 text-xs"
+                                            className={cn("h-8 text-xs", parsedFields.has(`${ref.id}:title`) && "field-fill-flash")}
                                           />
                                         </div>
 
@@ -960,7 +979,7 @@ export function ReferenceEditor() {
                                                   ? "Journal Name"
                                                   : "Conference Proceedings"
                                               }
-                                              className="h-8 text-xs"
+                                              className={cn("h-8 text-xs", parsedFields.has(`${ref.id}:${ref.type === "article" ? "journal" : "bookTitle"}`) && "field-fill-flash")}
                                             />
                                           </div>
                                         )}
@@ -989,7 +1008,7 @@ export function ReferenceEditor() {
                                                   ? "Publisher Name"
                                                   : "Organization name"
                                               }
-                                              className="h-8 text-xs"
+                                              className={cn("h-8 text-xs", parsedFields.has(`${ref.id}:publisher`) && "field-fill-flash")}
                                             />
                                           </div>
                                         )}

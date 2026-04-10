@@ -14,6 +14,7 @@ import { FormatEditor } from "@/components/thesis/format-editor";
 import { GeneratePreview } from "@/components/thesis/generate-preview";
 import { Homepage } from "@/components/thesis/homepage";
 import IntelligencePanel from "@/components/thesis/intelligence-panel";
+import { SaveIndicator } from "@/components/thesis/save-indicator";
 import { intelligenceScheduler } from "@/intelligence/scheduler";
 import { saveDraft, loadDraft, clearDraft, createSnapshot } from "@/core/persistence";
 import { Button } from "@/components/ui/button";
@@ -124,6 +125,7 @@ export default function Home() {
   const [showGoHomeConfirm, setShowGoHomeConfirm] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showIntelligencePanel, setShowIntelligencePanel] = useState(false);
+  const [showShortcutHint, setShowShortcutHint] = useState(false);
 
   // ---- Refs ----
   const konamiBuffer = useRef<string[]>([]);
@@ -257,7 +259,9 @@ export default function Home() {
 
       if (!wizardStarted) return;
 
-      if (e.ctrlKey || e.metaKey) {
+      const meta = e.ctrlKey || e.metaKey;
+
+      if (meta) {
         switch (e.key) {
           case "ArrowRight":
           case "ArrowDown":
@@ -282,15 +286,31 @@ export default function Home() {
             // Manual save snapshot via Ctrl+S
             if (thesis && selectedTemplate) {
               createSnapshot(thesis, "Manual save").then((id) => {
-                toast.success("Snapshot saved", {
-                  description: `Snapshot #${id.slice(-6)} created.`,
-                  duration: 2000,
-                });
+                if (!showShortcutHint) {
+                  setShowShortcutHint(true);
+                  toast.success("Snapshot saved", {
+                    description: "Press ? to see all shortcuts",
+                    duration: 3000,
+                  });
+                } else {
+                  toast.success("Snapshot saved", {
+                    description: `Snapshot #${id.slice(-6)} created.`,
+                    duration: 2000,
+                  });
+                }
               }).catch(() => {
                 toast.error("Snapshot failed", { duration: 2000 });
               });
             }
             break;
+        }
+
+        // Ctrl+Enter = NEXT step
+        if (meta && e.key === "Enter") {
+          e.preventDefault();
+          if (canGoNext()) {
+            nextStep();
+          }
         }
       }
 
@@ -524,10 +544,10 @@ export default function Home() {
         />
 
         {/* ============================================================ */}
-        {/* HEADER — Clean, no save indicator */}
+        {/* HEADER */}
         {/* ============================================================ */}
         <header className="sticky top-0 z-50 border-b bg-background/85 backdrop-blur-xl surface-1">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2">
             {/* Left: Logo */}
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
@@ -537,6 +557,9 @@ export default function Home() {
                 ThesisForge
               </span>
             </div>
+
+            {/* Save Indicator — center area */}
+            <SaveIndicator />
 
             {/* Right: Desktop actions */}
             <div className="items-center gap-1 hidden sm:flex shrink-0">
@@ -877,6 +900,7 @@ export default function Home() {
                 { label: "Show shortcuts", keys: ["Ctrl", "/"] },
                 { label: "Show shortcuts", keys: ["?"] },
                 { label: "Save snapshot", keys: ["Ctrl", "S"] },
+                { label: "Next step", keys: ["Ctrl", "Enter"] },
               ].map((item, idx) => (
                 <div
                   key={`${item.label}-${item.keys.join("-")}-${idx}`}
@@ -938,8 +962,7 @@ export default function Home() {
             <DialogHeader>
               <DialogTitle>Return to Homepage?</DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
-                Your thesis data will be preserved and can be resumed anytime
-                via the &quot;Resume saved draft&quot; button.
+                Your progress is auto-saved. You can pick up where you left off by clicking "Resume saved draft" on the homepage.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2 sm:gap-0 pt-2">
@@ -970,8 +993,7 @@ export default function Home() {
             <DialogHeader>
               <DialogTitle>Start New Thesis?</DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
-                This will permanently clear all your current thesis data and
-                saved drafts. This action cannot be undone.
+                This will clear all your thesis data. Make sure you've exported your work first — this can't be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2 sm:gap-0 pt-2">

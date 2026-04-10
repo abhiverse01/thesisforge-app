@@ -8,6 +8,7 @@
 // ============================================================
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Card,
@@ -52,6 +53,7 @@ import {
   ALGORITHM_SCHEDULE,
 } from '@/intelligence/scheduler';
 import { countWords } from '@/intelligence/structureAnalyzer';
+import { useThesisStore } from '@/lib/thesis-store';
 
 // ============================================================
 // Props
@@ -68,6 +70,24 @@ interface IntelligencePanelProps {
 // ============================================================
 
 function CompletenessRing({ result }: { result: CompletenessResult | null }) {
+  const [hasLeveledUp, setHasLeveledUp] = useState(false);
+  const prevScore = useRef(0);
+  const toastShown = useRef(false);
+
+  // Detect level-up (score crosses 90 for first time)
+  useEffect(() => {
+    if (result && result.score >= 90 && prevScore.current < 90 && !toastShown.current) {
+      toastShown.current = true;
+      toast.success('Export ready!', {
+        description: 'Your thesis looks complete. Time to generate your LaTeX files.',
+        duration: 4000,
+      });
+      // Defer setState to avoid synchronous setState in effect
+      queueMicrotask(() => setHasLeveledUp(true));
+    }
+    if (result) prevScore.current = result.score;
+  }, [result?.score]);
+
   if (!result) {
     return (
       <div className="flex flex-col items-center gap-2">
@@ -89,33 +109,47 @@ function CompletenessRing({ result }: { result: CompletenessResult | null }) {
   const circumference = 2 * Math.PI * 35;
   const progress = (result.score / 100) * circumference;
 
-  const colorClass =
+  const scoreConfig =
     result.score >= 90
-      ? 'text-purple-500'
+      ? { stroke: 'var(--c-brand-600)', text: 'var(--c-brand-600)', label: 'Export ready' }
       : result.score >= 70
-        ? 'text-green-500'
+        ? { stroke: '#1D9E75', text: '#1D9E75', label: 'Almost there' }
         : result.score >= 40
-          ? 'text-amber-500'
-          : 'text-red-500';
-
-  const levelLabel =
-    result.level === 'ready'
-      ? 'Export ready'
-      : result.level === 'almost'
-        ? 'Almost there'
-        : result.level === 'in-progress'
-          ? 'In progress'
-          : 'Getting started';
+          ? { stroke: '#BA7517', text: '#BA7517', label: 'In progress' }
+          : { stroke: '#E24B4A', text: '#E24B4A', label: 'Getting started' };
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className={`flex flex-col items-center gap-2 ${hasLeveledUp ? 'score-ring--levelup' : ''}`}>
       <div className="relative w-20 h-20">
+        {/* Level-up confetti burst */}
+        {hasLeveledUp && (
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            {[...Array(8)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 1, scale: 0, x: 0, y: 0 }}
+                animate={{
+                  opacity: 0,
+                  scale: 1,
+                  x: Math.cos((i / 8) * Math.PI * 2) * 40,
+                  y: Math.sin((i / 8) * Math.PI * 2) * 40,
+                }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+                className="absolute top-1/2 left-1/2 w-2 h-2 rounded-sm"
+                style={{
+                  backgroundColor: ['#7F77DD', '#1D9E75', '#BA7517', '#E24B4A', '#534AB7', '#0F6E56', '#854F0B', '#A32D2D'][i],
+                }}
+              />
+            ))}
+          </div>
+        )}
         <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
           <circle cx="40" cy="40" r="35" stroke="currentColor" strokeWidth="6" fill="none" className="text-muted-foreground/20" />
           <motion.circle
             cx="40" cy="40" r="35"
-            stroke="currentColor" strokeWidth="6" fill="none"
-            className={colorClass}
+            stroke={scoreConfig.stroke}
+            strokeWidth="6" fill="none"
+            className="score-ring__fill"
             strokeDasharray={`${progress} ${circumference}`}
             strokeLinecap="round"
             initial={false}
@@ -124,10 +158,10 @@ function CompletenessRing({ result }: { result: CompletenessResult | null }) {
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className={`text-lg font-bold ${colorClass}`}>{result.score}</span>
+          <span className="text-lg font-bold anim-count-up" style={{ color: scoreConfig.text }}>{result.score}</span>
         </div>
       </div>
-      <span className={`text-xs font-medium ${colorClass}`}>{levelLabel}</span>
+      <span className="text-xs font-medium" style={{ color: scoreConfig.text }}>{scoreConfig.label}</span>
     </div>
   );
 }
@@ -430,6 +464,23 @@ function HeuristicsSection({ results }: { results: IntelligenceResults }) {
     }
   }
 
+  // All-clear state: heuristic checks ran but found zero issues
+  if (allFindings.length === 0) {
+    return (
+      <div className="flex items-start gap-2 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-fill-success, oklch(0.95 0.03 155 / 0.3))' }}>
+        <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-text-success, oklch(0.50 0.15 155))' }} />
+        <div>
+          <p className="text-xs font-medium" style={{ color: 'var(--color-text-success, oklch(0.40 0.12 155))' }}>
+            Clean LaTeX
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary, oklch(0.55 0.01 260))' }}>
+            No issues found. This file should compile on first try.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Sort by severity and cap at 5
   const severityOrder: Record<string, number> = { error: 0, warning: 1, suggestion: 2, info: 3 };
   allFindings.sort((a, b) =>
@@ -567,6 +618,16 @@ export default function IntelligencePanel({ isOpen, onClose, currentStep }: Inte
 
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Dynamic sidebar heading: shows thesis title when score is high enough
+  const sidebarTitle = useMemo(() => {
+    if (!results.completeness || results.completeness.score < 40) return 'Intelligence';
+    const state = useThesisStore.getState();
+    if (state.thesis?.metadata?.title?.trim()) {
+      return state.thesis.metadata.title;
+    }
+    return 'Intelligence';
+  }, [results.completeness?.score]);
+
   // Initialize scheduler
   useEffect(() => {
     intelligenceScheduler.init(setResults);
@@ -649,8 +710,16 @@ export default function IntelligencePanel({ isOpen, onClose, currentStep }: Inte
           {/* Header */}
           <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center justify-between z-10">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-500" />
-              <h2 className="text-sm font-semibold">Intelligence</h2>
+              {sidebarTitle === 'Intelligence' ? (
+                <>
+                  <Sparkles className="w-4 h-4 text-purple-500" />
+                  <h2 className="text-sm font-semibold">Intelligence</h2>
+                </>
+              ) : (
+                <h2 className="text-sm font-semibold truncate max-w-[200px]" title={sidebarTitle}>
+                  {sidebarTitle}
+                </h2>
+              )}
             </div>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
               <X className="w-4 h-4" />
