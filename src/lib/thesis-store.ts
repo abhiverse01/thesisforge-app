@@ -16,6 +16,7 @@ import type {
 } from './thesis-types';
 import { createDefaultThesisData } from './thesis-types';
 import { transition, getProgressPercentage, type WizardStateName, STATE_ORDER, TOTAL_WIZARD_STEPS } from '@/core/fsm';
+import { sanitizeUserInput } from '@/utils/inputSanitizer';
 
 export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -130,6 +131,11 @@ interface ThesisStore {
   lastErrors: Record<string, string>;
   setErrors: (errors: Record<string, string>) => void;
   clearErrors: () => void;
+
+  // Sanitized field updates (Zone 6A/6C)
+  updateChapterTitle: (id: string, rawTitle: string) => void;
+  updateMetadataSanitized: (metadata: Partial<ThesisMetadata>) => void;
+  updateChapterBody: (id: string, rawBody: string) => void;
 }
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -621,5 +627,65 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
       if (!(fieldPath in s.lastErrors)) return {};
       const { [fieldPath]: _, ...rest } = s.lastErrors;
       return { lastErrors: rest };
+    }),
+
+  // FIX(ZONE-6C): Whitespace-only title is normalized and rejected.
+  // Always trims stored values, rejects blank-after-trim.
+  updateChapterTitle: (id: string, rawTitle: string) =>
+    set((s) => {
+      if (!s.thesis) return {};
+      const normalized = sanitizeUserInput(rawTitle, 'single-line').trim();
+      if (normalized === '') {
+        return { lastErrors: { ...s.lastErrors, [`chapter_${id}_title`]: 'Chapter title cannot be blank.' } } };
+      }
+      const restErrors = { ...s.lastErrors };
+      delete restErrors[`chapter_${id}_title`];
+      return {
+        thesis: {
+          ...s.thesis,
+          chapters: s.thesis.chapters.map((c) => (c.id === id ? { ...c, title: normalized } : c)),
+        },
+        lastErrors: restErrors,
+      };
+    }),
+
+  // FIX(ZONE-6A): Sanitize metadata fields before storing.
+  // Strips null bytes, zero-width chars, control chars, enforces length limits.
+  updateMetadataSanitized: (metadata: Partial<ThesisMetadata>) =>
+    set((s) => {
+      if (!s.thesis) return {};
+      const sanitized: Partial<ThesisMetadata> = {};
+      for (const [key, value] of Object.entries(metadata)) {
+        if (typeof value !== 'string') continue;
+        const fieldType = (key === 'title' || key === 'subtitle') ? 'title'
+          : key === 'author' ? 'author'
+          : key === 'year' ? 'year'
+          : 'single-line';
+        (sanitized as Record<string, string>)[key] = sanitizeUserInput(value, fieldType);
+      }
+      const newThesis = { ...s.thesis, metadata: { ...s.thesis.metadata, ...sanitized } };
+
+      // Re-validate only previously-errored fields
+      const filteredErrors: Record<string, string> = {};
+      for (const [key, msg] of Object.entries(s.lastErrors)) {
+        if (key === 'title' && !sanitized.title?.trim()) filteredErrors[key] = msg;
+        else if (key === 'author' && !sanitized.author?.trim()) filteredErrors[key] = msg;
+        else if (key === '_step' || key === 'templateId') { /* keep */ }
+      }
+
+      return { thesis: newThesis, lastErrors: filteredErrors };
+    }),
+
+  // FIX(ZONE-6A): Sanitize chapter body before storing (length cap, control chars)
+  updateChapterBody: (id: string, rawBody: string) =>
+    set((s) => {
+      if (!s.thesis) return {};
+      const sanitized = sanitizeUserInput(rawBody, 'chapter-body');
+      return {
+        thesis: {
+          ...s.thesis,
+          chapters: s.thesis.chapters.map((c) => (c.id === id ? { ...c, content: sanitized } : c)),
+        },
+      };
     }),
 }));

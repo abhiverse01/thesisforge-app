@@ -524,12 +524,18 @@ function buildChapter(chapter: ThesisChapter, type: ThesisType, schema: typeof T
   // FIX(ZONE-3C): If body is empty and chapter is optional, skip entirely.
   // If body is empty and chapter is required, add a TODO placeholder comment.
   // This prevents producing \chapter{} with no content.
+  // Core chapters = first N positions matching template bodyStructure length.
+  // Optional = any chapters beyond the template's bodyStructure count.
   if (!body) {
-    const optionalIds: string[] = [];
-    // Check if this chapter is optional (not in the first 2 positions typically)
-    if (chapter.number > 2 && optionalIds.includes(chapter.id)) {
+    const coreCount = schema.bodyStructure.length;
+    const isCoreChapter = chapter.number <= coreCount;
+    const hasNoSubSections = chapter.subSections.length === 0;
+
+    // Skip entirely if optional AND no subsections either
+    if (!isCoreChapter && hasNoSubSections) {
       return []; // filtered out — optional empty chapter suppressed
     }
+
     // Required empty chapter — include with TODO comment
     nodes.push(comment(`${chCmd === '\\chapter' ? 'Chapter' : 'Section'} ${chapter.number}: ${chapter.title}`));
     nodes.push(command(chCmd.replace('\\', ''), [esc(chapter.title)]));
