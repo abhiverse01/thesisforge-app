@@ -1070,109 +1070,21 @@ export function ReferenceEditor() {
                                           />
                                         </div>
 
-                                        {/* Journal / BookTitle (conditional) */}
-                                        {(ref.type === "article" ||
-                                          ref.type ===
-                                            "inproceedings") && (
+                                        {/* Journal (article only) */}
+                                        {ref.type === "article" && (
                                           <div className="space-y-1">
                                             <Label className="text-xs font-medium text-muted-foreground">
-                                              {ref.type === "article"
-                                                ? "Journal"
-                                                : "Conference / Book Title"}
+                                              Journal
                                             </Label>
                                             <Input
-                                              value={
-                                                ref.type === "article"
-                                                  ? ref.journal || ""
-                                                  : ref.bookTitle || ""
-                                              }
+                                              value={ref.journal || ""}
                                               onChange={(e) =>
                                                 updateReference(ref.id, {
-                                                  [ref.type === "article"
-                                                    ? "journal"
-                                                    : "bookTitle"]:
-                                                    e.target.value,
+                                                  journal: e.target.value,
                                                 })
                                               }
-                                              placeholder={
-                                                ref.type === "article"
-                                                  ? "Journal Name"
-                                                  : "Conference Proceedings"
-                                              }
-                                              className={cn("h-8 text-xs", parsedFields.has(`${ref.id}:${ref.type === "article" ? "journal" : "bookTitle"}`) && "field-fill-flash")}
-                                            />
-                                          </div>
-                                        )}
-
-                                        {/* Publisher (book, techreport) */}
-                                        {(ref.type === "book" ||
-                                          ref.type === "techreport") && (
-                                          <div className="space-y-1">
-                                            <Label className="text-xs font-medium text-muted-foreground">
-                                              {ref.type === "book"
-                                                ? "Publisher"
-                                                : "Institution"}
-                                            </Label>
-                                            <Input
-                                              value={
-                                                ref.publisher || ""
-                                              }
-                                              onChange={(e) =>
-                                                updateReference(ref.id, {
-                                                  publisher:
-                                                    e.target.value,
-                                                })
-                                              }
-                                              placeholder={
-                                                ref.type === "book"
-                                                  ? "Publisher Name"
-                                                  : "Organization name"
-                                              }
-                                              className={cn("h-8 text-xs", parsedFields.has(`${ref.id}:publisher`) && "field-fill-flash")}
-                                            />
-                                          </div>
-                                        )}
-
-                                        {/* Edition (book) */}
-                                        {ref.type === "book" && (
-                                          <div className="space-y-1">
-                                            <Label className="text-xs font-medium text-muted-foreground">
-                                              Edition
-                                            </Label>
-                                            <Input
-                                              value={
-                                                ref.edition || ""
-                                              }
-                                              onChange={(e) =>
-                                                updateReference(ref.id, {
-                                                  edition:
-                                                    e.target.value,
-                                                })
-                                              }
-                                              placeholder="e.g., 3rd"
-                                              className="h-8 text-xs"
-                                            />
-                                          </div>
-                                        )}
-
-                                        {/* School (thesis) */}
-                                        {ref.type === "thesis" && (
-                                          <div className="space-y-1">
-                                            <Label className="text-xs font-medium text-muted-foreground">
-                                              Institution / School
-                                            </Label>
-                                            <Input
-                                              value={
-                                                ref.school || ""
-                                              }
-                                              onChange={(e) =>
-                                                updateReference(ref.id, {
-                                                  school:
-                                                    e.target.value,
-                                                })
-                                              }
-                                              placeholder="University name"
-                                              className="h-8 text-xs"
+                                              placeholder="Journal Name"
+                                              className={cn("h-8 text-xs", parsedFields.has(`${ref.id}:journal`) && "field-fill-flash")}
                                             />
                                           </div>
                                         )}
@@ -1207,7 +1119,7 @@ export function ReferenceEditor() {
                                           )}
                                         </div>
 
-                                        {/* Volume / Pages (article, inproceedings) */}
+                                        {/* Volume / Number / Pages (article, inproceedings) */}
                                         {(ref.type === "article" ||
                                           ref.type ===
                                             "inproceedings") && (
@@ -1233,6 +1145,27 @@ export function ReferenceEditor() {
                                                 className="h-8 text-xs"
                                               />
                                             </div>
+                                            {ref.type === "article" && (
+                                              <div className="space-y-1">
+                                                <Label className="text-xs font-medium text-muted-foreground">
+                                                  Number
+                                                </Label>
+                                                <Input
+                                                  value={ref.number || ""}
+                                                  onChange={(e) =>
+                                                    updateReference(
+                                                      ref.id,
+                                                      {
+                                                        number:
+                                                          e.target.value,
+                                                      },
+                                                    )
+                                                  }
+                                                  placeholder="e.g., 3"
+                                                  className="h-8 text-xs"
+                                                />
+                                              </div>
+                                            )}
                                             <div className="space-y-1">
                                               <Label className="text-xs font-medium text-muted-foreground">
                                                 Pages
@@ -1258,7 +1191,7 @@ export function ReferenceEditor() {
                                             {ref.type === "inproceedings" && (
                                               <div className="space-y-1">
                                                 <Label className="text-xs font-medium text-muted-foreground">
-                                                  Book Title
+                                                  Conference / Book Title
                                                 </Label>
                                                 <Input
                                                   value={ref.bookTitle || ""}
@@ -1268,7 +1201,7 @@ export function ReferenceEditor() {
                                                     })
                                                   }
                                                   placeholder="Proceedings of..."
-                                                  className="h-8 text-xs"
+                                                  className={cn("h-8 text-xs", parsedFields.has(`${ref.id}:bookTitle`) && "field-fill-flash")}
                                                 />
                                               </div>
                                             )}

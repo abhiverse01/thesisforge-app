@@ -180,7 +180,7 @@ export function transition(
  */
 export function getProgressPercentage(stepIndex: number): number {
   const totalSteps = TOTAL_WIZARD_STEPS;
-  return Math.round((stepIndex / totalSteps) * 100);
+  return Math.round(((stepIndex - 1) / (totalSteps - 1)) * 100);
 }
 
 /**

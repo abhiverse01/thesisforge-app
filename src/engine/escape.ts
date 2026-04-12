@@ -38,9 +38,9 @@ export const LATEX_ESCAPE_MAP: Array<[RegExp, string]> = [
   [/\u2018/g,            '`'],                    // 16. opening single quote (')
   [/\u2019/g,            "'"],                    // 17. closing single quote (')
 
-  // Straight quotes — remove from map (handled in post-processing)
-  // We convert " to `` and '' properly after the main reduce
-  // [/"/g,                '``'],                   // 18. REMOVED — handled after reduce
+  // Straight quotes — handled in post-processing (convertStraightQuotes)
+  // Not in the map because position-aware conversion (opening vs closing)
+  // requires alternating state, which reduce() can't do per-replacement.
 
   // Dashes
   [/\u2014/g,            '---'],                  // 19. em dash (—)
@@ -171,8 +171,29 @@ export function escapeLatexBody(text: string): string {
       (acc, [pattern, replacement]) => acc.replace(pattern, replacement),
       seg.content
     );
+    // Smart straight quote conversion (post-processing)
+    // In LaTeX, " is the closing (right) double quote by default.
+    // We convert straight " to `` (opening) and '' (closing) based on position.
+    escaped = convertStraightQuotes(escaped);
     return escaped;
   }).join('');
+}
+
+/**
+ * Convert straight double quotes (") to LaTeX smart quotes (`` and '').
+ * Alternates between opening and closing based on position within each segment.
+ * Assumes quotes come in pairs; odd quotes default to opening.
+ */
+function convertStraightQuotes(text: string): string {
+  // Don't touch if no straight double quotes exist
+  if (!text.includes('"')) return text;
+
+  let isOpening = true; // First quote in a segment is opening
+  return text.replace(/"/g, () => {
+    const replacement = isOpening ? '``' : "''";
+    isOpening = !isOpening;
+    return replacement;
+  });
 }
 
 /**
