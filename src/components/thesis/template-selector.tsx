@@ -44,6 +44,7 @@ const templateIconConfig: Record<
   master: { Icon: Building2, Wrapper: Hexagon, label: "Graduate" },
   phd: { Icon: ScrollText, Wrapper: Square, label: "Doctoral" },
   report: { Icon: FileText, Wrapper: Layers, label: "Technical" },
+  conference: { Icon: BookOpen, Wrapper: Star, label: "Conference" },
 };
 
 const templateGradients: Record<string, string> = {
@@ -51,6 +52,7 @@ const templateGradients: Record<string, string> = {
   master: "from-violet-500/8 to-purple-500/5 border-violet-500/20 hover:border-violet-500/40",
   phd: "from-amber-500/8 to-orange-500/5 border-amber-500/20 hover:border-amber-500/40",
   report: "from-emerald-500/8 to-teal-500/5 border-emerald-500/20 hover:border-emerald-500/40",
+  conference: "from-rose-500/8 to-pink-500/5 border-rose-500/20 hover:border-rose-500/40",
 };
 
 const templateIconBg: Record<string, string> = {
@@ -58,6 +60,7 @@ const templateIconBg: Record<string, string> = {
   master: "bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-violet-500/20 shadow-md",
   phd: "bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-amber-500/20 shadow-md",
   report: "bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-emerald-500/20 shadow-md",
+  conference: "bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-rose-500/20 shadow-md",
 };
 
 const templateBadgeColors: Record<string, string> = {
@@ -65,6 +68,7 @@ const templateBadgeColors: Record<string, string> = {
   master: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
   phd: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   report: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  conference: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
 };
 
 const templateGlowColors: Record<string, string> = {
@@ -72,6 +76,7 @@ const templateGlowColors: Record<string, string> = {
   master: "ring-violet-500/25 shadow-violet-500/8",
   phd: "ring-amber-500/25 shadow-amber-500/8",
   report: "ring-emerald-500/25 shadow-emerald-500/8",
+  conference: "ring-rose-500/25 shadow-rose-500/8",
 };
 
 // Estimated page ranges per template type
@@ -80,6 +85,7 @@ const templateEstimates: Record<string, { chapters: number; pages: string }> = {
   master: { chapters: 6, pages: "60 - 100" },
   phd: { chapters: 7, pages: "100 - 200" },
   report: { chapters: 3, pages: "15 - 30" },
+  conference: { chapters: 5, pages: "6 - 12" },
 };
 
 // Feature list for the expandable "View all features" section
@@ -114,6 +120,13 @@ const featureLabels: Record<string, string[]> = {
     "Technical paper focus",
     "IEEE citations",
     "Single spacing",
+    "Compact structure",
+  ],
+  conference: [
+    "IEEEtran format",
+    "Two-column layout",
+    "IEEE citations",
+    "10pt font size",
     "Compact structure",
   ],
 };
