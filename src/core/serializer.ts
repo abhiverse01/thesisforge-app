@@ -1,6 +1,8 @@
 // ============================================================
-// ThesisForge Core — AST Serializer
+// ThesisForge Core — AST Serializer (Engine v2)
 // Converts AST nodes to LaTeX string output.
+// The serializer is the ONLY place that produces LaTeX strings.
+// Every element must be serialized from typed AST nodes.
 // ============================================================
 
 import type {
@@ -15,8 +17,21 @@ import type {
   CommentNode,
   BlankLineNode,
   MacroDefNode,
+  // Extended types
+  MathNode,
+  VerbatimNode,
+  ListNode,
+  FigureNode,
+  TableNode,
+  CitationNode,
+  LabelNode,
+  RefNode,
+  FootnoteNode,
+  HorizontalRuleNode,
+  NewPageNode,
+  RawLaTeXNode,
 } from './ast';
-import { escapeLatex } from '@/utils/latex-escape';
+import { escapeLatexBody } from '@/engine/escape';
 
 /**
  * Serialize any AST node to LaTeX string.
@@ -89,6 +104,11 @@ export function serialize(node: ASTNode, indent: number = 0): string {
       if (env.options && env.options.length > 0) {
         result += `[${env.options.join(', ')}]`;
       }
+      if (env.args && env.args.length > 0) {
+        for (const arg of env.args) {
+          result += `{${arg}}`;
+        }
+      }
       result += '\n';
       for (const child of env.children) {
         result += pad + serialize(child, indent + 1) + '\n';
@@ -100,7 +120,7 @@ export function serialize(node: ASTNode, indent: number = 0): string {
     case 'Text': {
       const t = node as TextNode;
       if (t.escaped) return t.content;
-      return escapeLatex(t.content);
+      return escapeLatexBody(t.content);
     }
 
     case 'Comment': {
@@ -116,6 +136,103 @@ export function serialize(node: ASTNode, indent: number = 0): string {
       const m = node as MacroDefNode;
       const opts = m.options && m.options.length > 0 ? `[${m.options.join(', ')}]` : '';
       return `\\newcommand${opts}{${m.name}}{${m.definition}}`;
+    }
+
+    // ── Extended Node Types (Engine v2) ──────────────────────
+
+    case 'Math': {
+      const mn = node as MathNode;
+      return mn.display
+        ? `\\[\n  ${mn.content}\n\\]`
+        : `$${mn.content}$`;
+    }
+
+    case 'Verbatim': {
+      const vn = node as VerbatimNode;
+      if (vn.language) {
+        return `\\begin{lstlisting}[language=${vn.language}]\n${vn.content}\n\\end{lstlisting}`;
+      }
+      return `\\begin{verbatim}\n${vn.content}\n\\end{verbatim}`;
+    }
+
+    case 'List': {
+      const ln = node as ListNode;
+      const items = ln.items.map(item => {
+        if (item.term) {
+          return `  \\item[${escapeLatexBody(item.term)}] ${escapeLatexBody(item.content)}`;
+        }
+        return `  \\item ${escapeLatexBody(item.content)}`;
+      }).join('\n');
+      return `\\begin{${ln.listType}}\n${items}\n\\end{${ln.listType}}`;
+    }
+
+    case 'Figure': {
+      const fn = node as FigureNode;
+      return `\\begin{figure}[${fn.placement}]
+  \\centering
+  \\includegraphics[width=${fn.width}]{${fn.path}}
+  \\caption{${escapeLatexBody(fn.caption)}}
+  \\label{${fn.label}}
+\\end{figure}`;
+    }
+
+    case 'Table': {
+      const tn = node as TableNode;
+      const colSpec = tn.columnSpec || tn.headers.map(() => 'l').join('');
+      const header = tn.headers.map(h => escapeLatexBody(h)).join(' & ');
+      const rows = tn.rows
+        .map(row => '  ' + row.map(c => escapeLatexBody(c)).join(' & ') + ' \\\\')
+        .join('\n');
+      return `\\begin{table}[${tn.placement}]
+  \\centering
+  \\caption{${escapeLatexBody(tn.caption)}}
+  \\label{${tn.label}}
+  \\begin{tabular}{${colSpec}}
+    \\toprule
+    ${header} \\\\
+    \\midrule
+${rows}
+    \\bottomrule
+  \\end{tabular}
+\\end{table}`;
+    }
+
+    case 'Citation': {
+      const cn = node as CitationNode;
+      const keys = cn.keys.join(',');
+      const pre = cn.pre ? `[${escapeLatexBody(cn.pre)}]` : '';
+      const post = cn.post ? `[${escapeLatexBody(cn.post)}]` : '';
+      // natbib uses \citep{key}, \citet{key}, \citeauthor{key}, \citeyear{key}
+      return `\\${cn.command}${pre}${post}{${keys}}`;
+    }
+
+    case 'Label': {
+      const lbn = node as LabelNode;
+      return `\\label{${lbn.label}}`;
+    }
+
+    case 'Ref': {
+      const rn = node as RefNode;
+      return `\\${rn.refType}{${rn.label}}`;
+    }
+
+    case 'Footnote': {
+      const fnn = node as FootnoteNode;
+      return `\\footnote{${escapeLatexBody(fnn.content)}}`;
+    }
+
+    case 'HorizontalRule': {
+      return '\\noindent\\rule{\\textwidth}{0.4pt}';
+    }
+
+    case 'NewPage': {
+      const npn = node as NewPageNode;
+      return `\\${npn.pageType}`;
+    }
+
+    case 'RawLaTeX': {
+      const rln = node as RawLaTeXNode;
+      return rln.content;
     }
 
     default:
@@ -150,33 +267,13 @@ export function serializeDocument(ast: DocumentNode): string {
 
 /**
  * Convert plain text content to LaTeX paragraph nodes.
+ * Handles figure/table placeholders, ## headings, and lists.
  */
 export function contentToLatexNodes(content: string, escaped = false): ASTNode[] {
   if (!content || !content.trim()) return [];
 
   const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim());
   const nodes: ASTNode[] = [];
-
-  // Helper: create a command node
-  const command = (name: string, options?: string[], args?: (string | ASTNode)[]): CommandNode => ({
-    type: 'Command',
-    name,
-    options: options ?? [],
-    args: args ?? [],
-    star: false,
-  });
-
-  // Helper: create a text node
-  const text = (content: string, isEscaped: boolean): TextNode => ({
-    type: 'Text',
-    content,
-    escaped: isEscaped,
-  });
-
-  // Helper: create a blank line node
-  const blankLine = (): BlankLineNode => ({
-    type: 'BlankLine',
-  });
 
   for (const para of paragraphs) {
     const trimmed = para.trim();
@@ -186,14 +283,14 @@ export function contentToLatexNodes(content: string, escaped = false): ASTNode[]
     const lines = trimmed.split('\n');
     for (let j = 0; j < lines.length; j++) {
       if (j > 0) {
-        nodes.push(command('\\\\'));
+        nodes.push({ type: 'Command', name: '\\\\', args: [], options: [], star: false } as unknown as ASTNode);
       }
       const line = lines[j].trim();
       if (line) {
-        nodes.push(text(line, escaped));
+        nodes.push({ type: 'Text', content: line, escaped } as ASTNode);
       }
     }
-    nodes.push(blankLine());
+    nodes.push({ type: 'BlankLine' } as ASTNode);
   }
 
   return nodes;
@@ -216,10 +313,13 @@ function isMajorSection(node: ASTNode): boolean {
     return ['frontmatter', 'mainmatter', 'backmatter', 'appendix', 'tableofcontents',
             'listoffigures', 'listoftables', 'maketitle', 'begin'].includes(cmdName);
   }
+  if (node.type === 'NewPage') {
+    return true;
+  }
   return false;
 }
 
 /**
- * Escape LaTeX special characters in a string (for use outside AST context).
+ * Re-export escapeLatexBody for backward compatibility.
  */
-export { escapeLatex };
+export { escapeLatexBody as escapeLatex };
