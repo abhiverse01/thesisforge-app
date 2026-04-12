@@ -23,6 +23,25 @@ export type {
   AlgorithmSchedule,
   AlgorithmId,
   CircuitBreakerState,
+  // Level 2 re-exports
+  STGResult,
+  STGNode,
+  STGEdge,
+  CoachSuggestion,
+  CoachResult,
+  TimelinePlan,
+  ChapterPlan,
+  Milestone,
+  RiskLevel,
+  SimulationResultType,
+  AnnotationType,
+  AnnotationSummary,
+  CompilerTarget,
+  CompilerTargetConfig,
+  ThesisMemoryState,
+  MemoryInsight,
+  SessionSummary,
+  WritingVelocity,
 } from './types';
 
 export { parseCitationText } from './citationParser';
@@ -37,6 +56,8 @@ export {
   applyAllHeuristicFixes,
 } from './latexHeuristics';
 export { computeReadingStats } from './readingStats';
+export { buildSemanticGraph } from './semanticGraph';
+export { runWritingCoach } from './writingCoach';
 export {
   IntelligenceScheduler,
   intelligenceScheduler,

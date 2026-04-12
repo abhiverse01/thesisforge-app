@@ -11,13 +11,14 @@
 
 import { openDB, type IDBPDatabase, type IDBPTransaction } from 'idb';
 import type { ThesisData, ThesisType, ThesisChapter, ThesisReference, ThesisAppendix, ThesisMetadata, ThesisOptions } from '@/lib/thesis-types';
+import type { MemoryEvent } from '@/intelligence/thesisMemory';
 
 // ============================================================
 // Database Schema
 // ============================================================
 
 const DB_NAME = 'ThesisForgeDB';
-const DB_VERSION = 3; // FIX(ZONE-2B): Bumped from 2. Migration is additive-only.
+const DB_VERSION = 4; // FIX(ZONE-2B): Bumped from 3. Migration is additive-only. v4 adds memory events.
 
 interface DraftRecord {
   id: string;
@@ -340,7 +341,7 @@ function createFallbackThesisData(type: ThesisType): ThesisData {
 
 let dbPromise: Promise<IDBPDatabase | MemoryDB> | null = null;
 
-function getDB(): Promise<IDBPDatabase | MemoryDB> {
+export function getDB(): Promise<IDBPDatabase | MemoryDB> {
   if (!dbPromise) {
     // FIX(ZONE-5B): Test IndexedDB availability first
     if (typeof window === 'undefined' || !window.indexedDB) {
@@ -396,6 +397,19 @@ function getDB(): Promise<IDBPDatabase | MemoryDB> {
           // The 'version' field doesn't need an index; it's checked on read.
           // We don't need to alter existing records — they'll get version: 0
           // from the sanitizeDraft fallback.
+        }
+
+        // v4 → add thesis memory stores (System 7)
+        if (oldVersion < 4) {
+          const memoryStore = db.createObjectStore('memoryEvents', { keyPath: 'id' });
+          memoryStore.createIndex('timestamp', 'timestamp');
+          memoryStore.createIndex('kind', 'kind');
+
+          const annotationStore = db.createObjectStore('annotations', { keyPath: 'id' });
+          annotationStore.createIndex('chapterId', 'chapterId');
+          annotationStore.createIndex('resolved', 'resolved');
+
+          db.createObjectStore('timelinePrefs', { keyPath: 'key' });
         }
       },
     }).catch((err) => {
@@ -869,5 +883,98 @@ export function setLastKnownTimestamp(timestamp: number): void {
     sessionStorage.setItem('thesisforge_timestamp', String(timestamp));
   } catch {
     // sessionStorage unavailable
+  }
+}
+
+// ============================================================
+// Memory Events CRUD (System 7: Thesis Memory)
+// ============================================================
+
+/**
+ * Save a single memory event to IndexedDB.
+ * If the total event count exceeds 1000, the oldest events are pruned.
+ */
+export async function saveMemoryEvent(event: MemoryEvent): Promise<void> {
+  try {
+    const db = await getDB();
+    if ((db as MemoryDB)._isMemoryFallback) {
+      await (db as MemoryDB).put('memoryEvents', event);
+    } else {
+      await (db as IDBPDatabase).put('memoryEvents', event);
+    }
+  } catch (err) {
+    console.error('[Persistence] saveMemoryEvent failed:', err);
+  }
+}
+
+/**
+ * Retrieve memory events, optionally filtered to those after a given timestamp.
+ * Returns events sorted by timestamp ascending.
+ */
+export async function getMemoryEvents(since?: number): Promise<MemoryEvent[]> {
+  try {
+    const db = await getDB();
+    let events: MemoryEvent[];
+
+    if ((db as MemoryDB)._isMemoryFallback) {
+      events = (await (db as MemoryDB).getAll('memoryEvents')) as MemoryEvent[];
+    } else {
+      if (since !== undefined) {
+        // Use the timestamp index to get events since the given time
+        const range = IDBKeyRange.lowerBound(since, true);
+        events = (await (db as IDBPDatabase).getAllFromIndex('memoryEvents', 'timestamp', range)) as MemoryEvent[];
+      } else {
+        events = (await (db as IDBPDatabase).getAll('memoryEvents')) as MemoryEvent[];
+      }
+    }
+
+    // Sort by timestamp ascending
+    return events.sort((a, b) => a.timestamp - b.timestamp);
+  } catch (err) {
+    console.error('[Persistence] getMemoryEvents failed:', err);
+    return [];
+  }
+}
+
+/**
+ * Clear memory events older than the given timestamp.
+ * If no timestamp is provided, clears all memory events.
+ * Used for auto-pruning to keep event count ≤ 1000.
+ */
+export async function clearMemoryEvents(olderThan?: number): Promise<void> {
+  try {
+    const db = await getDB();
+
+    if ((db as MemoryDB)._isMemoryFallback) {
+      if (olderThan !== undefined) {
+        const all = (await (db as MemoryDB).getAll('memoryEvents')) as MemoryEvent[];
+        for (const event of all) {
+          if (event.timestamp < olderThan) {
+            await (db as MemoryDB).delete('memoryEvents', event.id);
+          }
+        }
+      } else {
+        // Clear all — for memory fallback, we just replace the store contents
+        const all = (await (db as MemoryDB).getAll('memoryEvents')) as MemoryEvent[];
+        for (const event of all) {
+          await (db as MemoryDB).delete('memoryEvents', event.id);
+        }
+      }
+    } else {
+      if (olderThan !== undefined) {
+        // Use the timestamp index to delete events older than the threshold
+        const range = IDBKeyRange.upperBound(olderThan, true);
+        const keys = await (db as IDBPDatabase).getAllKeysFromIndex('memoryEvents', 'timestamp', range);
+        const tx = (db as IDBPDatabase).transaction('memoryEvents', 'readwrite');
+        for (const key of keys) {
+          await tx.store.delete(key);
+        }
+        await tx.done;
+      } else {
+        await (db as IDBPDatabase).clear('memoryEvents');
+      }
+    }
+  } catch (err) {
+    console.error('[Persistence] clearMemoryEvents failed:', err);
   }
 }

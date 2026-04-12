@@ -1,6 +1,6 @@
 // ============================================================
 // ThesisForge Intelligence — Scheduler & Unified Runner
-// Orchestrates all 8 algorithms with step-aware scheduling,
+// Orchestrates all 10 algorithms with step-aware scheduling,
 // debouncing, priority queuing, and circuit breaker protection.
 // ============================================================
 
@@ -19,6 +19,8 @@ import type {
   CitationGraphResult,
   CrossCheckResult,
 } from './types';
+import type { STGResult } from './semanticGraph';
+import type { CoachResult } from './writingCoach';
 import { parseCitationText } from './citationParser';
 import { detectDuplicates, detectDuplicatesWithMerge } from './deduplicator';
 import { analyzeStructure } from './structureAnalyzer';
@@ -27,6 +29,8 @@ import { buildCitationGraph } from './citationGraph';
 import { scoreCompleteness } from './completenessScorer';
 import { runHeuristics } from './latexHeuristics';
 import { computeReadingStats } from './readingStats';
+import { buildSemanticGraph } from './semanticGraph';
+import { runWritingCoach } from './writingCoach';
 
 // ============================================================
 // Schedule Configuration

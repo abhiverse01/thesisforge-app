@@ -202,10 +202,21 @@ export type AlgorithmId =
   | 'citationGraph'
   | 'completenessScorer'
   | 'latexHeuristics'
-  | 'readingStats';
+  | 'readingStats'
+  | 'semanticThesisGraph'
+  | 'writingCoach';
 
 export interface CircuitBreakerState {
   failures: number;
   disabled: boolean;
   reason?: string;
 }
+
+// Re-export types from new algorithm modules for convenience
+export type { STGResult, STGNode, STGEdge } from './semanticGraph';
+export type { CoachSuggestion, CoachResult } from './writingCoach';
+export type { TimelinePlan, ChapterPlan, Milestone, RiskLevel } from '../core/thesis-timeline';
+export type { SimulationResult as SimulationResultType } from '../core/compilation-simulator';
+export type { Annotation as AnnotationType, AnnotationSummary } from '../core/annotations';
+export type { CompilerTarget, CompilerTargetConfig } from '../core/compiler-targets';
+export type { ThesisMemoryState, MemoryInsight, SessionSummary, WritingVelocity } from './thesisMemory';
