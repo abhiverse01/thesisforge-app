@@ -242,7 +242,7 @@ function countConclusionElements(chapters: Array<{ title: string; content: strin
 
   const fullText = [
     conclusionChapter.content || '',
-    ...conclusionChapter.subSections.map((ss) => ss.content || ''),
+    ...(conclusionChapter.subSections || []).map((ss) => ss.content || ''),
   ].join(' ');
 
   let count = 0;
@@ -257,13 +257,13 @@ function countConclusionElements(chapters: Array<{ title: string; content: strin
  * Returns the percentage of chapters that contain at least one \cite command.
  */
 function computeCitationCoverage(
-  chapters: Array<{ content: string; subSections: Array<{ content: string }> }>
+  chapters: Array<{ content: string; subSections?: Array<{ content: string }> }>
 ): number {
   if (chapters.length === 0) return 0;
   const citationPattern = /\\cite(?:p|t|author|year|alp|num)?\{/;
   let chaptersWithCitations = 0;
   for (const ch of chapters) {
-    const fullText = [ch.content || '', ...ch.subSections.map((ss) => ss.content || '')].join(' ');
+    const fullText = [ch.content || '', ...(ch.subSections || []).map((ss) => ss.content || '')].join(' ');
     if (citationPattern.test(fullText)) {
       chaptersWithCitations++;
     }
@@ -275,7 +275,7 @@ function computeCitationCoverage(
  * Compute average subsection depth across chapters.
  */
 function computeSubsectionDepth(
-  chapters: Array<{ subSections: Array<{ content: string; subSections?: Array<{ content: string }> }> }>
+  chapters: Array<{ subSections?: Array<{ content: string; subSections?: Array<{ content: string }> }> }>
 ): number {
   if (chapters.length === 0) return 0;
   let totalDepth = 0;
@@ -292,12 +292,12 @@ function computeSubsectionDepth(
  */
 function computeKeywordAlignment(
   keywords: string[],
-  chapters: Array<{ content: string; subSections: Array<{ content: string }> }>
+  chapters: Array<{ content: string; subSections?: Array<{ content: string }> }>
 ): number {
   if (keywords.length === 0) return 1.0; // No keywords = perfect (nothing to misalign)
 
   const allContent = chapters
-    .map((ch) => [ch.content || '', ...ch.subSections.map((ss) => ss.content || '')].join(' ').toLowerCase())
+    .map((ch) => [ch.content || '', ...(ch.subSections || []).map((ss) => ss.content || '')].join(' ').toLowerCase())
     .join(' ');
 
   let matchCount = 0;

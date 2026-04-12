@@ -499,12 +499,23 @@ function HeuristicsSection({ results }: { results: IntelligenceResults }) {
   // Collect all fixable findings
   const fixableFindings = allFindings.filter((item) => item.finding.fix !== null);
 
+  // FIX: Only apply SAFE autofixes (errors + warnings), not stylistic suggestions
+  // Stylistic fixes like em-dash conversion can alter user intent
+  const SAFE_FIX_RULES = new Set([
+    'smart-quotes', 'percent-sign', 'ampersand', 'hash-symbol',
+    'double-dollar-math', 'markdown-bold', 'markdown-italic',
+    'literal-dots', 'obsolete-font-cmd',
+  ]);
+  const safeFixableFindings = fixableFindings.filter(
+    (item) => item.finding.fix !== null && SAFE_FIX_RULES.has(item.finding.ruleId)
+  );
+
   const handleFixAll = () => {
     if (!thesis) return;
 
-    // Group fixable findings by chapter
+    // Group safe fixable findings by chapter
     const fixesByChapter = new Map<string, HeuristicFinding[]>();
-    for (const item of fixableFindings) {
+    for (const item of safeFixableFindings) {
       const existing = fixesByChapter.get(item.chapterId) || [];
       existing.push(item.finding);
       fixesByChapter.set(item.chapterId, existing);
@@ -565,7 +576,7 @@ function HeuristicsSection({ results }: { results: IntelligenceResults }) {
   return (
     <div className="space-y-2">
       {/* Fix all button */}
-      {fixableFindings.length > 0 && (
+      {safeFixableFindings.length > 0 && (
         <Button
           variant="outline"
           size="sm"
@@ -573,7 +584,7 @@ function HeuristicsSection({ results }: { results: IntelligenceResults }) {
           onClick={handleFixAll}
         >
           <Wand2 className="w-3 h-3" />
-          Fix all ({fixableFindings.length} fix{fixableFindings.length > 1 ? 'es' : ''})
+          Fix all ({safeFixableFindings.length} fix{safeFixableFindings.length > 1 ? 'es' : ''})
         </Button>
       )}
       {displayFindings.map((item, idx) => (
@@ -636,7 +647,7 @@ function CitationGraphSection({ results }: { results: IntelligenceResults }) {
       {citationGraph.uncitedReferences.length > 0 && (
         <IssueCard
           severity="warning"
-          message={`You have ${citationGraph.uncitedReferences.length} reference${citationGraph.uncitedReferences.length > 1 ? 's' : ''} that ${citationGraph.uncitedReferences.length > 1 ? 'aren\'t' : 'isn\'t'} cited anywhere.`}
+          message={`You have ${citationGraph.uncitedReferences.length} reference${citationGraph.uncitedReferences.length > 1 ? 's' : ''} not cited anywhere.`}
         />
       )}
     </div>
@@ -707,14 +718,21 @@ export default function IntelligencePanel({ isOpen, onClose, currentStep }: Inte
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Dynamic sidebar heading: shows thesis title when score is high enough
+  // Subscribe to store directly to avoid stale closure issue
   const sidebarTitle = useMemo(() => {
     if (!results.completeness || results.completeness.score < 40) return 'Intelligence';
-    const state = useThesisStore.getState();
-    if (state.thesis?.metadata?.title?.trim()) {
-      return state.thesis.metadata.title;
-    }
     return 'Intelligence';
   }, [results.completeness?.score]);
+
+  // Track thesis title from store for sidebar heading
+  const [thesisTitle, setThesisTitle] = useState('');
+  useEffect(() => {
+    return useThesisStore.subscribe((state) => {
+      setThesisTitle(state.thesis?.metadata?.title?.trim() || '');
+    });
+  }, []);
+  const displayTitle = results.completeness && results.completeness.score >= 40 && thesisTitle
+    ? thesisTitle : 'Intelligence';
 
   // Initialize scheduler
   useEffect(() => {
@@ -742,12 +760,17 @@ export default function IntelligencePanel({ isOpen, onClose, currentStep }: Inte
       });
     }
 
-    // Duplicates → warning
+    // Duplicates → warning (include reference titles for actionability)
     if (results.duplicates.length > 0) {
+      const { thesis } = useThesisStore.getState();
       results.duplicates.forEach((dup) => {
+        const refA = thesis?.references[dup.indexA];
+        const refB = thesis?.references[dup.indexB];
+        const labelA = refA?.title?.slice(0, 40) || `Ref #${dup.indexA + 1}`;
+        const labelB = refB?.title?.slice(0, 40) || `Ref #${dup.indexB + 1}`;
         issues.push({
           severity: 'warning',
-          message: `Possible duplicate: ${dup.reason} (${Math.round(dup.score * 100)}% match)`,
+          message: `Possible duplicate: "${labelA}" ~ "${labelB}" (${Math.round(dup.score * 100)}%)`,
           weight: 80,
         });
       });
@@ -798,14 +821,14 @@ export default function IntelligencePanel({ isOpen, onClose, currentStep }: Inte
       {/* Header */}
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center justify-between z-10 rounded-t-lg">
         <div className="flex items-center gap-2 min-w-0">
-          {sidebarTitle === 'Intelligence' ? (
+          {displayTitle === 'Intelligence' ? (
             <>
               <Sparkles className="w-4 h-4 text-[var(--c-brand-600,#534AB7)] shrink-0" />
               <h2 className="text-sm font-semibold">Intelligence</h2>
             </>
           ) : (
-            <h2 className="text-sm font-semibold truncate" title={sidebarTitle}>
-              {sidebarTitle}
+            <h2 className="text-sm font-semibold truncate" title={displayTitle}>
+              {displayTitle}
             </h2>
           )}
         </div>

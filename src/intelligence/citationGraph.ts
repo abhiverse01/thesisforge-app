@@ -238,9 +238,11 @@ export function deduplicateCiteKeys(
  */
 function generateCiteKeyFromRef(ref: ThesisReference): string {
   // Use the existing generateCiteKey from bib.ts by converting to its expected format
+  // Pass type so that title-less refs get a meaningful fallback key
   return generateCiteKey({
     authors: ref.authors || '',
     title: ref.title || '',
     year: ref.year || '',
+    type: ref.type || '',
   });
 }

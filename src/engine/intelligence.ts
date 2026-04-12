@@ -28,7 +28,7 @@ export function validateCrossReferences(tex: string): CrossRefResult {
   );
 
   const usedRefs = [
-    ...tex.matchAll(/\\(?:cref|ref|pageref|vref|eqref|Cref|Cref|autoref)\{([^}]+)\}/g)
+    ...tex.matchAll(/\\(?:cref|Cref|ref|pageref|vref|eqref|autoref)\{([^}]+)\}/g)
   ].map(m => ({ ref: m[1], full: m[0] }));
 
   const undefinedRefs = usedRefs.filter(r => !definedLabels.has(r.ref));

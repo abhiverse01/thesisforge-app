@@ -120,12 +120,21 @@ export class IntelligenceScheduler {
   private callback: ResultCallback | null = null;
   private debouncers: Map<AlgorithmId, () => void> = new Map();
   private circuitBreaker: Map<AlgorithmId, CircuitBreakerState> = new Map();
+  private pendingTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private disposed = false;
 
   /**
    * Initialize the scheduler with a callback for results.
    */
   init(callback: ResultCallback): void {
     this.callback = callback;
+    this.disposed = false;
+    // Reset results on re-init to avoid stale state
+    this.results = {
+      ...DEFAULT_RESULTS,
+      heuristics: new Map(),
+      circuitBreaker: new Map(),
+    };
     // Initialize circuit breaker state for each algorithm
     for (const id of Object.keys(ALGORITHM_SCHEDULE) as AlgorithmId[]) {
       this.circuitBreaker.set(id, { failures: 0, disabled: false });
@@ -172,9 +181,11 @@ export class IntelligenceScheduler {
         // Add a micro-delay based on priority so higher priority algorithms start first
         const priority = ALGORITHM_SCHEDULE[id].priority;
         const tierDelay = (priority - 1) * 50; // 0ms, 50ms, 100ms, 150ms
-        setTimeout(() => {
-          debounced();
+        const timerId = setTimeout(() => {
+          if (!this.disposed) debounced();
+          this.pendingTimeouts.delete(`schedule_${id}`);
         }, tierDelay);
+        this.pendingTimeouts.set(`schedule_${id}`, timerId);
       }
     }
   }
@@ -258,6 +269,8 @@ export class IntelligenceScheduler {
             : undefined,
         });
       }
+      // FIX: Notify callback on failure so UI can show degraded state
+      this.notifyCallback();
     }
   }
 
@@ -408,6 +421,12 @@ export class IntelligenceScheduler {
    * Dispose of all debouncers.
    */
   dispose(): void {
+    this.disposed = true;
+    // Clear all pending timeouts to prevent post-dispose execution
+    for (const [key, timerId] of this.pendingTimeouts) {
+      clearTimeout(timerId);
+    }
+    this.pendingTimeouts.clear();
     this.debouncers.clear();
     this.callback = null;
   }

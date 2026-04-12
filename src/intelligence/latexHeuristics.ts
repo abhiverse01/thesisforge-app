@@ -14,7 +14,7 @@ interface HeuristicRule {
   pattern: RegExp;
   severity: HeuristicSeverity;
   message: (match: RegExpExecArray) => string;
-  autofix: (match: RegExpExecArray) => string;
+  autofix: ((match: RegExpExecArray) => string) | null;
 }
 
 /**
@@ -96,7 +96,7 @@ const HEURISTIC_RULES: HeuristicRule[] = [
   },
   {
     id: 'hash-symbol',
-    pattern: /(?<!\\)#(?!)/g,
+    pattern: /(?<!\\)#(?!\{)/g,
     severity: 'warning',
     message: () =>
       'Unescaped # detected. In LaTeX, use \\# for a literal hash symbol.',
@@ -176,7 +176,7 @@ const HEURISTIC_RULES: HeuristicRule[] = [
       }
       return `Paragraph before a break may create a widow/orphan. Consider adding content or adjusting.`;
     },
-    autofix: null as unknown as (match: RegExpExecArray) => string,
+    autofix: null,
   },
 
   // 7. \textbf overuse (> 5 per paragraph)
@@ -187,7 +187,7 @@ const HEURISTIC_RULES: HeuristicRule[] = [
     severity: 'info',
     message: (match) =>
       `Multiple \\textbf uses detected. Overusing bold reduces its impact. Consider using \\emph{} for lighter emphasis.`,
-    autofix: null as unknown as (match: RegExpExecArray) => string,
+    autofix: null,
   },
 
   // 8. Unclosed \begin{ without matching \end{}
@@ -198,7 +198,7 @@ const HEURISTIC_RULES: HeuristicRule[] = [
     severity: 'error',
     message: (match) =>
       `Possible unclosed environment: \\begin{${match[1]}} without matching \\end{${match[1]}}. Check for missing closing tag.`,
-    autofix: null as unknown as (match: RegExpExecArray) => string,
+    autofix: null,
   },
 
   // 9. Manual spacing overuse (\ and ~)
@@ -208,7 +208,7 @@ const HEURISTIC_RULES: HeuristicRule[] = [
     severity: 'info',
     message: () =>
       'Multiple consecutive spacing commands detected. Excessive manual spacing is usually unnecessary in LaTeX.',
-    autofix: null as unknown as (match: RegExpExecArray) => string,
+    autofix: null,
   },
 
   // 10. Footnotes inside captions
@@ -218,7 +218,7 @@ const HEURISTIC_RULES: HeuristicRule[] = [
     severity: 'warning',
     message: () =>
       'Footnote inside \\caption detected. Footnotes in captions can cause compilation issues. Use \\footnotemark in the caption and \\footnotetext outside.',
-    autofix: null as unknown as (match: RegExpExecArray) => string,
+    autofix: null,
   },
 
   // 11. $$...$$ display math (should use \[...\])
@@ -270,7 +270,7 @@ const HEURISTIC_RULES: HeuristicRule[] = [
     severity: 'info',
     message: (match) =>
       `Line with ${match[0].length} characters detected. Consider breaking lines at ≤ 120 characters for better readability and diff tracking.`,
-    autofix: null as unknown as (match: RegExpExecArray) => string,
+    autofix: null,
   },
 
   // 15. \newpage inside chapters (anti-pattern)

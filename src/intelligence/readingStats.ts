@@ -117,7 +117,7 @@ function countSyllables(word: string): number {
  * Check if a character is a vowel.
  */
 function isVowelChar(ch: string): boolean {
-  return ch === 'a' || ch === 'e' || ch === 'i' || ch === 'o' || ch === 'u';
+  return ch === 'a' || ch === 'e' || ch === 'i' || ch === 'o' || ch === 'u' || ch === 'y';
 }
 
 /**
@@ -221,7 +221,7 @@ function computePassiveVoice(sentences: string[]): number {
 
   // Pattern: (was|were|been) followed by a past participle
   // Past participles commonly end in -ed, -en, -t, -wn, -ught, -one
-  const passivePattern = /\b(was|were|been)\s+([a-zA-Z]+(?:ed|en|t|wn|ught|one|ted|ted|sed|red|ped|ced|ved|med|ned))\b/i;
+  const passivePattern = /\b(was|were|been)\s+([a-zA-Z]+(?:ed|en|t|wn|ught|one|ted|sed|red|ped|ced|ved|med|ned))\b/i;
   // Also handle: was/were being + past participle
   const passiveBeingPattern = /\b(was|were)\s+being\s+([a-zA-Z]+(?:ed|en|t|wn|ught|one))\b/i;
 

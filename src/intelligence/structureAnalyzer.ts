@@ -69,11 +69,19 @@ const ACADEMIC_NORMS: Record<string, Record<string, { min: number; max: number; 
 
 /**
  * Count words in a text string.
+ * Strips LaTeX commands and special characters for accurate counts.
  * Handles empty/null gracefully.
  */
 export function countWords(text: string | undefined | null): number {
   if (!text) return 0;
-  return text.trim().split(/\s+/).filter(Boolean).length;
+  // Remove LaTeX commands and special characters for accurate word count
+  const stripped = text
+    .replace(/\\[a-zA-Z]+\{[^}]*\}/g, '')  // Remove \command{arg}
+    .replace(/\\[a-zA-Z]+/g, '')             // Remove \command
+    .replace(/[{}\\$#_^~&%]/g, '')           // Remove LaTeX special chars
+    .replace(/\[[^\]]*\]/g, '')              // Remove [options]
+    .trim();
+  return stripped.split(/\s+/).filter(Boolean).length;
 }
 
 /**
