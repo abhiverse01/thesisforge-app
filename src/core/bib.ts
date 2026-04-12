@@ -1,9 +1,14 @@
 // ============================================================
-// ThesisForge Core — BibTeX Generator
-// Generates .bib entries with field-level validation.
+// ThesisForge Core — BibTeX Generator (Engine v3)
+// Generates .bib entries with field-level validation and
+// field-specific sanitization.
+//
+// BIBLIOGRAPHY ENGINE SUPERPOWER
+// The bibliography is where most student LaTeX breaks.
+// Make it unbreakable.
 // ============================================================
 
-import { sanitizeBibField } from '@/utils/latex-escape';
+import type { ThesisReference, ReferenceType } from '@/lib/thesis-types';
 
 export type BibEntryType = 'article' | 'book' | 'inproceedings' | 'techreport' | 'phdthesis' | 'mastersthesis' | 'online' | 'misc';
 
@@ -15,7 +20,7 @@ export interface BibEntrySchema {
 export interface BibFieldDef {
   name: string;
   label: string;
-  bibField: string;   // Actual BibTeX field name
+  bibField: string;
   placeholder: string;
   required: boolean;
 }
@@ -143,7 +148,7 @@ export const TYPE_SPECIFIC_FIELDS: Record<BibEntryType, BibFieldDef[]> = {
 };
 
 // ============================================================
-// Field Mapping — Maps our UI field names to BibTeX field names
+// Field Mapping
 // ============================================================
 
 export const FIELD_NAME_MAP: Record<string, string> = {
@@ -172,6 +177,22 @@ export const FIELD_NAME_MAP: Record<string, string> = {
 };
 
 // ============================================================
+// Citation Style Configuration
+// ============================================================
+
+export const CITATION_STYLE_CONFIG: Record<string, { label: string; file: string }> = {
+  plainnat:  { label: 'Author-Year (Plain)',      file: 'plainnat' },
+  apalike:   { label: 'APA Style',                file: 'apalike' },
+  ieeetr:    { label: 'IEEE (Numbered)',           file: 'ieeetr' },
+  alpha:     { label: 'Alphabetic Labels',         file: 'alpha' },
+  abbrv:     { label: 'Abbreviated Author-Year',  file: 'abbrv' },
+  acm:       { label: 'ACM Style',                file: 'acm' },
+  chicago:   { label: 'Chicago Style',            file: 'chicago' },
+  apa:       { label: 'APA 7th Edition',          file: 'apa' },
+  vancouver: { label: 'Vancouver (Medical)',      file: 'vancouver' },
+};
+
+// ============================================================
 // Validation
 // ============================================================
 
@@ -181,9 +202,6 @@ export interface ValidationError {
   severity: 'error' | 'warning';
 }
 
-/**
- * Validate a reference entry against its schema.
- */
 export function validateReference(
   ref: Record<string, string>,
   type: BibEntryType
@@ -207,31 +225,16 @@ export function validateReference(
     }
   }
 
-  // Year validation
   if (ref.year && !/^\d{4}$/.test(ref.year.trim())) {
-    errors.push({
-      field: 'year',
-      message: 'Year must be a 4-digit number.',
-      severity: 'error',
-    });
+    errors.push({ field: 'year', message: 'Year must be a 4-digit number.', severity: 'error' });
   }
 
-  // URL validation
   if (ref.url && !/^https?:\/\/.+/i.test(ref.url.trim())) {
-    errors.push({
-      field: 'url',
-      message: 'URL must start with http:// or https://.',
-      severity: 'warning',
-    });
+    errors.push({ field: 'url', message: 'URL must start with http:// or https://.', severity: 'warning' });
   }
 
-  // Email-like author check (common mistake)
   if (ref.authors && /@.*\./.test(ref.authors.trim()) && !ref.authors.includes(',')) {
-    errors.push({
-      field: 'authors',
-      message: 'Author field looks like an email. Use "Last, First" format.',
-      severity: 'warning',
-    });
+    errors.push({ field: 'authors', message: 'Author field looks like an email. Use "Last, First" format.', severity: 'warning' });
   }
 
   return errors;
@@ -241,14 +244,12 @@ export function validateReference(
 // Cite Key Generation
 // ============================================================
 
-// FIX(ZONE-3B): Strip everything except a-z and 0-9 from cite keys.
-// Apostrophes, accents, and Unicode chars in author names caused BibTeX crashes.
 export function generateCiteKey(ref: Record<string, string>): string {
   const sanitize = (s: string): string => s
     .toLowerCase()
-    .normalize('NFD')                      // decompose accents: é → e + ´
-    .replace(/[\u0300-\u036f]/g, '')       // strip accent marks
-    .replace(/[^a-z0-9]/g, '');           // strip everything else
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
 
   let authorPart = 'unknown';
   if (ref.authors) {
@@ -270,7 +271,69 @@ export function generateCiteKey(ref: Record<string, string>): string {
 }
 
 // ============================================================
+// BibTeX Field Sanitization — Field-Specific Rules
+// Each field has unique requirements for proper BibTeX output.
+// ============================================================
+
+export function sanitizeBibField(value: string, fieldName: string): string {
+  let v = value.trim();
+  if (!v) return '';
+
+  // Author/editor: ensure "and" separator, not "&" or ","
+  if (fieldName === 'author' || fieldName === 'editor') {
+    v = v
+      .replace(/\s*&\s*/g, ' and ')
+      .replace(/;\s*/g, ' and ');
+    // Single entity — protect from BibTeX name parsing
+    if (!v.includes(' and ') && !v.includes(',')) {
+      v = `{${v}}`;
+    }
+    return v;
+  }
+
+  // Title/booktitle: preserve as-is (BibTeX handles case within {})
+  // But protect & and % which are always dangerous
+  if (fieldName === 'title' || fieldName === 'booktitle') {
+    return v
+      .replace(/(?<!\\)&/g, '\\&')
+      .replace(/(?<!\\)%(?!\d)/g, '\\%');
+  }
+
+  // Pages: normalize dash to en-dash for LaTeX
+  if (fieldName === 'pages') {
+    return v.replace(/\s*[-\u2013\u2014]+\s*/g, '--');
+  }
+
+  // URL/DOI: percent-encode spaces, escape underscores in DOI
+  if (fieldName === 'url' || fieldName === 'doi') {
+    return v
+      .replace(/ /g, '%20');
+  }
+
+  // Year: numbers only
+  if (fieldName === 'year') {
+    return v.replace(/\D/g, '').slice(0, 4);
+  }
+
+  // Month: capitalize
+  if (fieldName === 'month') {
+    const months = ['january', 'february', 'march', 'april', 'may', 'june',
+                    'july', 'august', 'september', 'october', 'november', 'december'];
+    const lower = v.toLowerCase().trim();
+    const idx = months.findIndex(m => lower.startsWith(m.slice(0, 3)));
+    return idx >= 0 ? months[idx] : v;
+  }
+
+  // General: escape the most dangerous characters
+  return v
+    .replace(/(?<!\\)&/g, '\\&')
+    .replace(/(?<!\\)%(?!\d)/g, '\\%');
+}
+
+// ============================================================
 // BibTeX Entry Generation
+// Generates compilable .bib with TODO placeholders for missing fields.
+// Better to compile with a placeholder than to fail entirely.
 // ============================================================
 
 export function generateBibEntry(
@@ -281,23 +344,25 @@ export function generateBibEntry(
   const schema = ENTRY_SCHEMAS[type];
   if (!schema) return '';
 
-  // Get deduplicated field list preserving order
   const allFields = [...new Set([...schema.required, ...schema.optional])];
 
   const fields: string[] = [];
 
   for (const bibField of allFields) {
-    // Find the UI field name for this BibTeX field
     const uiField = Object.entries(FIELD_NAME_MAP).find(([, bib]) => bib === bibField)?.[0];
     const value = uiField ? ref[uiField] : ref[bibField];
 
     if (value && value.trim()) {
-      const sanitized = sanitizeBibField(value.trim());
-      fields.push(`  ${bibField.padEnd(14)} = {${sanitized}}`);
+      const sanitized = sanitizeBibField(value.trim(), bibField);
+      const pad = ' '.repeat(Math.max(0, 14 - bibField.length));
+      fields.push(`  ${bibField}${pad} = {${sanitized}}`);
+    } else if (schema.required.includes(bibField)) {
+      // Required field missing — add TODO placeholder
+      const pad = ' '.repeat(Math.max(0, 14 - bibField.length));
+      fields.push(`  ${bibField}${pad} = {TODO: Add ${bibField}}`);
     }
   }
 
-  // Map our type to BibTeX entry type
   const bibType = type === 'phdthesis' ? 'phdthesis' :
                   type === 'mastersthesis' ? 'mastersthesis' : type;
 
@@ -310,6 +375,43 @@ export function generateBibEntry(
 export function generateBibFile(
   references: Array<{ type: BibEntryType; fields: Record<string, string> }>
 ): string {
+  // Header comment
   const entries = references.map(ref => generateBibEntry(ref.fields, ref.type));
   return entries.join('\n\n') + '\n';
+}
+
+// ============================================================
+// Convenience: Generate .bib from ThesisReference[]
+// ============================================================
+
+export function generateBibFromThesisReferences(references: ThesisReference[]): string {
+  return generateBibFile(
+    references.map(ref => ({
+      type: (ref.type === 'thesis' ? 'phdthesis' : ref.type === 'techreport' ? 'techreport' : ref.type) as BibEntryType,
+      fields: {
+        authors: ref.authors || '',
+        title: ref.title || '',
+        journal: ref.journal || '',
+        bookTitle: ref.bookTitle || '',
+        publisher: ref.publisher || '',
+        year: ref.year || '',
+        volume: ref.volume || '',
+        number: ref.number || '',
+        pages: ref.pages || '',
+        doi: ref.doi || '',
+        url: ref.url || '',
+        note: ref.note || '',
+        edition: ref.edition || '',
+        address: ref.address || '',
+        school: ref.school || '',
+        institution: ref.publisher || '',
+        howPublished: ref.howPublished || '',
+        accessed: ref.accessed || '',
+        month: '',
+        isbn: '',
+        organization: '',
+        type: ref.type === 'thesis' ? 'phdthesis' : ref.type,
+      },
+    }))
+  );
 }

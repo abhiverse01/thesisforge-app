@@ -181,23 +181,31 @@ export function resolvePackages(data: ThesisData): ResolvedPackage[] {
     extraPackages.push({ name: 'chngcntr', options: [], purpose: 'Counter management for per-chapter numbering' });
   }
 
-  return PACKAGE_MANIFEST
+  const filtered = PACKAGE_MANIFEST
     .filter(entry => {
       if (entry.conditional === 'hasCode' && !hasCode) return false;
       if (entry.conditional === 'hasMath' && !hasMath) return false;
       if (entry.conditional === 'isReport' && !isReport) return false;
       return true;
-    })
-    .concat(extraPackages)
-    .filter((pkg, idx, arr) => {
-      // Deduplicate — keep first occurrence
-      return arr.findIndex(p => p.name === pkg.name) === idx;
-    })
-    .map(entry => ({
-      name: entry.pkg,
-      options: [...entry.opts],
-      purpose: entry.purpose,
-    }));
+    });
+
+  // Convert manifest entries to resolved packages
+  const manifestPackages: ResolvedPackage[] = filtered.map(entry => ({
+    name: entry.pkg,
+    options: [...entry.opts],
+    purpose: entry.purpose,
+  }));
+
+  // Combine with extra packages
+  const allPackages = [...manifestPackages, ...extraPackages];
+
+  // Deduplicate by name
+  const seen = new Set<string>();
+  return allPackages.filter(pkg => {
+    if (seen.has(pkg.name)) return false;
+    seen.add(pkg.name);
+    return true;
+  });
 }
 
 // ============================================================

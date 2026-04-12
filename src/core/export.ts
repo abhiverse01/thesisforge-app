@@ -1,14 +1,17 @@
 // ============================================================
-// ThesisForge Core — Export Pipeline
+// ThesisForge Core — Export Pipeline (Engine v3)
 // Client-side ZIP generation. Zero server dependency.
+// Now uses the expanded contract system with 30 checks
+// and the enhanced bibliography engine.
 // ============================================================
 
 import JSZip from 'jszip';
 import { sanitizeFilename } from '@/utils/latex-escape';
 import type { ThesisData, ThesisType } from '@/lib/thesis-types';
 import { generateLatex } from '@/lib/latex-generator';
-import { generateBibFile } from '@/core/bib';
-import { assertLatexContract, type LatexContractError } from '@/core/latexAssertions';
+import { generateBibFromThesisReferences } from '@/core/bib';
+import { assertLatexContract, contractSummary, type LatexContractError } from '@/core/latexAssertions';
+import { runIntelligence, type IntelligenceReport } from '@/engine/intelligence';
 
 // ============================================================
 // README Generator
@@ -111,25 +114,33 @@ function getRequiredPackagesList(templateId: ThesisType, options: ThesisData['op
     'graphicx',
     'amsmath',
     'amssymb',
-    'amsthm',
     'booktabs',
     'array',
     'multirow',
     'longtable',
+    'tabularx',
     'setspace',
     'microtype',
-    'hyperref',
+    'caption',
+    'enumitem',
+    'fancyhdr',
+    'xspace',
     'natbib',
+    'hyperref',
+    'cleveref',
   ];
 
   if (templateId === 'phd') {
-    common.push('nomencl', 'glossaries', 'chngcntr');
+    common.push('nomencl', 'glossaries', 'chngcntr', 'amsthm', 'mathtools');
   }
   if (templateId === 'master') {
-    common.push('chngcntr');
+    common.push('chngcntr', 'amsthm');
+  }
+  if (templateId === 'bachelor') {
+    common.push('amsthm');
   }
   if (options.includeListings) {
-    common.push('listings');
+    common.push('listings', 'xcolor');
   }
 
   return common.map(p => `- \`${p}\``).join('\n');
@@ -139,52 +150,47 @@ function getRequiredPackagesList(templateId: ThesisType, options: ThesisData['op
 // Export Pipeline
 // ============================================================
 
+export interface ExportResult {
+  errors?: LatexContractError[];
+  contractSummary?: ReturnType<typeof contractSummary>;
+  intelligence?: IntelligenceReport;
+}
+
 /**
  * Export thesis as a ZIP file.
  * Runs entirely client-side. No server required.
  *
- * FIX(ZONE-3A): Runs assertLatexContract() before ZIP generation.
- * FIX(ZONE-4B): Uses try/catch/finally to ensure spinner always resets.
+ * v3: Runs expanded 30-check contract + intelligence analysis.
+ * Returns results for UI display.
  */
 export async function exportThesis(
   data: ThesisData,
   templateId: ThesisType
-): Promise<{ errors?: LatexContractError[] }> {
+): Promise<ExportResult> {
   try {
     const tex = generateLatex(data);
-    const bib = generateBibFile(
-    data.references.map(ref => ({
-      type: (ref.type === 'thesis' ? 'phdthesis' : ref.type === 'techreport' ? 'techreport' : ref.type) as 'article' | 'book' | 'inproceedings' | 'techreport' | 'phdthesis' | 'online' | 'misc',
-      fields: {
-        authors: ref.authors || '',
-        title: ref.title || '',
-        journal: ref.journal || '',
-        bookTitle: ref.bookTitle || '',
-        publisher: ref.publisher || '',
-        year: ref.year || '',
-        volume: ref.volume || '',
-        number: ref.number || '',
-        pages: ref.pages || '',
-        doi: ref.doi || '',
-        url: ref.url || '',
-        note: ref.note || '',
-        edition: ref.edition || '',
-        address: ref.address || '',
-        school: ref.school || '',
-        institution: ref.publisher || '',
-        howPublished: ref.howPublished || '',
-        accessed: ref.accessed || '',
-        month: '',
-        isbn: '',
-        organization: '',
-        type: ref.type === 'thesis' ? 'phdthesis' : ref.type,
-      },
-    }))
-  );
+
+    // Use enhanced BibTeX generation from bib.ts
+    const bib = generateBibFromThesisReferences(data.references);
+
     const readme = generateReadme(data, templateId);
 
-    // Check LaTeX contract — warn but don't block download
-    const contractErrors = assertLatexContract(tex, bib);
+    // Run expanded 30-check contract
+    const contractErrors = assertLatexContract(tex, bib, data, 'warning');
+    const summary = contractSummary(tex, bib, data);
+
+    // Run intelligence analysis
+    const intelligence = await runIntelligence(data);
+
+    // Block export on errors only (warnings and info don't block)
+    const hasErrors = contractErrors.some(e => {
+      // C01-C07 are errors, everything else is warning/info
+      return e.code.startsWith('C');
+    });
+
+    if (hasErrors) {
+      return { errors: contractErrors, contractSummary: summary, intelligence };
+    }
 
     const zip = new JSZip();
     const folderName = sanitizeFilename(data.metadata.title) || 'thesis';
@@ -196,12 +202,10 @@ export async function exportThesis(
     folder.file('references.bib', bib);
     folder.file('README.md', readme);
 
-    // Add figures folder placeholder if listings are enabled
-    if (data.options.includeListings) {
-      const figuresFolder = folder.folder('figures');
-      if (figuresFolder) {
-        figuresFolder.file('.gitkeep', '');
-      }
+    // Add figures folder placeholder
+    const figuresFolder = folder.folder('figures');
+    if (figuresFolder) {
+      figuresFolder.file('.gitkeep', '');
     }
 
     const blob = await zip.generateAsync({
@@ -212,8 +216,11 @@ export async function exportThesis(
 
     triggerDownload(blob, `${folderName}.zip`);
 
-    // Return warnings (not blocking) so UI can show them
-    return { errors: contractErrors.length > 0 ? contractErrors : undefined };
+    return {
+      errors: contractErrors.length > 0 ? contractErrors : undefined,
+      contractSummary: summary,
+      intelligence,
+    };
   } catch (err) {
     throw err;
   }
@@ -233,19 +240,28 @@ export async function exportTexOnly(data: ThesisData): Promise<void> {
  * Export just the .bib file.
  */
 export async function exportBibOnly(data: ThesisData): Promise<void> {
-  const bib = generateBibFile(
-    data.references.map(ref => ({
-      type: 'article' as const,
-      fields: {
-        authors: ref.authors || '',
-        title: ref.title || '',
-        year: ref.year || '',
-      },
-    }))
-  );
+  const bib = generateBibFromThesisReferences(data.references);
   const filename = sanitizeFilename(data.metadata.title) || 'thesis';
   const blob = new Blob([bib], { type: 'text/plain' });
   triggerDownload(blob, `${filename}_references.bib`);
+}
+
+/**
+ * Run contract checks without exporting.
+ * Used by the UI to show lint results.
+ */
+export async function runContractChecks(data: ThesisData): Promise<ExportResult> {
+  const tex = generateLatex(data);
+  const bib = generateBibFromThesisReferences(data.references);
+  const contractErrors = assertLatexContract(tex, bib, data, 'info');
+  const summary = contractSummary(tex, bib, data);
+  const intelligence = await runIntelligence(data);
+
+  return {
+    errors: contractErrors.length > 0 ? contractErrors : undefined,
+    contractSummary: summary,
+    intelligence,
+  };
 }
 
 /**

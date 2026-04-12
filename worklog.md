@@ -1,63 +1,125 @@
 ---
 Task ID: 1
-Agent: Main Agent
-Task: Fix runtime error "setGenerating is not defined" and LaTeX generation pipeline bugs
+Agent: main
+Task: THESIS ENGINE CORE SUPERPOWER — Complete 5-layer engine overhaul
 
 Work Log:
-- Read page.tsx and identified setGenerating was used at lines 522/542 but not destructured from useThesisStore at line 158
-- Added setGenerating to the destructuring: `isGenerating, setGenerating, setSaveStatus`
-- Ran lint — passed clean
-- Used Explore subagent to verify entire LaTeX generation pipeline (6 files, all exports, all transitive imports)
-- Found 3 critical bugs in ast-builder.ts:
-  - Bug A: text() calls for table placeholders missing escaped=true, causing escapeLatex() to mangle LaTeX commands
-  - Bug B: includegraphics args/options swapped (already fixed in previous session)
-  - Bug E: E007 assertion false-positive (NOT a real issue — AST uses \bibitem, not \cite)
-- Fixed Bug A: Added `, true` to all 8 text() calls in buildTablePlaceholder (lines 780-787)
-- Found and fixed TS error in chapter-editor.tsx: SubSectionCard received unexpected chapterId prop
-- Ran tsc --noEmit — zero errors in src/
-- Ran bun run lint — passed clean
+- Explored entire existing engine architecture: ast.ts, serializer.ts, ast-builder.ts, escape.ts, packages.ts, bib.ts, export.ts, latexAssertions.ts, linter.ts, templates.ts, thesis-types.ts
+- Identified critical disconnect: packages.ts (comprehensive) was NOT wired into ast-builder.ts (which had its own simpler package list)
+- Identified escaper mismatch: ast-builder.ts used simple escaper from utils/latex-escape.ts instead of smart escaper from engine/escape.ts
 
 Stage Summary:
-- FIXED: Runtime ReferenceError "setGenerating is not defined" (page.tsx line 544)
-- FIXED: Mangled LaTeX table placeholders (ast-builder.ts lines 780-787)
-- FIXED: TypeScript error in chapter-editor.tsx (chapterId prop)
-- VERIFIED: All 6 LaTeX pipeline files exist with correct exports
-- VERIFIED: ThesisData interface consistent across pipeline
-- VERIFIED: Lint passes clean
-- VERIFIED: TypeScript compilation clean (no src/ errors)
+- Full architecture understanding documented for implementation
 
 ---
 Task ID: 2
-Agent: Main Agent + full-stack-developer subagent
-Task: CLIENT REVIEW — Fix 4 client complaints about the thesis generator
+Agent: main
+Task: Rewrite ast-builder.ts — Wire packages.ts, smart escaper, template-specific title pages, content pipeline
 
 Work Log:
-- Fixed export.ts: Changed assertLatexContract from blocking to warning (BUG 1 root cause)
-  - Download ALWAYS proceeds now; assertion errors returned as non-blocking warnings
-- Fixed page.tsx handleExportZip: Changed "Export blocked" error toast to "Exported with warnings" warning toast
-- Fixed page.tsx footer export button: Added disabled={isGenerating} to prevent double-clicks
-- Fixed generate-preview.tsx handleExportZip: Same warning-instead-of-blocking behavior
-- Complete rewrite of generate-preview.tsx (663 lines):
-  - NEW: "Thesis Preview" tab (default) — structured readable document view
-  - Title page: institution, title, template type, author, supervisor, date
-  - Abstract section with word count
-  - Table of Contents with clickable entries and word counts
-  - Chapters with content, subsections, empty state placeholders
-  - References: numbered human-readable formatted list
-  - Appendices section
-  - NEW: Left sidebar navigation (desktop) with IntersectionObserver for active section
-  - NEW: Progress bar with labeled stages (replaces spinner)
-  - NEW: Stats bar (template · chapters · words · references)
-  - NEW: Lint banner with fixed 48px slot (no layout shift)
-  - NEW: Copy button shows "Copied!" feedback
-  - NEW: Empty chapters show dashed border placeholder
-  - Reordered tabs: Preview → LaTeX Source → References → Lint
-  - Responsive: sidebar hidden on mobile, independent scroll
+- Rewrote ast-builder.ts (900+ lines) as "Engine v3"
+- Wired resolvePackages() from engine/packages.ts — replaces inline buildPackageList()
+- Wired buildPackageConfiguration() — replaces manual geometry/hypersetup/fancyhdr/microtype commands
+- Switched all escaping to escapeLatexBody() (smart, preserves LaTeX) and escapeLatexMeta() (for metadata)
+- Built 4 distinct template-specific title pages: bachelor (clean centered), master (rules + tabular), phd (dramatic with declaration), report (minimal)
+- Added Declaration page for bachelor/master/phd
+- Added chapter label injection via generateLabel() for cross-references
+- Added processChapterBody() pipeline: normalize → paragraph split → placeholder handling → ## heading → smart escape
+- Added cleardoublepage between front matter sections
+- Conditional list of figures/tables (only when figures/tables detected)
+- Bibliography uses addcontentsline for TOC entry
+- Deduplication of cite keys with a/b/c suffix
 
 Stage Summary:
-- BUG 1 (race condition): FIXED — export button disabled during generation, download always proceeds
-- BUG 2 (no preview): FIXED — full structured thesis preview is now the default tab
-- BUG 3 (generator enhancement): FIXED — async progress bar with labeled stages
-- BUG 4 (micro-detailing): FIXED — stats bar, lint banner, empty states, copy feedback, responsive nav
-- ESLint: clean
-- TypeScript: zero src/ errors
+- ast-builder.ts completely rewritten with 5-layer architecture
+- Packages.ts properly integrated
+- Smart escaping used everywhere
+
+---
+Task ID: 3
+Agent: main
+Task: Enhance bib.ts — Field-specific sanitization, TODO placeholders, citation styles
+
+Work Log:
+- Added sanitizeBibField() with field-specific rules (author/editor "and" separator, title protection, pages en-dash, URL encoding, year digit-only, month capitalization)
+- Added TODO placeholder pattern for missing required fields
+- Added CITATION_STYLE_CONFIG with 9 styles (plainnat, apalike, ieeetr, alpha, abbrv, acm, chicago, apa, vancouver)
+- Added generateBibFromThesisReferences() convenience function
+- Preserved all existing exports for backward compatibility
+
+Stage Summary:
+- bib.ts enhanced with bulletproof field sanitization
+
+---
+Task ID: 4
+Agent: main
+Task: Create src/engine/intelligence.ts — Document intelligence layer
+
+Work Log:
+- Created intelligence.ts with 7 rules:
+  1. Cross-reference validation (defined vs used labels)
+  2. Orphan sentence detection (< 3 sentences in a section)
+  3. Citation density check (per 100 words, with exempt status for intro/conclusion)
+  4. Abstract quality gate (5 required elements: context, gap, method, result, impact)
+  5. Conclusion completeness check (summary, contribution, limitations, future work, impact)
+  6. Chapter word count check against minimum standards per chapter type
+  7. Structure balance analysis (flag chapters > 40% or < 3% of total)
+- Added countWords() utility that strips LaTeX for accurate word counts
+- Added runIntelligence() async aggregator
+- Used dynamic import to avoid circular dependency with ast-builder
+
+Stage Summary:
+- New intelligence module provides 7 automatic quality checks
+
+---
+Task ID: 5
+Agent: main
+Task: Expand latexAssertions.ts from 9 to 30 checks
+
+Work Log:
+- Replaced simple assertion system with 30-check contract:
+  - C01-C07: Compilability (braces, environments, documentclass, begin/end document, trailing content, unescaped chars)
+  - P01-P05: Package integrity (inputenc, fontenc, hyperref, load order, duplicates)
+  - S01-S07: Structure (empty sections, TOC, bibliography, hypersetup, title/author presence)
+  - B01-B03: Bibliography (undefined keys, duplicate keys, alphanumeric keys)
+  - M01-M04: Metadata (pdftitle, pdfauthor, colorlinks, fancyhdr)
+  - Q01-Q05: Quality (smart quotes, double spaces, microtype, bibliographystyle, chapters exist)
+  - A01-A03: Advanced (labels exist, abstract content, line length)
+- Added severity levels: error/warning/info
+- Added getFullContractReport() and contractSummary() for UI display
+- assertLatexContract() supports severity filtering
+
+Stage Summary:
+- 30-check quality contract replaces original 9 assertions
+
+---
+Task ID: 6
+Agent: main
+Task: Update export.ts — Wire new engine capabilities
+
+Work Log:
+- Updated exportThesis() to use generateBibFromThesisReferences() from enhanced bib.ts
+- Wired assertLatexContract() with 'warning' severity and ThesisData state
+- Wired runIntelligence() for automatic quality analysis on export
+- Added ExportResult interface with errors, contractSummary, and intelligence
+- Added runContractChecks() for UI lint display (uses 'info' severity)
+- Updated README generator with expanded package list (added tabularx, setspace, caption, enumitem, fancyhdr, xspace, cleveref)
+- Block export only on compilability errors (C01-C07), warnings pass through
+
+Stage Summary:
+- Export pipeline fully wired to new engine capabilities
+
+---
+Task ID: 7
+Agent: main
+Task: Verify build — ESLint + TypeScript clean
+
+Work Log:
+- Fixed TS2339: removed non-existent metadata.degree and metadata.email references
+- Fixed ContractCheck interface to include 'info' severity
+- Fixed packages.ts resolvePackages() type mismatch (PackageEntry vs ResolvedPackage)
+- Fixed intelligence.ts to use async/await instead of require()
+- Final verification: 0 TypeScript errors in src/, 0 ESLint warnings
+
+Stage Summary:
+- Build fully clean, all changes verified
