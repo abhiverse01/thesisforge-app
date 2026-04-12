@@ -25,8 +25,6 @@ import {
   Sun,
   RotateCcw,
   Home as HomeIcon,
-  Mail,
-  ExternalLink,
   Keyboard,
   FileDown,
   Loader2,
@@ -207,7 +205,7 @@ export default function Home() {
           useThesisStore.setState({
             thesis: draft.thesis,
             selectedTemplate: draft.templateId,
-            currentStep: Math.min(draft.step, 7) as WizardStep,
+            currentStep: Math.min(draft.step, 6) as WizardStep,
             wizardStarted: true,
           });
           setTimeout(() => {
