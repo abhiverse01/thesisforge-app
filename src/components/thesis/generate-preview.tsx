@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { generateLatex, generateBibtexFile } from "@/lib/latex-generator";
+import { generateLatex } from "@/lib/latex-generator";
+import { generateBibFromThesisReferences } from "@/core/bib";
 import { lintLatex, lintSummary, type LintResult } from "@/core/linter";
 import { exportThesis, exportTexOnly, exportBibOnly } from "@/core/export";
 import { validateAll, type ValidationResult } from "@/core/validators";
@@ -137,7 +138,7 @@ export function GeneratePreview() {
         await new Promise((r) => setTimeout(r, 80));
       }
       const tex = generateLatex(thesis);
-      const bibContent = generateBibtexFile(thesis);
+      const bibContent = generateBibFromThesisReferences(thesis.references);
       const lint = lintLatex(tex);
       const validation = validateAll(thesis);
       setLatex(tex);

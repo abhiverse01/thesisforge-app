@@ -183,9 +183,10 @@ export async function exportThesis(
     const intelligence = await runIntelligence(data);
 
     // Block export on errors only (warnings and info don't block)
+    // Severity filtering: only C01-C06 are errors, C07+ are warnings
     const hasErrors = contractErrors.some(e => {
-      // C01-C07 are errors, everything else is warning/info
-      return e.code.startsWith('C');
+      return e.code === 'C01' || e.code === 'C02' || e.code === 'C03' ||
+             e.code === 'C04' || e.code === 'C05' || e.code === 'C06';
     });
 
     if (hasErrors) {

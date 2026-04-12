@@ -216,7 +216,6 @@ function buildBachelorTitlePage(data: ThesisData): ASTNode[] {
   }
 
   body.push(rawLaTeX('\\vspace{3cm}'));
-  blankLine();
 
   // Title
   body.push(rawLaTeX(`{\\Huge\\bfseries ${escMeta(m.title)}\\par}`));

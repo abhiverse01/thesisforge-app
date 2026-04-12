@@ -38,9 +38,10 @@ export const LATEX_ESCAPE_MAP: Array<[RegExp, string]> = [
   [/\u2018/g,            '`'],                    // 16. opening single quote (')
   [/\u2019/g,            "'"],                    // 17. closing single quote (')
 
-  // Straight quotes — convert to smart quotes
+  // Straight quotes — convert to smart quotes via two-pass approach
+  // First pass: every " becomes `` 
   [/"/g,                 '``'],                   // 18. straight double quote → opening
-  // Closing " is handled contextually after first pass
+  // Second pass (handled after reduce below): convert every other `` to ''
 
   // Dashes
   [/\u2014/g,            '---'],                  // 19. em dash (—)
@@ -167,10 +168,14 @@ export function escapeLatexBody(text: string): string {
   return segments.map(seg => {
     if (seg.type === 'latex') return seg.content;
     // Apply all escape rules to plain-text segments
-    return LATEX_ESCAPE_MAP.reduce(
+    let escaped = LATEX_ESCAPE_MAP.reduce(
       (acc, [pattern, replacement]) => acc.replace(pattern, replacement),
       seg.content
     );
+    // Second pass: convert every other `` back to '' for proper smart quotes
+    // Pattern: every `` that is followed by another `` (or end of string) is closing
+    escaped = escaped.replace(/``(?!``)/g, "''");
+    return escaped;
   }).join('');
 }
 
