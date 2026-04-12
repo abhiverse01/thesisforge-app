@@ -34,12 +34,25 @@ interface SnapshotRecord {
   draftId: string;
   createdAt: number;
   label: string;
+  tag?: string;
   data: ThesisData;
 }
 
 interface SettingRecord {
   key: string;
   value: unknown;
+}
+
+// ============================================================
+// Snapshot Summary (enhanced list return type)
+// ============================================================
+
+export interface SnapshotSummary {
+  id: string;
+  label: string;
+  createdAt: number;
+  tag?: string;
+  diffSummary?: string;
 }
 
 // ============================================================
@@ -119,6 +132,8 @@ export function isUsingMemoryFallback(): boolean {
 // Defensive Draft Loader (Zone 5A)
 // ============================================================
 
+const VALID_THESIS_TYPES: string[] = ['bachelor', 'master', 'phd', 'report', 'conference'];
+
 /**
  * Sanitize a draft record loaded from IndexedDB.
  * Never trust what comes out of storage — always sanitize.
@@ -133,7 +148,7 @@ export function sanitizeDraft(raw: unknown): DraftRecord | null {
 
   return {
     id: typeof r.id === 'string' ? r.id : '__current__',
-    templateId: ['bachelor', 'master', 'phd', 'report'].includes(r.templateId as string)
+    templateId: VALID_THESIS_TYPES.includes(r.templateId as string)
       ? (r.templateId as ThesisType) : 'bachelor',
     createdAt: typeof r.createdAt === 'number' ? r.createdAt : Date.now(),
     updatedAt: typeof r.updatedAt === 'number' ? r.updatedAt : Date.now(),
@@ -152,7 +167,7 @@ function sanitizeThesisData(raw: unknown): ThesisData {
   const r = raw as Record<string, unknown>;
 
   return {
-    type: ['bachelor', 'master', 'phd', 'report'].includes(r.type as string)
+    type: VALID_THESIS_TYPES.includes(r.type as string)
       ? (r.type as ThesisType) : 'bachelor',
     metadata: sanitizeMetadata(r.metadata),
     abstract: typeof (r.abstract as string) === 'string' ? (r.abstract as string) : '',
@@ -229,7 +244,7 @@ function sanitizeReference(ref: unknown, index = 0): ThesisReference {
   const r = ref as Record<string, unknown>;
   return {
     id: typeof r.id === 'string' ? r.id : `ref-${index}`,
-    type: ['article', 'book', 'inproceedings', 'techreport', 'thesis', 'online', 'misc'].includes(r.type as string)
+    type: ['article', 'book', 'inproceedings', 'techreport', 'thesis', 'online', 'dataset', 'software', 'misc'].includes(r.type as string)
       ? (r.type as ThesisReference['type']) : 'article',
     authors: typeof r.authors === 'string' ? r.authors : '',
     title: typeof r.title === 'string' ? r.title : '',
@@ -242,6 +257,9 @@ function sanitizeReference(ref: unknown, index = 0): ThesisReference {
     pages: typeof r.pages === 'string' ? r.pages : undefined,
     doi: typeof r.doi === 'string' ? r.doi : undefined,
     url: typeof r.url === 'string' ? r.url : undefined,
+    eprint: typeof r.eprint === 'string' ? r.eprint : undefined,
+    eprintType: typeof r.eprintType === 'string' ? r.eprintType : undefined,
+    crossRef: typeof r.crossRef === 'string' ? r.crossRef : undefined,
     note: typeof r.note === 'string' ? r.note : undefined,
     edition: typeof r.edition === 'string' ? r.edition : undefined,
     address: typeof r.address === 'string' ? r.address : undefined,
@@ -589,7 +607,8 @@ export async function clearDraft(): Promise<void> {
  */
 export async function createSnapshot(
   thesisData: ThesisData,
-  label: string = 'Manual save'
+  label: string = 'Manual save',
+  tag?: string
 ): Promise<string> {
   const db = await getDB();
   const id = `snap-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -599,6 +618,7 @@ export async function createSnapshot(
     draftId: CURRENT_DRAFT_KEY,
     createdAt: Date.now(),
     label,
+    ...(tag !== undefined ? { tag } : {}),
     data: thesisData,
   };
 
@@ -616,13 +636,17 @@ export async function createSnapshot(
 }
 
 /**
- * List all snapshots.
+ * Create an automatic snapshot triggered on step advance.
  */
-export async function listSnapshots(): Promise<Array<{
-  id: string;
-  label: string;
-  createdAt: number;
-}>> {
+export async function createAutoSnapshot(thesisData: ThesisData, step: number): Promise<string> {
+  const label = `Auto: Before Step ${step}`;
+  return createSnapshot(thesisData, label, 'auto');
+}
+
+/**
+ * List all snapshots with enhanced summary data.
+ */
+export async function listSnapshots(currentThesisData?: ThesisData): Promise<SnapshotSummary[]> {
   try {
     const db = await getDB();
     let snapshots: SnapshotRecord[];
@@ -636,11 +660,93 @@ export async function listSnapshots(): Promise<Array<{
     return snapshots
       .filter(s => s.draftId === CURRENT_DRAFT_KEY)
       .reverse() // Most recent first
-      .map(s => ({ id: s.id, label: s.label, createdAt: s.createdAt }));
+      .map(s => ({
+        id: s.id,
+        label: s.label,
+        createdAt: s.createdAt,
+        tag: s.tag,
+        diffSummary: currentThesisData
+          ? computeSnapshotDiff(s.data, currentThesisData)
+          : undefined,
+      }));
   } catch (err) {
     console.error('[Persistence] listSnapshots failed:', err);
     return [];
   }
+}
+
+/**
+ * Compute a human-readable diff summary between a snapshot and current thesis data.
+ */
+export function computeSnapshotDiff(snapshotData: ThesisData, currentData: ThesisData): string {
+  const changes: string[] = [];
+
+  // Chapter diff
+  const snapChapterCount = snapshotData.chapters.length;
+  const currentChapterCount = currentData.chapters.length;
+  if (currentChapterCount > snapChapterCount) {
+    changes.push(`+${currentChapterCount - snapChapterCount} chapter${currentChapterCount - snapChapterCount !== 1 ? 's' : ''}`);
+  } else if (currentChapterCount < snapChapterCount) {
+    changes.push(`-${snapChapterCount - currentChapterCount} chapter${snapChapterCount - currentChapterCount !== 1 ? 's' : ''}`);
+  }
+
+  // Reference diff
+  const snapRefCount = snapshotData.references.length;
+  const currentRefCount = currentData.references.length;
+  if (currentRefCount > snapRefCount) {
+    changes.push(`+${currentRefCount - snapRefCount} ref${currentRefCount - snapRefCount !== 1 ? 's' : ''}`);
+  } else if (currentRefCount < snapRefCount) {
+    changes.push(`-${snapRefCount - currentRefCount} ref${snapRefCount - currentRefCount !== 1 ? 's' : ''}`);
+  }
+
+  // Appendix diff
+  const snapAppCount = snapshotData.appendices.length;
+  const currentAppCount = currentData.appendices.length;
+  if (currentAppCount > snapAppCount) {
+    changes.push(`+${currentAppCount - snapAppCount} appendix${currentAppCount - snapAppCount !== 1 ? 'appendices' : ''}`);
+  } else if (currentAppCount < snapAppCount) {
+    changes.push(`-${snapAppCount - currentAppCount} appendix${snapAppCount - currentAppCount !== 1 ? 'appendices' : ''}`);
+  }
+
+  // Metadata field changes
+  const metadataFields: Array<keyof ThesisMetadata> = ['title', 'author', 'university', 'supervisor', 'department', 'subtitle', 'faculty'];
+  const changedFields: string[] = [];
+  for (const field of metadataFields) {
+    if (
+      (snapshotData.metadata[field] as string) !== (currentData.metadata[field] as string) &&
+      ((snapshotData.metadata[field] as string) || (currentData.metadata[field] as string))
+    ) {
+      changedFields.push(field);
+    }
+  }
+  if (changedFields.length > 0) {
+    // Group: "title, author changed"
+    const fieldCount = changedFields.length;
+    if (fieldCount <= 2) {
+      changes.push(`${changedFields.join(', ')} changed`);
+    } else {
+      changes.push(`${fieldCount} metadata fields changed`);
+    }
+  }
+
+  if (changes.length === 0) {
+    return 'vs. current: no changes';
+  }
+
+  return `vs. current: ${changes.join(', ')}`;
+}
+
+/**
+ * Estimate storage size in KB for thesis data and snapshots.
+ */
+export function estimateStorageSizeKB(thesisData: ThesisData): number {
+  const thesisJSON = JSON.stringify(thesisData);
+  // Rough estimate: JSON string bytes / 1024, plus overhead for IndexedDB
+  const thesisBytes = new Blob([thesisJSON]).size;
+  // IndexedDB adds ~10-20% overhead per record
+  const overheadFactor = 1.2;
+  const estimatedBytes = thesisBytes * overheadFactor;
+  return Math.round(estimatedBytes / 1024 * 100) / 100; // KB, 2 decimal places
 }
 
 /**

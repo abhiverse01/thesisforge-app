@@ -30,8 +30,12 @@ export interface ParsedCitation {
   pages?: string;
   school?: string;
   accessed?: string;
+  eprint?: string;
+  eprinttype?: string;
+  crossRef?: string;
   _confidence: Record<string, number>;
   _parseScore: number;
+  _warningFields: string[];
 }
 
 // --- Algorithm 2: Deduplicator ---
@@ -39,6 +43,14 @@ export interface DuplicatePair {
   indexA: number;
   indexB: number;
   score: number;
+  reason: string;
+}
+
+export interface MergeSuggestion {
+  indexA: number;
+  indexB: number;
+  score: number;
+  suggestedTarget: number;
   reason: string;
 }
 
@@ -59,10 +71,23 @@ export interface StructureAnalysis {
   issues: StructureIssue[];
   suggestions: string[];
   balanceScore: number | null;
+  imradScore: number;
+  denseParagraphs: Array<{
+    chapterId: string;
+    chapterTitle: string;
+    paragraphIndex: number;
+    wordCount: number;
+  }>;
 }
 
 // --- Algorithm 4: Keyword Extractor ---
-// Returns string[] of keywords
+export interface CrossCheckResult {
+  extractedKeywords: string[];
+  userKeywords: string[];
+  suggestedAdditions: string[];
+  irrelevantEntries: string[];
+  alignmentScore: number;
+}
 
 // --- Algorithm 5: Citation Graph ---
 export interface CitationGraphResult {
@@ -73,6 +98,14 @@ export interface CitationGraphResult {
   totalCitations: number;
   totalReferences: number;
   citationRatio: number;
+  perChapterCitations: Map<string, number>;
+  chaptersWithoutCitations: string[];
+  citationClusters: Array<{
+    referenceKey: string;
+    chapterIds: string[];
+    count: number;
+  }>;
+  exportAsDot(): string;
 }
 
 // --- Algorithm 6: Completeness Scorer ---
@@ -81,6 +114,19 @@ export interface RubricItem {
   weight: number;
   label: string;
   achieved: boolean;
+}
+
+export interface SubScores {
+  metadata: number;
+  content: number;
+  references: number;
+  formatting: number;
+  advanced: number;
+}
+
+export interface RadarDataPoint {
+  axis: string;
+  value: number;
 }
 
 export interface CompletenessResult {
@@ -95,6 +141,8 @@ export interface CompletenessResult {
     action: string;
   } | null;
   level: 'ready' | 'almost' | 'in-progress' | 'early';
+  subScores: SubScores;
+  radarData: RadarDataPoint[];
 }
 
 // --- Algorithm 7: LaTeX Heuristics ---
@@ -109,6 +157,12 @@ export interface HeuristicFinding {
 }
 
 // --- Algorithm 8: Reading Stats ---
+export interface LongSentenceInfo {
+  text: string;
+  position: number;
+  suggestion: string;
+}
+
 export interface ChapterReadingStats {
   chapterId: string;
   chapterTitle: string;
@@ -116,6 +170,10 @@ export interface ChapterReadingStats {
   readingTime: number;
   sentences: number;
   avgSentenceLength: number;
+  fleschKincaid: number;
+  gunningFog: number;
+  passiveVoicePct: number;
+  longSentences: LongSentenceInfo[];
 }
 
 export interface ReadingStatsResult {
@@ -133,6 +191,7 @@ export interface ReadingStatsResult {
 export interface AlgorithmSchedule {
   steps: number[];
   debounce: number;
+  priority: number;
 }
 
 export type AlgorithmId =
@@ -144,3 +203,9 @@ export type AlgorithmId =
   | 'completenessScorer'
   | 'latexHeuristics'
   | 'readingStats';
+
+export interface CircuitBreakerState {
+  failures: number;
+  disabled: boolean;
+  reason?: string;
+}

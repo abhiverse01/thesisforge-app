@@ -7,22 +7,28 @@ export type {
   IntelligenceIssue,
   ParsedCitation,
   DuplicatePair,
+  MergeSuggestion,
   StructureIssue,
   StructureAnalysis,
-  CompletenessResult,
+  CrossCheckResult,
   RubricItem,
+  SubScores,
+  RadarDataPoint,
+  CompletenessResult,
   HeuristicFinding,
   ChapterReadingStats,
+  LongSentenceInfo,
   ReadingStatsResult,
   CitationGraphResult,
   AlgorithmSchedule,
   AlgorithmId,
+  CircuitBreakerState,
 } from './types';
 
 export { parseCitationText } from './citationParser';
-export { jaroWinkler, detectDuplicates } from './deduplicator';
+export { jaroWinkler, detectDuplicates, detectDuplicatesWithMerge } from './deduplicator';
 export { analyzeStructure, countWords } from './structureAnalyzer';
-export { extractKeywords } from './keywordExtractor';
+export { extractKeywords, crossCheckKeywords } from './keywordExtractor';
 export { buildCitationGraph, deduplicateCiteKeys } from './citationGraph';
 export { scoreCompleteness } from './completenessScorer';
 export {

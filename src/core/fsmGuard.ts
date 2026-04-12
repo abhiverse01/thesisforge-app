@@ -76,7 +76,7 @@ export function assertValidState(state: unknown, context = 'unknown'): boolean {
   // Validate data.templateId if present
   const templateId = (s.data as Record<string, unknown>).templateId;
   if (templateId !== undefined && templateId !== null) {
-    if (!['bachelor', 'master', 'phd', 'report'].includes(templateId as string)) {
+    if (!['bachelor', 'master', 'phd', 'report', 'conference'].includes(templateId as string)) {
       throw new StateError(`[${context}] unknown templateId: "${String(templateId)}"`);
     }
   }

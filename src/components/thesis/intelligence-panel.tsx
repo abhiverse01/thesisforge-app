@@ -696,9 +696,12 @@ export default function IntelligencePanel({ isOpen, onClose, currentStep }: Inte
     readingStats: null,
     structure: null,
     keywords: [],
+    crossCheck: null,
     citationGraph: null,
     duplicates: [],
+    mergeSuggestions: [],
     heuristics: new Map(),
+    circuitBreaker: new Map(),
   });
 
   const panelRef = useRef<HTMLDivElement>(null);

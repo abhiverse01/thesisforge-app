@@ -115,6 +115,7 @@ function buildHeaderComment(data: ThesisData): CommentNode {
     master: "Master's Thesis",
     phd: 'PhD Dissertation',
     report: 'Research Report',
+    conference: 'Conference Paper',
   };
   return comment(
     `============================================================\n` +
@@ -185,6 +186,7 @@ function buildTitlePage(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string
     master: buildMasterTitlePage,
     phd: buildPhDTitlePage,
     report: buildReportTitlePage,
+    conference: buildConferenceTitlePage,
   };
 
   const builder = builders[data.type] || buildBachelorTitlePage;
@@ -451,16 +453,94 @@ function buildReportTitlePage(data: ThesisData): ASTNode[] {
   return nodes;
 }
 
+function buildConferenceTitlePage(data: ThesisData): ASTNode[] {
+  const m = data.metadata;
+  const nodes: ASTNode[] = [];
+
+  nodes.push(comment('Title Block'));
+  nodes.push(blankLine());
+
+  // IEEE conference paper title — centered, uppercase
+  const body: ASTNode[] = [
+    rawLaTeX('\\centering'),
+    blankLine(),
+  ];
+
+  // Title
+  body.push(rawLaTeX(`{\\Large\\bfseries ${escMeta(m.title)}\\par}`));
+  if (m.subtitle) {
+    body.push(rawLaTeX('\\vspace{0.3cm}'));
+    body.push(rawLaTeX(`{\\normalsize\\itshape ${escMeta(m.subtitle)}\\par}`));
+  }
+
+  body.push(rawLaTeX('\\vspace{0.5cm}'));
+  blankLine();
+
+  // Author info — IEEE style
+  if (m.author) {
+    body.push(rawLaTeX(`{\\normalsize ${escMeta(m.author)}\\par}`));
+  }
+  if (m.university) {
+    body.push(rawLaTeX(`{\\small ${escMeta(m.university)}${m.department ? ', ' + escMeta(m.department) : ''}\\par}`));
+  }
+
+  body.push(rawLaTeX('\\vspace{0.5cm}'));
+
+  // Date
+  const year = m.submissionDate
+    ? new Date(m.submissionDate).getFullYear().toString()
+    : new Date().getFullYear().toString();
+  body.push(rawLaTeX(`{\\small ${escMeta(year)}\\par}`));
+  blankLine();
+
+  nodes.push(environment('IEEEtitlepage', body));
+  nodes.push(blankLine());
+
+  return nodes;
+}
+
 // ============================================================
 // Front Matter Builder
 // Conditional: only includes sections that have content.
 // Declaration page for bachelor/master/phd. Dedication for master/phd.
+// Conference papers skip academic front matter (declaration, dedication, TOC).
 // ============================================================
 
 function buildFrontMatter(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string]): ASTNode[] {
   const nodes: ASTNode[] = [];
   const { metadata, abstract, keywords, options } = data;
   const isReport = schema.documentClass === 'article';
+  const isConference = data.type === 'conference';
+
+  // Conference papers: no \frontmatter, no declaration, no dedication, no TOC.
+  if (isConference) {
+    nodes.push(comment('Front Matter'));
+
+    // Abstract — required for conference papers, use IEEE \begin{abstract} environment
+    nodes.push(comment('Abstract'));
+    if (abstract && abstract.trim()) {
+      const absBody: ASTNode[] = [];
+      absBody.push(...processChapterBody(abstract));
+      // Keywords inside IEEE abstract
+      if (keywords && keywords.length > 0) {
+        absBody.push(blankLine());
+        absBody.push(command('noindent'));
+        absBody.push(command('textbf', ['Keywords: ']));
+        absBody.push(text(keywords.map(k => escMeta(k)).join(', ')));
+        absBody.push(blankLine());
+      }
+      nodes.push(environment('abstract', absBody));
+    } else {
+      const absBody: ASTNode[] = [
+        comment('TODO: Write your abstract here. Aim for 200-250 words for a conference paper.'),
+        text('TODO: Write your abstract here.'),
+      ];
+      nodes.push(environment('abstract', absBody));
+    }
+    nodes.push(blankLine());
+
+    return nodes;
+  }
 
   // \frontmatter only in report/book class
   if (!isReport) {
@@ -602,9 +682,10 @@ function buildDeclarationPage(data: ThesisData): ASTNode[] {
 function buildMainMatter(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string]): ASTNode[] {
   const nodes: ASTNode[] = [];
   const isReport = schema.documentClass === 'article';
+  const isConference = data.type === 'conference';
 
-  // \mainmatter only in report/book class
-  if (!isReport) {
+  // \mainmatter only in report/book class (not article, not IEEEtran)
+  if (!isReport && !isConference) {
     nodes.push(comment('Main Matter'));
     nodes.push(command('mainmatter'));
     nodes.push(blankLine());
@@ -719,9 +800,10 @@ function buildAppendices(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[strin
 function buildBackMatter(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[string]): ASTNode[] {
   const nodes: ASTNode[] = [];
   const isReport = schema.documentClass === 'article';
+  const isConference = data.type === 'conference';
 
-  // \backmatter only in report/book class
-  if (!isReport) {
+  // \backmatter only in report/book class (not article, not IEEEtran)
+  if (!isReport && !isConference) {
     nodes.push(comment('Back Matter'));
     nodes.push(command('backmatter'));
     nodes.push(blankLine());
@@ -743,9 +825,14 @@ function buildBackMatter(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[strin
     return nodes;
   }
 
-  // Use thebibliography for zero-config compilability
-  nodes.push(command('chapter', ['Bibliography'], undefined, true));
-  nodes.push(command('addcontentsline', ['toc', 'chapter', 'Bibliography']));
+  // Conference papers use \section* for bibliography, others use \chapter
+  if (isConference) {
+    nodes.push(command('section', ['References'], undefined, true));
+  } else {
+    // Use thebibliography for zero-config compilability
+    nodes.push(command('chapter', ['Bibliography'], undefined, true));
+    nodes.push(command('addcontentsline', ['toc', 'chapter', 'Bibliography']));
+  }
   nodes.push(blankLine());
 
   nodes.push(command('begin', ['thebibliography', String(data.references.length)]));

@@ -22,6 +22,7 @@ interface HeuristicRule {
  * Each rule is a pattern recognizer with an optional autofix.
  */
 const HEURISTIC_RULES: HeuristicRule[] = [
+  // === ORIGINAL RULES ===
   {
     id: 'markdown-bold',
     pattern: /\*\*(.+?)\*\*/g,
@@ -109,6 +110,178 @@ const HEURISTIC_RULES: HeuristicRule[] = [
       'Unescaped $ detected. In LaTeX, $ enters math mode. Use \\$ for a literal dollar sign.',
     autofix: () => '\\$',
   },
+
+  // === 15 NEW RULES ===
+
+  // 1. Straight quotes in text mode
+  {
+    id: 'straight-quotes',
+    pattern: /(?<=[a-z,]\s)"(?=[a-zA-Z])/g,
+    severity: 'suggestion',
+    message: () =>
+      'Straight double quote detected. Use `` for opening and \'\' for closing quotes in LaTeX.',
+    autofix: (match) => "``",
+  },
+
+  // 2. "..." instead of \ldots
+  {
+    id: 'literal-dots',
+    pattern: /\.{3}/g,
+    severity: 'suggestion',
+    message: () =>
+      'Three literal dots detected. Use \\ldots for proper ellipsis in LaTeX.',
+    autofix: () => '\\ldots',
+  },
+
+  // 3. "x2" instead of "$x^2$" (common math-in-text patterns)
+  {
+    id: 'math-in-text',
+    pattern: /\b([a-zA-Z])([2-9])\b(?![\}\\])/g,
+    severity: 'suggestion',
+    message: (match) =>
+      `"${match[0]}" looks like a superscript. In LaTeX, use $${match[1]}^{${match[2]}}$ for proper math formatting.`,
+    autofix: (match) => `$${match[1]}^{${match[2]}}$`,
+  },
+
+  // 4. Em-dash typed as "--" instead of "---"
+  {
+    id: 'en-dash-for-em-dash',
+    pattern: /(?<=[a-zA-Z,])--(?=[a-zA-Z])/g,
+    severity: 'info',
+    message: () =>
+      'En dash (--) detected between words. Use --- for em dash or -- for en dash (number ranges).',
+    autofix: () => '---',
+  },
+
+  // 5. "i.e." without comma
+  {
+    id: 'ie-without-comma',
+    pattern: /\bi\.e\.(?!\s*,)/g,
+    severity: 'info',
+    message: () =>
+      '"i.e." should be followed by a comma. Use "i.e.," for proper academic style.',
+    autofix: () => 'i.e.,',
+  },
+
+  // 6. Widow/orphan-prone paragraphs (< 3 lines before page break)
+  // We detect short paragraphs (< 30 words) at the end of sections
+  {
+    id: 'widow-paragraph',
+    pattern: /\n\n([^\n]{10,150}?\.(?:\s|$))/gm,
+    severity: 'info',
+    message: (match) => {
+      const words = match[1].trim().split(/\s+/).length;
+      if (words < 30) {
+        return `Short paragraph (${words} words) may create a widow/orphan. Consider merging with the previous paragraph or adding more content.`;
+      }
+      return `Paragraph before a break may create a widow/orphan. Consider adding content or adjusting.`;
+    },
+    autofix: null as unknown as (match: RegExpExecArray) => string,
+  },
+
+  // 7. \textbf overuse (> 5 per paragraph)
+  // This is handled as a post-processing check since regex can't count easily
+  {
+    id: 'textbf-overuse',
+    pattern: /\\textbf\{[^}]+\}/g,
+    severity: 'info',
+    message: (match) =>
+      `Multiple \\textbf uses detected. Overusing bold reduces its impact. Consider using \\emph{} for lighter emphasis.`,
+    autofix: null as unknown as (match: RegExpExecArray) => string,
+  },
+
+  // 8. Unclosed \begin{ without matching \end{}
+  // Checked as a structural pattern (basic detection)
+  {
+    id: 'unclosed-begin',
+    pattern: /\\begin\{(\w+)\}(?![\s\S]*?\\end\{\1\})/g,
+    severity: 'error',
+    message: (match) =>
+      `Possible unclosed environment: \\begin{${match[1]}} without matching \\end{${match[1]}}. Check for missing closing tag.`,
+    autofix: null as unknown as (match: RegExpExecArray) => string,
+  },
+
+  // 9. Manual spacing overuse (\ and ~)
+  {
+    id: 'manual-spacing-overuse',
+    pattern: /[\\~]{2,}/g,
+    severity: 'info',
+    message: () =>
+      'Multiple consecutive spacing commands detected. Excessive manual spacing is usually unnecessary in LaTeX.',
+    autofix: null as unknown as (match: RegExpExecArray) => string,
+  },
+
+  // 10. Footnotes inside captions
+  {
+    id: 'footnote-in-caption',
+    pattern: /\\caption\{[^}]*\\footnote/g,
+    severity: 'warning',
+    message: () =>
+      'Footnote inside \\caption detected. Footnotes in captions can cause compilation issues. Use \\footnotemark in the caption and \\footnotetext outside.',
+    autofix: null as unknown as (match: RegExpExecArray) => string,
+  },
+
+  // 11. $$...$$ display math (should use \[...\])
+  {
+    id: 'double-dollar-math',
+    pattern: /\$\$([^$]+)\$\$/g,
+    severity: 'suggestion',
+    message: (match) =>
+      '$$...$$ display math detected. Use \\[...\\] for display math, which is more robust and standard.',
+    autofix: (match) => `\\[${match[1]}\\]`,
+  },
+
+  // 12. \center environment (should use \centering)
+  {
+    id: 'center-environment',
+    pattern: /\\begin\{center\}/g,
+    severity: 'info',
+    message: () =>
+      '\\begin{center} environment detected. \\centering is generally preferred as it avoids extra vertical spacing.',
+    autofix: () => '\\centering',
+  },
+
+  // 13. \bf, \it, \rm (obsolete font commands)
+  {
+    id: 'obsolete-font-cmd',
+    pattern: /\\(bf|it|rm|sl|sc|sf|tt)\b(?![a-zA-Z])/g,
+    severity: 'suggestion',
+    message: (match) =>
+      `Obsolete font command \\${match[1]} detected. Use \\textbf{}, \\textit{}, \\textrm{} etc. for proper LaTeX2e commands.`,
+    autofix: (match) => {
+      const cmdMap: Record<string, string> = {
+        bf: 'textbf{}',
+        it: 'textit{}',
+        rm: 'textrm{}',
+        sl: 'textsl{}',
+        sc: 'textsc{}',
+        sf: 'textsf{}',
+        tt: 'texttt{}',
+      };
+      return `\\${cmdMap[match[1]] || 'textbf{}'}`;
+    },
+  },
+
+  // 14. Lines > 120 characters in preamble
+  // Detected in the text as long lines without line breaks
+  {
+    id: 'long-line',
+    pattern: /^[^\n]{121,}$/gm,
+    severity: 'info',
+    message: (match) =>
+      `Line with ${match[0].length} characters detected. Consider breaking lines at ≤ 120 characters for better readability and diff tracking.`,
+    autofix: null as unknown as (match: RegExpExecArray) => string,
+  },
+
+  // 15. \newpage inside chapters (anti-pattern)
+  {
+    id: 'newpage-in-chapter',
+    pattern: /\\newpage\b/g,
+    severity: 'info',
+    message: () =>
+      '\\newpage detected. Inside chapters, this breaks the flow. Use \\clearpage or sectioning commands instead. Automatic page breaks happen at \\section commands.',
+    autofix: () => '\\clearpage',
+  },
 ];
 
 /**
@@ -160,6 +333,12 @@ export function runHeuristics(text: string): HeuristicFinding[] {
     }
   }
 
+  // Post-processing: check for \textbf overuse per paragraph
+  checkTextbfOveruse(cleanedText, findings);
+
+  // Post-processing: check for manual spacing overuse
+  checkSpacingOveruse(cleanedText, findings);
+
   // Sort by severity (error > warning > suggestion > info), then by offset
   const severityOrder: Record<string, number> = {
     error: 0,
@@ -174,6 +353,71 @@ export function runHeuristics(text: string): HeuristicFinding[] {
   );
 
   return findings;
+}
+
+/**
+ * Post-process: detect paragraphs with > 5 \textbf uses.
+ */
+function checkTextbfOveruse(text: string, findings: HeuristicFinding[]): void {
+  const paragraphs = text.split(/\n\s*\n/);
+  const TEXTBF_THRESHOLD = 5;
+
+  let currentOffset = 0;
+  for (const para of paragraphs) {
+    const textbfMatches = para.match(/\\textbf\{/g);
+    if (textbfMatches && textbfMatches.length > TEXTBF_THRESHOLD) {
+      const paraStart = text.indexOf(para, currentOffset);
+      if (paraStart >= 0) {
+        findings.push({
+          ruleId: 'textbf-overuse-detail',
+          severity: 'info',
+          offset: paraStart,
+          length: para.length,
+          original: para.slice(0, 60) + '...',
+          message: `Paragraph contains ${textbfMatches.length} \\textbf commands. Overusing bold reduces its visual impact. Consider using \\emph{} or restructuring.`,
+          fix: null,
+        });
+      }
+    }
+    currentOffset += para.length + 2;
+  }
+}
+
+/**
+ * Post-process: detect excessive manual spacing commands (> 10 per "page" ≈ 5000 chars).
+ */
+function checkSpacingOveruse(text: string, findings: HeuristicFinding[]): void {
+  const SPACING_THRESHOLD = 10;
+  const PAGE_SIZE = 5000;
+
+  // Count \ and ~ spacing commands
+  const spacingPattern = /(?:\\\s|~)/g;
+  let match: RegExpExecArray | null;
+  const positions: number[] = [];
+  const re = new RegExp(spacingPattern.source, 'g');
+  while ((match = re.exec(text)) !== null) {
+    positions.push(match.index);
+  }
+
+  if (positions.length <= SPACING_THRESHOLD) return;
+
+  // Check per "page" (every 5000 characters)
+  for (let page = 0; page * PAGE_SIZE < text.length; page++) {
+    const pageStart = page * PAGE_SIZE;
+    const pageEnd = Math.min(pageStart + PAGE_SIZE, text.length);
+    const countInPage = positions.filter((p) => p >= pageStart && p < pageEnd).length;
+    if (countInPage > SPACING_THRESHOLD) {
+      findings.push({
+        ruleId: 'spacing-overuse-detail',
+        severity: 'info',
+        offset: pageStart,
+        length: PAGE_SIZE,
+        original: `...${countInPage} spacing commands in section...`,
+        message: `${countInPage} manual spacing commands (\\~ or ~) in ~5000 characters. Excessive manual spacing is usually unnecessary in LaTeX.`,
+        fix: null,
+      });
+    }
+  }
 }
 
 /**

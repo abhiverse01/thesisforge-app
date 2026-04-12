@@ -19,7 +19,9 @@ export type WizardEvent =
   | 'JUMP'
   | 'SAVE'
   | 'RESET'
-  | 'START';
+  | 'START'
+  | 'STEP_HEALTH_CHECK'
+  | 'AUTOFILL';
 
 export interface WizardState {
   step: WizardStateName;
@@ -27,6 +29,199 @@ export interface WizardState {
   data: Record<string, unknown>;
   errors: Record<string, string>;
   warnings: Record<string, string>;
+}
+
+// ============================================================
+// Step Health Scoring
+// ============================================================
+
+export interface StepHealth {
+  step: WizardStateName;
+  score: number; // 0-100
+  issues: string[];
+}
+
+export function computeStepHealth(step: WizardStateName, data: Record<string, unknown>): StepHealth {
+  const issues: string[] = [];
+
+  switch (step) {
+    case 'IDLE':
+      return { step, score: 0, issues: ['Wizard has not started.'] };
+
+    case 'TEMPLATE_SELECT': {
+      const hasTemplate = !!data.templateId && typeof data.templateId === 'string' && data.templateId.trim() !== '';
+      if (!hasTemplate) {
+        issues.push('No template selected.');
+      }
+      return { step, score: hasTemplate ? 100 : 0, issues };
+    }
+
+    case 'METADATA': {
+      const meta = data.metadata as Record<string, unknown> | undefined;
+      if (!meta || typeof meta !== 'object') {
+        return { step, score: 0, issues: ['No metadata provided.'] };
+      }
+
+      const requiredFields = ['title', 'author', 'university', 'supervisor'];
+      let filledCount = 0;
+      for (const field of requiredFields) {
+        const val = meta[field];
+        if (typeof val === 'string' && val.trim() !== '') {
+          filledCount++;
+        } else {
+          issues.push(`Missing required field: ${field}`);
+        }
+      }
+
+      const score = Math.round((filledCount / requiredFields.length) * 100);
+      return { step, score, issues };
+    }
+
+    case 'CHAPTERS': {
+      const chapters = data.chapters as Array<Record<string, unknown>> | undefined;
+      if (!chapters || !Array.isArray(chapters) || chapters.length === 0) {
+        return { step, score: 0, issues: ['No chapters defined.'] };
+      }
+
+      let totalChapters = chapters.length;
+      let filledChapters = 0;
+
+      for (const ch of chapters) {
+        const content = ch.content as string | undefined;
+        const hasContent = typeof content === 'string' && content.trim().length > 0;
+        if (hasContent) {
+          filledChapters++;
+        } else {
+          issues.push(`Chapter "${typeof ch.title === 'string' ? ch.title : 'Untitled'}" has no content.`);
+        }
+      }
+
+      // Score: 50% for having chapters at all, 50% for content fill ratio
+      const existenceScore = 50;
+      const fillScore = totalChapters > 0 ? Math.round((filledChapters / totalChapters) * 50) : 0;
+      return { step, score: existenceScore + fillScore, issues };
+    }
+
+    case 'REFERENCES': {
+      const references = data.references as Array<Record<string, unknown>> | undefined;
+      if (!references || !Array.isArray(references) || references.length === 0) {
+        return { step, score: 0, issues: ['No references added.'] };
+      }
+
+      let completeCount = 0;
+      for (let i = 0; i < references.length; i++) {
+        const ref = references[i];
+        const hasAuthors = typeof ref.authors === 'string' && ref.authors.trim() !== '';
+        const hasTitle = typeof ref.title === 'string' && ref.title.trim() !== '';
+        const hasYear = typeof ref.year === 'string' && ref.year.trim() !== '';
+
+        if (hasAuthors && hasTitle && hasYear) {
+          completeCount++;
+        } else {
+          const missing: string[] = [];
+          if (!hasAuthors) missing.push('authors');
+          if (!hasTitle) missing.push('title');
+          if (!hasYear) missing.push('year');
+          issues.push(`Reference #${i + 1} is incomplete (missing: ${missing.join(', ')}).`);
+        }
+      }
+
+      // Score: 30% for having references, 70% for completeness
+      const existenceScore = Math.min(30, Math.round((references.length / 5) * 30));
+      const completenessScore = references.length > 0 ? Math.round((completeCount / references.length) * 70) : 0;
+      return { step, score: existenceScore + completenessScore, issues };
+    }
+
+    case 'FORMAT': {
+      const options = data.options as Record<string, unknown> | undefined;
+      if (!options || typeof options !== 'object') {
+        return { step, score: 0, issues: ['No format options configured.'] };
+      }
+
+      const formatFields = ['fontSize', 'paperSize', 'lineSpacing', 'marginSize', 'citationStyle'];
+      let configuredCount = 0;
+      for (const field of formatFields) {
+        const val = options[field];
+        if (val !== undefined && val !== null && typeof val === 'string' && val.trim() !== '') {
+          configuredCount++;
+        } else {
+          issues.push(`Format option "${field}" is not configured.`);
+        }
+      }
+
+      const score = Math.round((configuredCount / formatFields.length) * 100);
+      return { step, score, issues };
+    }
+
+    case 'PREVIEW':
+      return { step, score: 100, issues: [] };
+
+    default:
+      return { step, score: 0, issues: [`Unknown step: ${step}`] };
+  }
+}
+
+// ============================================================
+// Jump Validation
+// ============================================================
+
+export interface JumpValidation {
+  canJump: boolean;
+  incompleteSteps: Array<{ step: WizardStateName; stepIndex: number; issues: string[] }>;
+}
+
+export function validateJump(
+  currentStep: WizardStateName,
+  targetStep: WizardStateName,
+  data: Record<string, unknown>,
+  guards: TransitionGuards = defaultGuards
+): JumpValidation {
+  const currentIdx = STATE_ORDER.indexOf(currentStep);
+  const targetIdx = STATE_ORDER.indexOf(targetStep);
+
+  // Can always jump backwards or to current step
+  if (targetIdx <= currentIdx) {
+    return { canJump: true, incompleteSteps: [] };
+  }
+
+  // Validate all intermediate steps between current+1 and target
+  const incompleteSteps: JumpValidation['incompleteSteps'] = [];
+
+  for (let i = currentIdx + 1; i < targetIdx; i++) {
+    const stepName = STATE_ORDER[i];
+    const stepHealth = computeStepHealth(stepName, data);
+
+    // For critical guard steps, use guards; for others use health scoring
+    let stepIsValid = false;
+    switch (stepName) {
+      case 'TEMPLATE_SELECT':
+        stepIsValid = guards.templateSelected(data);
+        break;
+      case 'METADATA':
+        stepIsValid = guards.metadataValid(data);
+        break;
+      case 'CHAPTERS':
+        stepIsValid = guards.chaptersValid(data);
+        break;
+      default:
+        // Non-blocking steps: consider valid if health score >= 0
+        stepIsValid = true;
+        break;
+    }
+
+    if (!stepIsValid) {
+      incompleteSteps.push({
+        step: stepName,
+        stepIndex: i,
+        issues: stepHealth.issues.length > 0 ? stepHealth.issues : [`Step "${stepName}" is not yet complete.`],
+      });
+    }
+  }
+
+  return {
+    canJump: incompleteSteps.length === 0,
+    incompleteSteps,
+  };
 }
 
 // State ordering — 6 wizard steps (IDLE is state 0, not a user-facing step)
@@ -169,8 +364,28 @@ export function transition(
         warnings: {},
       };
 
-    default:
+    case 'STEP_HEALTH_CHECK': {
+      // Return current state with health data embedded in warnings
+      const health = computeStepHealth(state.step, state.data);
+      return {
+        ...state,
+        errors: {},
+        warnings: {
+          _healthScore: String(health.score),
+          _healthIssues: health.issues.join(' | '),
+        },
+      };
+    }
+
+    case 'AUTOFILL': {
+      // Autofill is computed externally; return state unchanged
       return state;
+    }
+
+    default: {
+      const _exhaustive: never = event;
+      return state;
+    }
   }
 }
 

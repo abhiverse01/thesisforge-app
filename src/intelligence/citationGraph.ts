@@ -2,27 +2,36 @@
 // ThesisForge Intelligence — Algorithm 5: Citation Graph Analyzer
 // Build a bipartite graph of \cite{} keys → reference keys.
 // Detect orphans: cited but undefined, defined but never cited.
+// Detect citation clusters and chapters without citations.
 // Pure function. No side effects. No DOM access.
 // ============================================================
 
 import type { CitationGraphResult } from './types';
-import type { ThesisReference } from '@/lib/thesis-types';
+import type { ThesisReference, ThesisChapter } from '@/lib/thesis-types';
 import { generateCiteKey } from '@/core/bib';
 
 /**
  * Build the citation graph and find mismatches between
  * cited keys in chapter bodies and defined reference keys.
  *
+ * Features:
+ * - Full bipartite graph: chapters → citations → references
+ * - Per-chapter citation counts
+ * - Chapters with zero citations (critical warning)
+ * - References never cited (orphans)
+ * - Citation clusters suggesting missing related work
+ * - DOT format export for graph visualization
+ *
  * Edge cases:
  * - No chapters → empty graph, no undefined citations
  * - No references → all citations are undefined
- * - Chapters with no \cite commands → empty citedKeys
+ * - Chapters with no \cite commands → empty citedKeys per chapter
  * - References with no title/author → generateCiteKey still produces a key
  *
  * Performance budget: < 4ms for up to 50 chapters + 50 references
  */
 export function buildCitationGraph(
-  chapters: Array<{ content: string; subSections?: Array<{ content: string }> }>,
+  chapters: Array<{ id?: string; title?: string; content: string; subSections?: Array<{ content: string }> }>,
   references: ThesisReference[]
 ): CitationGraphResult {
   // Extract all \cite{key} and \cite{key1,key2} from chapter bodies
@@ -30,16 +39,33 @@ export function buildCitationGraph(
   const citationPattern =
     /\\cite(?:p|t|author|year|alp|num)?\{([^}]+)\}/g;
 
+  // Track per-chapter citations: chapterId → Set<key>
+  const chapterCitations = new Map<string, Set<string>>();
+  // Track reference → chapters: key → Set<chapterId>
+  const refToChapters = new Map<string, Set<string>>();
+
   for (const ch of chapters) {
+    const chapterId = ch.id || '';
+    const chapterKeys = new Set<string>();
+
     // Search in chapter content
-    let match: RegExpExecArray | null;
     const body = ch.content || '';
+    let match: RegExpExecArray | null;
+
+    // Reset lastIndex for reuse of global regex
+    citationPattern.lastIndex = 0;
     while ((match = citationPattern.exec(body)) !== null) {
       match[1]
         .split(',')
         .map((k) => k.trim())
         .forEach((k) => {
-          if (k) citedKeys.add(k);
+          if (k) {
+            citedKeys.add(k);
+            chapterKeys.add(k);
+            // Track which chapters cite each reference
+            if (!refToChapters.has(k)) refToChapters.set(k, new Set());
+            refToChapters.get(k)!.add(chapterId);
+          }
         });
     }
 
@@ -47,15 +73,25 @@ export function buildCitationGraph(
     if (ch.subSections) {
       for (const ss of ch.subSections) {
         const subBody = ss.content || '';
+        citationPattern.lastIndex = 0;
         while ((match = citationPattern.exec(subBody)) !== null) {
           match[1]
             .split(',')
             .map((k) => k.trim())
             .forEach((k) => {
-              if (k) citedKeys.add(k);
+              if (k) {
+                citedKeys.add(k);
+                chapterKeys.add(k);
+                if (!refToChapters.has(k)) refToChapters.set(k, new Set());
+                refToChapters.get(k)!.add(chapterId);
+              }
             });
         }
       }
+    }
+
+    if (chapterId) {
+      chapterCitations.set(chapterId, chapterKeys);
     }
   }
 
@@ -67,6 +103,89 @@ export function buildCitationGraph(
   }
 
   const definedKeys = new Set(refKeys.values());
+
+  // Per-chapter citation counts (Map<string, number>)
+  const perChapterCitations = new Map<string, number>();
+  for (const [chapterId, keys] of chapterCitations) {
+    perChapterCitations.set(chapterId, keys.size);
+  }
+
+  // Chapters with zero citations (critical warning)
+  const chaptersWithoutCitations: string[] = [];
+  for (const ch of chapters) {
+    const chapterId = ch.id || '';
+    if (chapterId) {
+      const count = perChapterCitations.get(chapterId) || 0;
+      if (count === 0 && (ch.content || '').trim().length > 50) {
+        chaptersWithoutCitations.push(chapterId);
+      }
+    }
+  }
+
+  // Citation clusters: references cited together across multiple chapters
+  // This can suggest related work patterns
+  const citationClusters: CitationGraphResult['citationClusters'] = [];
+  for (const [key, chapterIds] of refToChapters) {
+    if (chapterIds.size >= 2) {
+      citationClusters.push({
+        referenceKey: key,
+        chapterIds: [...chapterIds],
+        count: chapterIds.size,
+      });
+    }
+  }
+  // Sort clusters by count descending
+  citationClusters.sort((a, b) => b.count - a.count);
+
+  // Build DOT export function
+  function exportAsDot(): string {
+    const lines: string[] = [];
+    lines.push('digraph CitationGraph {');
+    lines.push('  rankdir=LR;');
+    lines.push('  node [shape=box];');
+    lines.push('');
+
+    // Chapter nodes
+    lines.push('  // Chapters');
+    for (const ch of chapters) {
+      const chId = ch.id || 'unknown';
+      const chTitle = (ch.title || chId).replace(/"/g, '\\"');
+      const citationCount = perChapterCitations.get(chId) || 0;
+      const color = citationCount === 0 ? 'red' : 'lightblue';
+      lines.push(`  "ch_${chId}" [label="${chTitle}\\n(${citationCount} citations)", style=filled, fillcolor=${color}];`);
+    }
+    lines.push('');
+
+    // Reference nodes
+    lines.push('  // References');
+    for (const [refId, key] of refKeys) {
+      const isOrphan = !citedKeys.has(key);
+      const isUndefined = !definedKeys.has(key);
+      let color = 'lightgreen';
+      let label = key;
+      if (isOrphan) {
+        color = 'orange';
+        label = `${key} (uncited)`;
+      }
+      if (isUndefined) {
+        color = 'red';
+        label = `${key} (undefined)`;
+      }
+      lines.push(`  "ref_${key}" [label="${label}", style=filled, fillcolor=${color}];`);
+    }
+    lines.push('');
+
+    // Edges: chapters → references
+    lines.push('  // Citation edges');
+    for (const [chapterId, keys] of chapterCitations) {
+      for (const key of keys) {
+        lines.push(`  "ch_${chapterId}" -> "ref_${key}";`);
+      }
+    }
+
+    lines.push('}');
+    return lines.join('\n');
+  }
 
   return {
     citedKeys,
@@ -85,6 +204,12 @@ export function buildCitationGraph(
       definedKeys.size > 0
         ? Math.round((citedKeys.size / definedKeys.size) * 100)
         : 0,
+
+    // New fields
+    perChapterCitations,
+    chaptersWithoutCitations,
+    citationClusters,
+    exportAsDot,
   };
 }
 

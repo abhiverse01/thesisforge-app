@@ -2,14 +2,17 @@
 // ThesisForge Intelligence — Algorithm 4: TF-IDF Keyword Extractor
 // Extracts 5-8 most significant terms from thesis chapter bodies.
 // TF-IDF over combined chapters with academic stop-word list.
+// Cross-checks against user-entered keywords.
 // Pure function. No side effects. No DOM access.
 // ============================================================
 
 import type { ThesisChapter } from '@/lib/thesis-types';
+import type { CrossCheckResult } from './types';
 
 /**
  * Custom stop-word list tuned for academic writing.
- * Includes common English stopwords + academic boilerplate terms.
+ * Includes common English stopwords + academic boilerplate terms
+ * + domain-specific academic filler words.
  */
 const ACADEMIC_STOPWORDS = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of',
@@ -28,6 +31,9 @@ const ACADEMIC_STOPWORDS = new Set([
   'most', 'very', 'even', 'well', 'much', 'many', 'just', 'like', 'its',
   'their', 'our', 'your', 'his', 'her', 'they', 'them', 'these', 'those',
   'been', 'being', 'have', 'having', 'does', 'doing', 'would', 'should',
+  // Domain-specific academic filler words (less meaningful as keywords)
+  'study', 'analysis', 'result', 'chapter', 'section', 'method',
+  'approach', 'figure', 'table', 'result', 'results',
 ]);
 
 /**
@@ -97,6 +103,18 @@ export function extractKeywords(
   chapters: ThesisChapter[],
   topN: number = 8
 ): string[] {
+  const result = extractKeywordsWithScores(chapters, topN);
+  return result.map(([term]) => term);
+}
+
+/**
+ * Extract keywords with their TF-IDF scores for cross-checking.
+ * Returns [term, score][] sorted by score descending.
+ */
+function extractKeywordsWithScores(
+  chapters: ThesisChapter[],
+  topN: number = 8
+): Array<[string, number]> {
   if (!chapters || chapters.length === 0) return [];
 
   // Treat each chapter as a "document" for IDF calculation
@@ -178,6 +196,92 @@ export function extractKeywords(
 
   return Object.entries(scores)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, topN)
-    .map(([term]) => term);
+    .slice(0, topN);
+}
+
+/**
+ * Cross-check extracted keywords against user-entered keywords.
+ *
+ * Returns:
+ * - suggestedAdditions: keywords the algorithm found but the user didn't enter
+ * - irrelevantEntries: user keywords not found in the thesis content
+ * - alignmentScore: 0-1 indicating how well user keywords match extracted ones
+ *
+ * Pure function: (chapters, userKeywords) → CrossCheckResult
+ */
+export function crossCheckKeywords(
+  chapters: ThesisChapter[],
+  userKeywords: string[]
+): CrossCheckResult {
+  // Extract keywords with scores
+  const extractedWithScores = extractKeywordsWithScores(chapters, 15);
+  const extractedKeywords = extractedWithScores.map(([term]) => term);
+
+  const userLower = userKeywords.map((k) => k.toLowerCase().trim()).filter(Boolean);
+  const extractedLower = extractedKeywords.map((k) => k.toLowerCase());
+
+  // Build a set of extracted keyword stems for fuzzy matching
+  const extractedStems = new Set(extractedLower);
+
+  // Suggested additions: extracted keywords not similar to any user keyword
+  const suggestedAdditions: string[] = [];
+  for (const [term, score] of extractedWithScores) {
+    const termLower = term.toLowerCase();
+    // Check if this term is already covered by a user keyword (exact or contains)
+    const isCovered = userLower.some(
+      (uk) => uk === termLower || uk.includes(termLower) || termLower.includes(uk)
+    );
+    if (!isCovered) {
+      suggestedAdditions.push(term);
+    }
+  }
+  // Limit to top 5 suggestions
+  const limitedSuggestions = suggestedAdditions.slice(0, 5);
+
+  // Irrelevant entries: user keywords not found in any chapter content
+  const allContent = chapters
+    .map((ch) => {
+      return [
+        ch.content || '',
+        ...(ch.subSections || []).map((ss) => ss.content || ''),
+      ].join(' ').toLowerCase();
+    })
+    .join(' ');
+
+  const irrelevantEntries: string[] = [];
+  for (let i = 0; i < userKeywords.length; i++) {
+    const kw = userKeywords[i].toLowerCase().trim();
+    if (!kw) continue;
+
+    // Check if the keyword appears in the content or in extracted keywords
+    const inContent = allContent.includes(kw);
+    const inExtracted = extractedStems.has(kw) ||
+      extractedLower.some((e) => e.includes(kw) || kw.includes(e));
+
+    if (!inContent && !inExtracted) {
+      irrelevantEntries.push(userKeywords[i]);
+    }
+  }
+
+  // Alignment score: fraction of user keywords that match extracted/content
+  let matchCount = 0;
+  for (const uk of userLower) {
+    const inContent = allContent.includes(uk);
+    const inExtracted = extractedStems.has(uk) ||
+      extractedLower.some((e) => e.includes(uk) || uk.includes(e));
+    if (inContent || inExtracted) {
+      matchCount++;
+    }
+  }
+  const alignmentScore = userLower.length > 0
+    ? Math.round((matchCount / userLower.length) * 100) / 100
+    : userKeywords.length === 0 ? 1.0 : 0;
+
+  return {
+    extractedKeywords,
+    userKeywords,
+    suggestedAdditions: limitedSuggestions,
+    irrelevantEntries,
+    alignmentScore,
+  };
 }

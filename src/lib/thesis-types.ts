@@ -2,7 +2,7 @@
 // Thesis Type Definitions — Production-grade type system
 // ============================================================
 
-export type ThesisType = 'bachelor' | 'master' | 'phd' | 'report';
+export type ThesisType = 'bachelor' | 'master' | 'phd' | 'report' | 'conference';
 
 export type ReferenceType =
   | 'article'
@@ -11,7 +11,9 @@ export type ReferenceType =
   | 'techreport'
   | 'thesis'
   | 'online'
-  | 'misc';
+  | 'misc'
+  | 'dataset'
+  | 'software';
 
 export type CitationStyle = 'ieee' | 'apa' | 'vancouver' | 'chicago' | 'harvard';
 
@@ -69,6 +71,9 @@ export interface ThesisReference {
   school?: string;
   howPublished?: string;
   accessed?: string;
+  eprint?: string;
+  eprintType?: string;
+  crossRef?: string;
 }
 
 export interface ThesisAppendix {
@@ -91,6 +96,12 @@ export interface ThesisOptions {
   figureNumbering: 'per-chapter' | 'continuous';
   tableNumbering: 'per-chapter' | 'continuous';
   tocDepth: number;
+}
+
+export interface CompilationRecipe {
+  compiler: 'pdflatex' | 'xelatex' | 'lualatex';
+  passes: number;
+  bibBackend?: 'bibtex' | 'biber';
 }
 
 export interface ThesisData {
@@ -135,6 +146,7 @@ export const ABSTRACT_WORD_LIMITS: Record<ThesisType, number> = {
   master: 500,
   phd: 700,
   report: 250,
+  conference: 250,
 };
 
 export const THESIS_TEMPLATES: ThesisTemplateInfo[] = [
@@ -226,6 +238,28 @@ export const THESIS_TEMPLATES: ThesisTemplateInfo[] = [
     },
     defaultStructure: { chapterCount: 3, hasAppendix: false },
   },
+  {
+    type: 'conference',
+    name: 'Conference Paper',
+    description: 'Standard conference paper using IEEEtran or acmart. Compact format with single/double column toggle, optimized for page-limited submissions.',
+    icon: '📝',
+    defaultOptions: {
+      fontSize: '10pt',
+      paperSize: 'a4paper',
+      lineSpacing: 'single',
+      marginSize: 'normal',
+      includeDedication: false,
+      includeAcknowledgment: false,
+      includeAppendices: false,
+      includeListings: false,
+      includeGlossary: false,
+      citationStyle: 'ieee',
+      figureNumbering: 'continuous',
+      tableNumbering: 'continuous',
+      tocDepth: 2,
+    },
+    defaultStructure: { chapterCount: 5, hasAppendix: false },
+  },
 ];
 
 // Default chapter structures per thesis type
@@ -259,6 +293,13 @@ export function getDefaultChapters(type: ThesisType): ThesisChapter[] {
       { title: 'Introduction', subsections: [{ title: 'Purpose' }, { title: 'Scope' }] },
       { title: 'Methods', subsections: [{ title: 'Approach' }, { title: 'Tools' }] },
       { title: 'Results', subsections: [{ title: 'Findings' }] },
+    ],
+    conference: [
+      { title: 'Introduction', subsections: [{ title: 'Background' }, { title: 'Problem Statement' }, { title: 'Contributions' }] },
+      { title: 'Related Work', subsections: [{ title: 'Literature Review' }, { title: 'Research Gap' }] },
+      { title: 'Methodology', subsections: [{ title: 'Proposed Approach' }, { title: 'Implementation' }] },
+      { title: 'Results', subsections: [{ title: 'Experimental Setup' }, { title: 'Findings' }, { title: 'Evaluation' }] },
+      { title: 'Conclusion', subsections: [{ title: 'Summary' }, { title: 'Future Work' }] },
     ],
   };
 

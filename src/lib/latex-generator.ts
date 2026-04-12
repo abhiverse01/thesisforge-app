@@ -72,6 +72,8 @@ function generateBibtexEntry(ref: ThesisReference, index: number): string {
     techreport: 'techreport',
     thesis: 'phdthesis',
     online: 'online',
+    dataset: 'dataset',
+    software: 'software',
     misc: 'misc',
   };
   const bibType = typeMap[ref.type] || 'misc';

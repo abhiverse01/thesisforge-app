@@ -1,5 +1,5 @@
 // ============================================================
-// ThesisForge Core — LaTeX Lint Engine
+// ThesisForge Core — LaTeX Lint Engine (20 rules)
 // Post-generation checks on the .tex string before download.
 // Errors block export; warnings do not.
 // ============================================================
@@ -21,7 +21,7 @@ export interface LintResult {
 }
 
 // ============================================================
-// Lint Rules
+// Lint Rules (12 original + 8 new = 20 total)
 // ============================================================
 
 const LINT_RULES: Array<{
@@ -30,6 +30,8 @@ const LINT_RULES: Array<{
   message: string;
   severity: 'error' | 'warning' | 'info';
 }> = [
+  // ── Original Rules (L01–L12) ─────────────────────────────────
+
   {
     id: 'unmatched-braces',
     check: (tex) => {
@@ -161,6 +163,181 @@ const LINT_RULES: Array<{
       return true;
     },
     message: 'Empty chapter detected (consecutive \\chapter without content between them).',
+    severity: 'warning',
+  },
+
+  // ── New Rules (L13–L20) ──────────────────────────────────────
+
+  {
+    id: 'display-math-deprecated',
+    check: (tex) => {
+      // Detect $$...$$ display math (deprecated — use \[...\])
+      const lines = tex.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('%')) continue;
+        // Match standalone $$ or $$ at start of line
+        if (/\$\$[^\$]/.test(line) || /\$\$\s*$/.test(line)) {
+          return { pass: false, line: i + 1, context: line.slice(0, 60) };
+        }
+      }
+      return true;
+    },
+    message: 'Display math $$...$$ is deprecated. Use \\[...\\] instead.',
+    severity: 'warning',
+  },
+  {
+    id: 'center-environment',
+    check: (tex) => {
+      // Detect \begin{center} environment (use \centering inside float instead)
+      const lines = tex.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('%')) continue;
+        if (/\\begin\{center\}/.test(line)) {
+          return { pass: false, line: i + 1, context: line.slice(0, 60) };
+        }
+      }
+      return true;
+    },
+    message: '\\begin{center} detected. Use \\centering inside float environments for better spacing.',
+    severity: 'warning',
+  },
+  {
+    id: 'eqnarray-deprecated',
+    check: (tex) => {
+      const lines = tex.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('%')) continue;
+        if (/\\begin\{eqnarray\}/.test(line)) {
+          return { pass: false, line: i + 1, context: line.slice(0, 60) };
+        }
+      }
+      return true;
+    },
+    message: 'eqnarray environment is deprecated. Use align from amsmath instead.',
+    severity: 'warning',
+  },
+  {
+    id: 'over-escaped-chars',
+    check: (tex) => {
+      const lines = tex.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('%')) continue;
+
+        // Check if we're inside a tabular-like environment (rough check)
+        // Track whether we've seen a \begin{tabular} without matching \end
+        // Simple heuristic: if line has tabular column spec, skip & check
+
+        // Detect \& outside of tabular/align environments
+        if (/\\&/.test(line) && !/\\begin\{(tabular|align|array|matrix)\}/.test(line)) {
+          // Check if we're roughly inside a tabular block
+          const linesAbove = lines.slice(0, i);
+          const beginCount = linesAbove.filter(l => /\\begin\{(tabular|align|array|matrix)/.test(l)).length;
+          const endCount = linesAbove.filter(l => /\\end\{(tabular|align|array|matrix)/.test(l)).length;
+          if (beginCount <= endCount) {
+            return { pass: false, line: i + 1, context: '\\& outside tabular/align environment' };
+          }
+        }
+
+        // Detect \% in running text (usually unnecessary)
+        if (/\\%/.test(line) && !/\\begin\{(tabular|align|array|matrix|verb)/.test(line)) {
+          const linesAbove = lines.slice(0, i);
+          const beginCount = linesAbove.filter(l => /\\begin\{(tabular|align|array|matrix|verb)/.test(l)).length;
+          const endCount = linesAbove.filter(l => /\\end\{(tabular|align|array|matrix|verb)/.test(l)).length;
+          if (beginCount <= endCount) {
+            return { pass: false, line: i + 1, context: '\\% may be unnecessary in running text' };
+          }
+        }
+      }
+      return true;
+    },
+    message: 'Over-escaped character detected. \\& and \\% are usually unnecessary outside tabular.',
+    severity: 'info',
+  },
+  {
+    id: 'missing-tilde-before-cite',
+    check: (tex) => {
+      const lines = tex.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('%')) continue;
+        // Detect \cite or \ref not preceded by ~ or { or \ or start-of-line
+        // Pattern: space followed by \cite or \ref (missing ~)
+        if (/ [^\s~{\\](?:cite|ref)\{/.test(line) || /^[^\s~{\\](?:cite|ref)\{/.test(line)) {
+          return { pass: false, line: i + 1, context: 'Missing ~ before \\cite or \\ref' };
+        }
+      }
+      return true;
+    },
+    message: 'Missing non-breaking space (~) before \\cite or \\ref. Use "~\\cite{...}" to prevent line breaks.',
+    severity: 'info',
+  },
+  {
+    id: 'obsolete-font-commands',
+    check: (tex) => {
+      const lines = tex.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('%')) continue;
+        // Detect \bf, \it, \rm (obsolete — use \textbf, \textit, \textrm)
+        // Match the standalone commands, not \bfseries, \textbf, etc.
+        const obsoletePattern = /\\(bf|it|rm)(?![a-zA-Z*])/g;
+        if (obsoletePattern.test(line)) {
+          const match = line.match(/\\(bf|it|rm)(?![a-zA-Z*])/);
+          const cmd = match ? match[1] : 'unknown';
+          const suggestion: Record<string, string> = { bf: '\\textbf{...}', it: '\\textit{...}', rm: '\\textrm{...}' };
+          return { pass: false, line: i + 1, context: `\\${cmd} found — use ${suggestion[cmd]}` };
+        }
+      }
+      return true;
+    },
+    message: 'Obsolete font command detected. Use \\textbf, \\textit, \\textrm instead of \\bf, \\it, \\rm.',
+    severity: 'warning',
+  },
+  {
+    id: 'preamble-long-lines',
+    check: (tex) => {
+      // Only check lines in the preamble (before \begin{document})
+      const beginIdx = tex.indexOf('\\begin{document}');
+      const preamble = beginIdx >= 0 ? tex.slice(0, beginIdx) : tex;
+      const lines = preamble.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('%')) continue;
+        if (line.length > 120) {
+          return { pass: false, line: i + 1, context: line.slice(0, 80) + '...' };
+        }
+      }
+      return true;
+    },
+    message: 'Preamble lines exceeding 120 characters detected. Consider breaking long commands for readability.',
+    severity: 'info',
+  },
+  {
+    id: 'newpage-in-chapters',
+    check: (tex) => {
+      const lines = tex.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('%')) continue;
+        if (/\\newpage/.test(line)) {
+          // Check if we're inside a chapter (after \chapter, before next \chapter or \end{document})
+          const linesBefore = lines.slice(0, i);
+          const lastChapter = linesBefore.findLastIndex(l => /\\chapter\b/.test(l));
+          const nextChapter = lines.slice(i + 1).findIndex(l => /\\chapter\b/.test(l));
+
+          // If there's a chapter before this \newpage and no chapter immediately after
+          if (lastChapter >= 0 && (nextChapter === -1 || nextChapter > 3)) {
+            return { pass: false, line: i + 1, context: '\\newpage inside chapter content' };
+          }
+        }
+      }
+      return true;
+    },
+    message: '\\newpage detected inside chapter. This is an anti-pattern in academic writing — let LaTeX handle page breaks.',
     severity: 'warning',
   },
 ];

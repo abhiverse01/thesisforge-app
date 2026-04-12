@@ -1,5 +1,5 @@
 // ============================================================
-// ThesisForge Core — LaTeX Output Quality Contract (30 checks)
+// ThesisForge Core — LaTeX Output Quality Contract (41 checks)
 // Every document produced by the engine must satisfy all checks.
 // Run verifyEngineContract(tex, bib, wizardState) before every export.
 // Warnings surface in the UI. Errors block export.
@@ -16,7 +16,7 @@ export interface ContractError {
 }
 
 // ============================================================
-// The 30 Contract Checks
+// The 41 Contract Checks
 // ============================================================
 
 interface ContractCheck {
@@ -27,7 +27,7 @@ interface ContractCheck {
 }
 
 const ENGINE_CONTRACT: ContractCheck[] = [
-  // ── Compilability (C01-C07) ──────────────────────────────────
+  // ── Compilability (C01-C09) ──────────────────────────────────
   {
     id: 'C01', severity: 'error',
     message: 'Unbalanced braces — mismatched { and }',
@@ -88,8 +88,32 @@ const ENGINE_CONTRACT: ContractCheck[] = [
       return true;
     },
   },
+  {
+    id: 'C08', severity: 'warning',
+    message: '\\bibliography{references} should appear before \\end{document}',
+    check: (tex) => {
+      if (!tex.includes('\\bibliography{')) return true; // no bibliography command
+      const bibIdx = tex.indexOf('\\bibliography{');
+      const endIdx = tex.indexOf('\\end{document}');
+      if (endIdx < 0) return true;
+      return bibIdx < endIdx;
+    },
+  },
+  {
+    id: 'C09', severity: 'error',
+    message: 'Duplicate \\label{} keys detected across the document',
+    check: (tex) => {
+      const labels = [...tex.matchAll(/\\label\{([^}]+)\}/g)].map(m => m[1].trim());
+      const seen = new Set<string>();
+      for (const label of labels) {
+        if (seen.has(label)) return false;
+        seen.add(label);
+      }
+      return true;
+    },
+  },
 
-  // ── Package Integrity (P01-P05) ──────────────────────────────
+  // ── Package Integrity (P01-P07) ──────────────────────────────
   {
     id: 'P01', severity: 'error',
     message: 'Missing inputenc with utf8',
@@ -131,8 +155,21 @@ const ENGINE_CONTRACT: ContractCheck[] = [
       return new Set(pkgs).size === pkgs.length;
     },
   },
+  {
+    id: 'P06', severity: 'warning',
+    message: 'cleveref is loaded but \\cref is never used',
+    check: (tex) => {
+      if (!tex.includes('\\usepackage{cleveref}')) return true;
+      return /\\cref[^\w]/.test(tex);
+    },
+  },
+  {
+    id: 'P07', severity: 'warning',
+    message: '\\usepackage{times} is deprecated — use mathptmx instead',
+    check: (tex) => !tex.includes('\\usepackage{times}'),
+  },
 
-  // ── Structure (S01-S07) ──────────────────────────────────────
+  // ── Structure (S01-S10) ──────────────────────────────────────
   {
     id: 'S01', severity: 'warning',
     message: 'Empty \\chapter{} command detected',
@@ -176,8 +213,45 @@ const ENGINE_CONTRACT: ContractCheck[] = [
       return tex.includes(escaped);
     },
   },
+  {
+    id: 'S08', severity: 'warning',
+    message: 'Book class detected but missing \\frontmatter/\\mainmatter/\\backmatter',
+    check: (tex) => {
+      if (!/\\documentclass(?:\[[^\]]*\])?\{book\}/.test(tex)) return true;
+      const hasFront = tex.includes('\\frontmatter');
+      const hasMain = tex.includes('\\mainmatter');
+      const hasBack = tex.includes('\\backmatter');
+      return hasFront && hasMain && hasBack;
+    },
+  },
+  {
+    id: 'S09', severity: 'warning',
+    message: 'Figure environment missing \\caption or \\label',
+    check: (tex) => {
+      const figures = [...tex.matchAll(/\\begin\{figure\}([\s\S]*?)\\end\{figure\}/g)];
+      for (const match of figures) {
+        const body = match[1];
+        if (!/\\caption/.test(body)) return false;
+        if (!/\\label/.test(body)) return false;
+      }
+      return true;
+    },
+  },
+  {
+    id: 'S10', severity: 'warning',
+    message: 'Table environment missing \\caption or \\label',
+    check: (tex) => {
+      const tables = [...tex.matchAll(/\\begin\{table\}([\s\S]*?)\\end\{table\}/g)];
+      for (const match of tables) {
+        const body = match[1];
+        if (!/\\caption/.test(body)) return false;
+        if (!/\\label/.test(body)) return false;
+      }
+      return true;
+    },
+  },
 
-  // ── Bibliography (B01-B03) ───────────────────────────────────
+  // ── Bibliography (B01-B05) ───────────────────────────────────
   {
     id: 'B01', severity: 'warning',
     message: 'Undefined citation keys',
@@ -207,6 +281,28 @@ const ENGINE_CONTRACT: ContractCheck[] = [
       return keys.every(k => /^[a-z0-9]+$/.test(k));
     },
   },
+  {
+    id: 'B04', severity: 'error',
+    message: 'Citation key has no matching BibTeX entry or \\bibitem',
+    check: (tex, bib) => {
+      const cited = [...tex.matchAll(/\\(?:citep|citet|cite)\{([^}]+)\}/g)]
+        .flatMap(m => m[1].split(',').map(k => k.trim()))
+        .filter(k => k.length > 0);
+      if (cited.length === 0) return true;
+      const defined = new Set([...bib.matchAll(/@\w+\{([^,]+),/g)].map(m => m[1].trim()));
+      const bibItemKeys = new Set([...tex.matchAll(/\\bibitem\{([^}]+)\}/g)].map(m => m[1].trim()));
+      const allDefined = new Set([...defined, ...bibItemKeys]);
+      return cited.every(k => allDefined.has(k));
+    },
+  },
+  {
+    id: 'B05', severity: 'warning',
+    message: 'BibTeX keys contain spaces or special characters',
+    check: (_, bib) => {
+      const keys = [...bib.matchAll(/@\w+\{([^,]+),/g)].map(m => m[1].trim());
+      return keys.every(k => /^[a-zA-Z0-9_-]+$/.test(k));
+    },
+  },
 
   // ── Metadata (M01-M04) ───────────────────────────────────────
   {
@@ -230,7 +326,7 @@ const ENGINE_CONTRACT: ContractCheck[] = [
     check: (tex) => tex.includes('\\pagestyle{fancy}'),
   },
 
-  // ── Quality (Q01-Q05) ────────────────────────────────────────
+  // ── Quality (Q01-Q07) ────────────────────────────────────────
   {
     id: 'Q01', severity: 'info',
     message: 'Straight double quotes in text (use `` and \'\')',
@@ -267,6 +363,27 @@ const ENGINE_CONTRACT: ContractCheck[] = [
     id: 'Q05', severity: 'info',
     message: 'Document has no chapters or sections',
     check: (tex) => tex.includes('\\chapter{') || tex.includes('\\section{'),
+  },
+  {
+    id: 'Q06', severity: 'info',
+    message: 'No \\listoffigures or \\listoftables despite having figures/tables',
+    check: (tex, _, state) => {
+      // Only applicable for PhD template
+      if (state?.type !== 'phd') return true;
+      const hasFigures = /\\begin\{figure\}/.test(tex);
+      const hasTables = /\\begin\{table\}/.test(tex);
+      if (!hasFigures && !hasTables) return true;
+      const hasListOfFigures = tex.includes('\\listoffigures');
+      const hasListOfTables = tex.includes('\\listoftables');
+      if (hasFigures && !hasListOfFigures) return false;
+      if (hasTables && !hasListOfTables) return false;
+      return true;
+    },
+  },
+  {
+    id: 'Q07', severity: 'warning',
+    message: 'Detected \\hline\\hline (double rules) — use \\toprule/\\midrule/\\bottomrule instead',
+    check: (tex) => !/\\hline\s*\\hline/.test(tex),
   },
 
   // ── Advanced Quality (A01-A03) ───────────────────────────────

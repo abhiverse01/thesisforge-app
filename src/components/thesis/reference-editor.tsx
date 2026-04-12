@@ -111,6 +111,20 @@ const refTypeConfig: Record<
     color: "text-cyan-500",
     bgColor: "bg-cyan-500",
   },
+  dataset: {
+    label: "Dataset",
+    shortLabel: "Dataset",
+    icon: FlaskConical,
+    color: "text-emerald-500",
+    bgColor: "bg-emerald-500",
+  },
+  software: {
+    label: "Software",
+    shortLabel: "Software",
+    icon: Zap,
+    color: "text-orange-500",
+    bgColor: "bg-orange-500",
+  },
   misc: {
     label: "Other",
     shortLabel: "Other",

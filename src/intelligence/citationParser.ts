@@ -11,6 +11,13 @@ import type { ParsedCitation } from './types';
  * Parse a raw citation string into a structured reference object.
  * Returns confidence scores per field for UI display.
  *
+ * Features:
+ * - DOI string parsing: detects `10.XXXX/...` patterns directly
+ * - arXiv ID detection: `arXiv:XXXX.XXXXX` patterns
+ * - Crossref field extraction from text
+ * - Confidence scores (0.0–1.0) for each parsed field in `_confidence`
+ * - `_warningFields: string[]` for fields with confidence < 0.5
+ *
  * Edge cases:
  * - Empty string → returns type "article", _parseScore 0
  * - Single word → returns minimal parse
@@ -24,6 +31,7 @@ export function parseCitationText(raw: string): ParsedCitation {
     type: 'article',
     _confidence: {},
     _parseScore: 0,
+    _warningFields: [],
   };
 
   if (!raw || typeof raw !== 'string') {
@@ -40,6 +48,27 @@ export function parseCitationText(raw: string): ParsedCitation {
   if (doiMatch) {
     result.doi = doiMatch[1].replace(/[.)]+$/, '');
     result._confidence.doi = 1.0;
+  }
+
+  // --- arXiv ID extraction ---
+  const arxivMatch = text.match(/\barXiv[:\s]*(\d{4}\.\d{4,5}(?:v\d+)?)\b/i);
+  if (arxivMatch) {
+    result.eprint = arxivMatch[1];
+    result.eprinttype = 'arxiv';
+    result._confidence.eprint = 1.0;
+    result._confidence.eprinttype = 1.0;
+    // If type is still default, infer preprint
+    if (!doiMatch) {
+      result.type = 'article';
+    }
+  }
+
+  // --- Crossref field extraction ---
+  // Detect crossref patterns like "Crossref: ..." or DOI-based crossref metadata
+  const crossrefMatch = text.match(/(?:crossref|cross[\s-]ref)[:\s]+([^\s,]+)/i);
+  if (crossrefMatch && !doiMatch) {
+    result.crossRef = crossrefMatch[1].replace(/[.)]+$/, '');
+    result._confidence.crossRef = 0.7;
   }
 
   // --- URL extraction ---
@@ -156,6 +185,11 @@ export function parseCitationText(raw: string): ParsedCitation {
   result._parseScore = scores.length
     ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) / 100
     : 0;
+
+  // --- Warning fields: fields with confidence < 0.5 ---
+  result._warningFields = Object.entries(result._confidence)
+    .filter(([, conf]) => conf < 0.5)
+    .map(([field]) => field);
 
   return result;
 }

@@ -4,6 +4,8 @@
 // Never hardcode LaTeX per-template.
 // ============================================================
 
+import type { CompilationRecipe } from '@/lib/thesis-types';
+
 export interface PackageDeclaration {
   name: string;
   options?: string[];
@@ -11,6 +13,7 @@ export interface PackageDeclaration {
 
 export interface TemplateSchema {
   id: string;
+  parent?: string;
   label: string;
   description: string;
   icon: string;
@@ -34,6 +37,7 @@ export interface TemplateSchema {
     requiredFields: string[];
     optionalFields: string[];
   };
+  compilationRecipe: CompilationRecipe;
 }
 
 export interface TemplateDefaults {
@@ -116,10 +120,16 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
       requiredFields: ['title', 'author', 'university', 'supervisor'],
       optionalFields: ['subtitle', 'department', 'faculty', 'coSupervisor', 'location', 'dedication', 'acknowledgment'],
     },
+    compilationRecipe: {
+      compiler: 'pdflatex',
+      passes: 4,
+      bibBackend: 'bibtex',
+    },
   },
 
   master: {
     id: 'master',
+    parent: 'bachelor',
     label: "Master's Thesis",
     description: 'Comprehensive graduate thesis with extended abstract, literature review, methodology, results, and discussion.',
     icon: '🏛️',
@@ -160,10 +170,16 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
       requiredFields: ['title', 'author', 'university', 'supervisor', 'department'],
       optionalFields: ['subtitle', 'faculty', 'coSupervisor', 'location', 'dedication', 'acknowledgment'],
     },
+    compilationRecipe: {
+      compiler: 'pdflatex',
+      passes: 4,
+      bibBackend: 'bibtex',
+    },
   },
 
   phd: {
     id: 'phd',
+    parent: 'master',
     label: 'PhD Dissertation',
     description: 'Full doctoral dissertation with comprehensive front matter, multiple chapters, glossary, and extensive back matter.',
     icon: '📋',
@@ -207,6 +223,11 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
       requiredFields: ['title', 'author', 'university', 'supervisor', 'department', 'faculty'],
       optionalFields: ['subtitle', 'coSupervisor', 'location', 'dedication', 'acknowledgment'],
     },
+    compilationRecipe: {
+      compiler: 'pdflatex',
+      passes: 4,
+      bibBackend: 'bibtex',
+    },
   },
 
   report: {
@@ -248,8 +269,134 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
       requiredFields: ['title', 'author'],
       optionalFields: ['subtitle', 'university', 'department', 'supervisor', 'location'],
     },
+    compilationRecipe: {
+      compiler: 'pdflatex',
+      passes: 2,
+    },
+  },
+
+  conference: {
+    id: 'conference',
+    label: 'Conference Paper',
+    description: 'Standard conference paper using IEEEtran or acmart. Single/double column toggle.',
+    icon: '📝',
+    documentClass: 'IEEEtran',
+    classOptions: ['10pt', 'a4paper', 'conference', 'twocolumn'],
+    requiredPackages: [
+      { name: 'inputenc', options: ['utf8'] },
+      { name: 'fontenc', options: ['T1'] },
+      { name: 'lmodern' },
+      { name: 'amsmath' },
+      { name: 'amssymb' },
+      { name: 'graphicx' },
+      { name: 'booktabs' },
+      { name: 'hyperref' },
+      { name: 'url' },
+      { name: 'balance' },
+    ],
+    frontMatter: ['titlepage'],
+    bodyStructure: ['introduction', 'related work', 'methodology', 'results', 'conclusion'],
+    backMatter: ['bibliography'],
+    citationStyle: 'ieeetr',
+    defaultSpacing: 'single',
+    abstractMaxWords: 250,
+    chapterCommand: '\\section',
+    hasDedication: false,
+    hasGlossary: false,
+    hasListings: false,
+    hasAppendices: false,
+    defaultTocDepth: 2,
+    defaults: {
+      fontSize: '10pt',
+      paperSize: 'a4paper',
+      lineSpacing: 'single',
+      marginSize: 'normal',
+      includeDedication: false,
+      includeAcknowledgment: false,
+      includeAppendices: false,
+      includeListings: false,
+      includeGlossary: false,
+      citationStyle: 'ieee',
+      figureNumbering: 'continuous',
+      tableNumbering: 'continuous',
+      tocDepth: 2,
+    },
+    validators: {
+      requiredFields: ['title', 'author'],
+      optionalFields: ['university', 'department'],
+    },
+    compilationRecipe: {
+      compiler: 'pdflatex',
+      passes: 2,
+      bibBackend: 'bibtex',
+    },
   },
 };
+
+// ============================================================
+// Template Inheritance Resolver
+// ============================================================
+
+/**
+ * Resolve a template schema by ID, merging parent defaults for
+ * fields not explicitly defined in the child template.
+ *
+ * Inheritance chain: phd → master → bachelor, master → bachelor.
+ * The child's own values always take precedence over the parent's.
+ */
+export function resolveTemplate(id: string): TemplateSchema {
+  const direct = TEMPLATE_SCHEMAS[id];
+  if (!direct) {
+    throw new Error(`Unknown template ID: "${id}"`);
+  }
+
+  // No parent — return as-is
+  if (!direct.parent) {
+    return direct;
+  }
+
+  // Resolve the full inheritance chain (guard against cycles)
+  const visited = new Set<string>();
+  let currentId: string | undefined = direct.parent;
+
+  const ancestorDefaults: Array<{ id: string; defaults: TemplateDefaults }> = [];
+
+  while (currentId !== undefined) {
+    if (visited.has(currentId)) {
+      throw new Error(`Circular template inheritance detected involving "${currentId}"`);
+    }
+    visited.add(currentId);
+
+    const ancestor = TEMPLATE_SCHEMAS[currentId];
+    if (!ancestor) {
+      throw new Error(`Parent template "${currentId}" not found`);
+    }
+
+    ancestorDefaults.unshift({ id: currentId, defaults: ancestor.defaults });
+
+    currentId = ancestor.parent;
+  }
+
+  // Merge defaults: for each TemplateDefaults key, use the child's value if present,
+  // otherwise fall back to the nearest ancestor that defines it.
+  const defaultKeys = Object.keys(direct.defaults) as (keyof TemplateDefaults)[];
+  const mergedDefaults = { ...direct.defaults } as Record<keyof TemplateDefaults, unknown>;
+
+  // Start from the root ancestor and work towards the immediate parent
+  // so that closer ancestors override more distant ones
+  for (const ancestor of ancestorDefaults) {
+    for (const key of defaultKeys) {
+      if (mergedDefaults[key] === undefined || mergedDefaults[key] === null) {
+        mergedDefaults[key] = ancestor.defaults[key];
+      }
+    }
+  }
+
+  return {
+    ...direct,
+    defaults: mergedDefaults as TemplateDefaults,
+  };
+}
 
 /**
  * Get all template schemas as an array.
@@ -259,7 +406,7 @@ export function getAllTemplates(): TemplateSchema[] {
 }
 
 /**
- * Resolve a template schema by ID.
+ * Resolve a template schema by ID (direct lookup, no inheritance merge).
  */
 export function getTemplateSchema(id: string): TemplateSchema | undefined {
   return TEMPLATE_SCHEMAS[id];

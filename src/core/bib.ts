@@ -10,7 +10,7 @@
 
 import type { ThesisReference, ReferenceType } from '@/lib/thesis-types';
 
-export type BibEntryType = 'article' | 'book' | 'inproceedings' | 'techreport' | 'phdthesis' | 'mastersthesis' | 'online' | 'misc';
+export type BibEntryType = 'article' | 'book' | 'inproceedings' | 'techreport' | 'phdthesis' | 'mastersthesis' | 'online' | 'misc' | 'dataset' | 'software';
 
 export interface BibEntrySchema {
   required: string[];
@@ -61,6 +61,14 @@ export const ENTRY_SCHEMAS: Record<BibEntryType, BibEntrySchema> = {
   misc: {
     required: ['author', 'title', 'year'],
     optional: ['howpublished', 'url', 'note', 'urldate', 'month'],
+  },
+  dataset: {
+    required: ['author', 'title', 'year'],
+    optional: ['version', 'url', 'doi', 'institution', 'date', 'note'],
+  },
+  software: {
+    required: ['author', 'title', 'year', 'url'],
+    optional: ['version', 'doi', 'license', 'note'],
   },
 };
 
@@ -145,6 +153,17 @@ export const TYPE_SPECIFIC_FIELDS: Record<BibEntryType, BibFieldDef[]> = {
     ...COMMON_FIELDS,
     { name: 'howPublished', label: 'How Published', bibField: 'howpublished', placeholder: 'Self-published', required: false },
   ],
+  dataset: [
+    ...COMMON_FIELDS,
+    { name: 'version', label: 'Version', bibField: 'version', placeholder: '1.0', required: false },
+    { name: 'institution', label: 'Institution', bibField: 'institution', placeholder: 'MIT', required: false },
+    { name: 'date', label: 'Date', bibField: 'date', placeholder: '2024-01-15', required: false },
+  ],
+  software: [
+    ...COMMON_FIELDS,
+    { name: 'version', label: 'Version', bibField: 'version', placeholder: '1.0', required: false },
+    { name: 'license', label: 'License', bibField: 'license', placeholder: 'MIT', required: false },
+  ],
 };
 
 // ============================================================
@@ -174,6 +193,12 @@ export const FIELD_NAME_MAP: Record<string, string> = {
   isbn: 'isbn',
   organization: 'organization',
   type: 'type',
+  eprint: 'eprint',
+  eprintType: 'eprinttype',
+  crossRef: 'crossref',
+  license: 'license',
+  date: 'date',
+  version: 'version',
 };
 
 // ============================================================
@@ -237,6 +262,18 @@ export function validateReference(
     errors.push({ field: 'authors', message: 'Author field looks like an email. Use "Last, First" format.', severity: 'warning' });
   }
 
+  // DOI format validation: must match ^10\.\d{4,9}/.+
+  if (ref.doi && ref.doi.trim() !== '') {
+    const doiPattern = /^10\.\d{4,9}\/.+/;
+    if (!doiPattern.test(ref.doi.trim())) {
+      errors.push({
+        field: 'doi',
+        message: 'DOI format appears invalid. Expected format: 10.XXXX/identifier',
+        severity: 'warning',
+      });
+    }
+  }
+
   return errors;
 }
 
@@ -252,19 +289,43 @@ export function generateCiteKey(ref: Record<string, string>): string {
     .replace(/[^a-z0-9]/g, '');
 
   let authorPart = 'unknown';
-  if (ref.authors) {
-    const firstAuthor = ref.authors.split(',')[0].trim();
-    const parts = firstAuthor.split(/\s+/);
-    authorPart = sanitize(parts[parts.length - 1] || firstAuthor);
+  if (ref.authors && ref.authors.trim() !== '') {
+    let rawAuthor = ref.authors.trim();
+
+    // Handle "et al." entries: strip "et al." before processing
+    rawAuthor = rawAuthor.replace(/\s*et\s+al\.?\s*/gi, '').trim();
+    if (rawAuthor === '') rawAuthor = ref.authors.trim();
+
+    // Handle corporate authors in braces: use first word inside braces
+    const corporateMatch = rawAuthor.match(/^\{([^}]+)\}/);
+    if (corporateMatch) {
+      const firstWord = corporateMatch[1].split(/\s+/)[0];
+      authorPart = sanitize(firstWord);
+    } else {
+      const firstAuthor = rawAuthor.split(',')[0].trim();
+      const parts = firstAuthor.split(/\s+/);
+
+      // Handle single-name authors (only one word): use the full name
+      if (parts.length === 1) {
+        authorPart = sanitize(parts[0]);
+      } else {
+        // Multi-word author: use last word (typically the surname)
+        authorPart = sanitize(parts[parts.length - 1] || firstAuthor);
+      }
+    }
   }
 
   const yearPart = sanitize(ref.year || 'xxxx');
 
+  // Handle entries with no title: use type as titlePart
   let titlePart = '';
-  if (ref.title) {
+  if (ref.title && ref.title.trim() !== '') {
     const firstWord = ref.title.split(/\s+/)
       .find(w => w.length > 3) || ref.title.split(/\s+/)[0];
     titlePart = sanitize(firstWord).slice(0, 8);
+  } else {
+    // Fallback: use type as titlePart
+    titlePart = sanitize(ref.type || 'untitled').slice(0, 8);
   }
 
   return `${authorPart}${yearPart}${titlePart}`;
@@ -331,6 +392,38 @@ export function sanitizeBibField(value: string, fieldName: string): string {
 }
 
 // ============================================================
+// arXiv ID Detection & Eprint Support
+// ============================================================
+
+/**
+ * Detect arXiv ID from a DOI or eprint field and return the
+ * extracted arXiv identifier, or undefined if not an arXiv reference.
+ */
+function extractArxivId(ref: Record<string, string>): string | undefined {
+  const doi = (ref.doi || '').trim();
+  const eprint = (ref.eprint || '').trim();
+
+  // Check DOI field for arXiv prefix (e.g. "10.48550/arXiv.2312.12345")
+  if (doi && /arXiv/i.test(doi)) {
+    const match = doi.match(/(\d{4}\.\d{4,5}(?:v\d+)?)/);
+    return match ? match[1] : undefined;
+  }
+
+  // Check explicit eprint field for arXiv prefix
+  if (eprint && /^arXiv[:\s]*(\d{4}\.\d{4,5}(?:v\d+)?)$/i.test(eprint)) {
+    const match = eprint.match(/(\d{4}\.\d{4,5}(?:v\d+)?)/i);
+    return match ? match[1] : undefined;
+  }
+
+  // Check eprint field for bare arXiv ID
+  if (eprint && /^\d{4}\.\d{4,5}(v\d+)?$/i.test(eprint)) {
+    return eprint;
+  }
+
+  return undefined;
+}
+
+// ============================================================
 // BibTeX Entry Generation
 // Generates compilable .bib with TODO placeholders for missing fields.
 // Better to compile with a placeholder than to fail entirely.
@@ -348,6 +441,9 @@ export function generateBibEntry(
 
   const fields: string[] = [];
 
+  // Detect arXiv ID and auto-set eprint fields
+  const arxivId = extractArxivId(ref);
+
   for (const bibField of allFields) {
     const uiField = Object.entries(FIELD_NAME_MAP).find(([, bib]) => bib === bibField)?.[0];
     const value = uiField ? ref[uiField] : ref[bibField];
@@ -361,6 +457,18 @@ export function generateBibEntry(
       const pad = ' '.repeat(Math.max(0, 14 - bibField.length));
       fields.push(`  ${bibField}${pad} = {TODO: Add ${bibField}}`);
     }
+  }
+
+  // Add arXiv eprint fields if detected
+  if (arxivId) {
+    fields.push(`  eprint          = {${arxivId}}`);
+    fields.push(`  eprinttype      = {arXiv}`);
+  }
+
+  // Add crossref field if set
+  const crossRef = ref.crossRef;
+  if (crossRef && crossRef.trim()) {
+    fields.push(`  crossref        = {${crossRef.trim()}}`);
   }
 
   const bibType = type === 'phdthesis' ? 'phdthesis' :
@@ -396,8 +504,10 @@ export function generateBibFromThesisReferences(references: ThesisReference[]): 
         ref.type as BibEntryType;
 
       // Map institution: for techreport, use the publisher field.
+      // For dataset, use the institution field if available.
       // For all other types, leave empty (not applicable).
-      const institution = ref.type === 'techreport' ? (ref.publisher || '') : '';
+      const institution = ref.type === 'techreport' ? (ref.publisher || '') :
+                          ref.type === 'dataset' ? (ref.publisher || '') : '';
 
       return {
         type: bibType,
@@ -424,8 +534,172 @@ export function generateBibFromThesisReferences(references: ThesisReference[]): 
           isbn: '',
           organization: '',
           type: '',
+          eprint: ref.eprint || '',
+          eprintType: ref.eprintType || '',
+          crossRef: ref.crossRef || '',
+          license: '',
+          date: '',
+          version: '',
         },
       };
     })
   );
+}
+
+// ============================================================
+// Bibliography Health Scoring
+// ============================================================
+
+export interface BibliographyHealth {
+  score: number; // 0-100
+  completenessScore: number;
+  noDuplicates: boolean;
+  noTodoPlaceholders: boolean;
+  doiPresence: number; // % of journal articles with DOI
+  urlValidity: number; // % of entries with valid URLs
+  fieldCompleteness: number; // % of required fields filled
+  issues: string[];
+}
+
+/**
+ * Compute a health score for a bibliography (0–100).
+ * Checks completeness, duplicates, DOI coverage, URL validity,
+ * and TODO placeholder detection.
+ */
+export function computeBibliographyHealth(references: ThesisReference[]): BibliographyHealth {
+  const issues: string[] = [];
+
+  if (references.length === 0) {
+    return {
+      score: 0,
+      completenessScore: 0,
+      noDuplicates: true,
+      noTodoPlaceholders: true,
+      doiPresence: 0,
+      urlValidity: 0,
+      fieldCompleteness: 0,
+      issues: ['No references in bibliography.'],
+    };
+  }
+
+  // ── Duplicate detection ──
+  const seenKeys = new Set<string>();
+  const keys: string[] = [];
+  for (const ref of references) {
+    const key = generateCiteKey({
+      authors: ref.authors,
+      year: ref.year,
+      title: ref.title,
+      type: ref.type,
+    });
+    keys.push(key);
+    if (seenKeys.has(key)) {
+      issues.push(`Duplicate cite key detected: "${key}"`);
+    }
+    seenKeys.add(key);
+  }
+  const noDuplicates = seenKeys.size === references.length;
+
+  // ── TODO placeholder detection ──
+  let todoCount = 0;
+  for (const ref of references) {
+    const fields = [
+      ref.authors, ref.title, ref.year, ref.journal, ref.bookTitle,
+      ref.publisher, ref.school, ref.doi, ref.url, ref.note,
+    ];
+    for (const field of fields) {
+      if (field && /TODO/i.test(field)) {
+        todoCount++;
+        break;
+      }
+    }
+  }
+  const noTodoPlaceholders = todoCount === 0;
+  if (!noTodoPlaceholders) {
+    issues.push(`${todoCount} reference(s) contain TODO placeholders.`);
+  }
+
+  // ── DOI presence for journal articles ──
+  const journalArticles = references.filter(r => r.type === 'article');
+  const journalWithDoi = journalArticles.filter(r => r.doi && r.doi.trim() !== '');
+  const doiPresence = journalArticles.length > 0
+    ? Math.round((journalWithDoi.length / journalArticles.length) * 100)
+    : 100; // Not applicable → perfect score
+
+  if (journalArticles.length > 0 && doiPresence < 80) {
+    issues.push(`${doiPresence}% of journal articles have DOIs (target: 80%+).`);
+  }
+
+  // ── URL validity ──
+  const entriesWithUrl = references.filter(r => r.url && r.url.trim() !== '');
+  const validUrlCount = entriesWithUrl.filter(r => /^https?:\/\/.+/i.test(r.url || '')).length;
+  const urlValidity = entriesWithUrl.length > 0
+    ? Math.round((validUrlCount / entriesWithUrl.length) * 100)
+    : 100;
+
+  if (entriesWithUrl.length > 0 && urlValidity < 100) {
+    issues.push(`${entriesWithUrl.length - validUrlCount} URL(s) appear invalid.`);
+  }
+
+  // ── Field completeness ──
+  let totalRequired = 0;
+  let filledRequired = 0;
+  for (const ref of references) {
+    const refType = ref.type as ReferenceType;
+    const bibType: BibEntryType =
+      refType === 'thesis' ? 'phdthesis' :
+      refType as BibEntryType;
+    const schema = ENTRY_SCHEMAS[bibType];
+    if (!schema) continue;
+    for (const field of schema.required) {
+      totalRequired++;
+      const fieldMap: Record<string, string | undefined> = {
+        author: ref.authors,
+        title: ref.title,
+        year: ref.year,
+        journal: ref.journal,
+        publisher: ref.publisher,
+        booktitle: ref.bookTitle,
+        school: ref.school,
+        institution: ref.publisher,
+        url: ref.url,
+        urldate: ref.accessed,
+      };
+      const value = fieldMap[field];
+      if (value && value.trim() !== '' && !/TODO/i.test(value)) {
+        filledRequired++;
+      }
+    }
+  }
+  const fieldCompleteness = totalRequired > 0
+    ? Math.round((filledRequired / totalRequired) * 100)
+    : 100;
+
+  if (fieldCompleteness < 100) {
+    issues.push(`${totalRequired - filledRequired} required field(s) are missing or incomplete.`);
+  }
+
+  // ── Completeness score (weighted composite) ──
+  const duplicatePenalty = noDuplicates ? 0 : 15;
+  const todoPenalty = noTodoPlaceholders ? 0 : 10;
+  const completenessScore = Math.max(0, 100 - duplicatePenalty - todoPenalty - Math.round((100 - fieldCompleteness) * 0.3));
+
+  // ── Overall score ──
+  const score = Math.max(0, Math.min(100, Math.round(
+    completenessScore * 0.4 +
+    fieldCompleteness * 0.3 +
+    doiPresence * 0.15 +
+    urlValidity * 0.15
+  )));
+
+  return {
+    score,
+    completenessScore,
+    noDuplicates,
+    noTodoPlaceholders,
+    doiPresence,
+    urlValidity,
+    fieldCompleteness,
+    issues,
+  };
 }
