@@ -38,28 +38,28 @@ const features = [
     icon: ClipboardList,
     title: "Standard Templates",
     description:
-      "Choose from Bachelor's, Master's, PhD, or Research Report templates with pre-configured academic structures.",
+      "Choose from Bachelor's, Master's, PhD, or Research Report templates with pre-configured academic structures. Each LaTeX thesis template includes the correct chapter layout, page margins, citation style, and formatting defaults for your degree level.",
     badge: "4 Types",
   },
   {
     icon: PenTool,
     title: "Step-by-Step Editor",
     description:
-      "Fill in your content through an intuitive 6-step wizard. No LaTeX syntax knowledge required.",
+      "Fill in your content through an intuitive 6-step wizard. No LaTeX syntax knowledge required — ThesisForge generates all LaTeX code for you, including bibliography commands, figure environments, and math formatting.",
     badge: "6 Steps",
   },
   {
     icon: Download,
     title: "One-Click Export",
     description:
-      "Download compilable .tex and .bib files ready for Overleaf, TeXStudio, or any LaTeX editor.",
+      "Download compilable .tex and .bib files ready for Overleaf, TeXStudio, or any LaTeX editor. Your ZIP file contains a complete main.tex and references.bib that compiles without errors.",
     badge: ".tex + .bib",
   },
   {
     icon: Save,
     title: "Auto-Save & Resume",
     description:
-      "Your progress is saved locally. Close the tab and come back anytime — your draft is always there.",
+      "Your progress is saved locally to IndexedDB. Close the tab and come back anytime — your draft is always there. No account, no cloud storage — your thesis data never leaves your browser.",
     badge: "Persistent",
   },
 ];
@@ -68,34 +68,38 @@ const useCases = [
   {
     icon: GraduationCap,
     title: "Bachelor Students",
-    description: "Streamline your undergraduate thesis with the IMRAD structure and automatic formatting.",
+    description: "Generate a bachelor thesis in LaTeX with the IMRAD structure and automatic formatting. Perfect for undergraduates who need a professional LaTeX thesis without learning LaTeX syntax.",
     color: "from-blue-500/10 to-blue-600/5 dark:from-blue-400/10 dark:to-blue-500/5",
     iconBg: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
     dotColor: "bg-blue-500",
+    link: "/templates/bachelors",
   },
   {
     icon: BookOpen,
     title: "Master Students",
-    description: "Comprehensive graduate thesis support with extended abstract, literature review, and appendices.",
+    description: "Create your master thesis in LaTeX with a comprehensive graduate template featuring extended abstract, literature review, and appendices. Export to Overleaf and compile instantly.",
     color: "from-emerald-500/10 to-emerald-600/5 dark:from-emerald-400/10 dark:to-emerald-500/5",
     iconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     dotColor: "bg-emerald-500",
+    link: "/templates/masters",
   },
   {
     icon: FlaskConical,
     title: "PhD Researchers",
-    description: "Full doctoral dissertation template with front matter, multiple chapters, glossary, and listings.",
+    description: "Build your PhD dissertation in LaTeX with a full doctoral template including front matter, multiple chapters, glossary, nomenclature, and listings. No LaTeX experience required.",
     color: "from-amber-500/10 to-amber-600/5 dark:from-amber-400/10 dark:to-amber-500/5",
     iconBg: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
     dotColor: "bg-amber-500",
+    link: "/templates/phd",
   },
   {
     icon: FileText,
     title: "Lab Reports",
-    description: "Concise research report template ideal for technical papers, lab reports, or project documentation.",
+    description: "Create a research report in LaTeX with a concise technical template ideal for lab reports, project documentation, or short academic papers. Free LaTeX generator.",
     color: "from-rose-500/10 to-rose-600/5 dark:from-rose-400/10 dark:to-rose-500/5",
     iconBg: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
     dotColor: "bg-rose-500",
+    link: "/templates/research-report",
   },
 ];
 
@@ -307,7 +311,8 @@ function StatCounter({ stat, index, isLast }: { stat: typeof stats[number]; inde
         viewport={{ once: true }}
         className="text-center p-4 sm:p-6"
       >
-        <div className="text-3xl sm:text-4xl lg:text-5xl font-semibold google-gradient-text mb-2">
+        {/* Crawlable stat value — real text always in DOM for Googlebot */}
+        <div className="text-3xl sm:text-4xl lg:text-5xl font-semibold google-gradient-text mb-2" aria-label={`${stat.isSpecial ? 'Zero' : stat.value}${stat.suffix} ${stat.label}`}>
           {stat.isSpecial ? (
             <motion.span
               initial={{ opacity: 0 }}
@@ -326,6 +331,12 @@ function StatCounter({ stat, index, isLast }: { stat: typeof stats[number]; inde
         <p className="text-sm sm:text-base text-muted-foreground font-medium">
           {stat.label}
         </p>
+        {/* noscript fallback: Googlebot sees real values without JS animation */}
+        <noscript>
+          <div className="text-3xl font-semibold google-gradient-text">
+            {stat.isSpecial ? "Zero" : `${stat.value}${stat.suffix}`}
+          </div>
+        </noscript>
       </motion.div>
     </div>
   );
@@ -371,9 +382,9 @@ export function Homepage() {
   const ctaInView = useInView(ctaRef, { once: true, margin: "-80px" });
 
   const subtitleWords = [
-    "Select", "a", "template,", "fill", "in", "your", "content,", "and",
-    "download", "production-ready", "LaTeX", "code.", "No", "LaTeX",
-    "knowledge", "required.",
+    "Generate", "a", "complete,", "compilable", "LaTeX", "thesis", "in", "minutes.",
+    "Choose", "from", "Bachelor's,", "Master's,", "PhD,", "or", "Research",
+    "Report", "templates.", "Export", ".tex", "+", ".bib", "files", "ready", "for", "Overleaf.",
   ];
 
   return (
@@ -427,7 +438,7 @@ export function Homepage() {
             transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
             className="text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-8 text-balance"
           >
-            {"Create Your Thesis in Minutes".split(" ").map((word, i) => (
+            {"Free LaTeX Thesis Generator".split(" ").map((word, i) => (
               <motion.span
                 key={i}
                 initial={{ opacity: 0, y: 12 }}
@@ -842,6 +853,46 @@ export function Homepage() {
           </motion.div>
         </div>
       </section>
+
+      {/* ============================================================ */}
+      {/* SEO Footer — Sitemap-style link block for crawlability */}
+      {/* ============================================================ */}
+      <nav className="py-10 border-t bg-muted/20" aria-label="Footer navigation">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            {/* Templates */}
+            <div>
+              <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Templates</h4>
+              <ul className="space-y-2">
+                <li><a href="/templates/bachelors" className="text-sm text-muted-foreground hover:text-primary transition-colors">Bachelor's Thesis</a></li>
+                <li><a href="/templates/masters" className="text-sm text-muted-foreground hover:text-primary transition-colors">Master's Thesis</a></li>
+                <li><a href="/templates/phd" className="text-sm text-muted-foreground hover:text-primary transition-colors">PhD Dissertation</a></li>
+                <li><a href="/templates/research-report" className="text-sm text-muted-foreground hover:text-primary transition-colors">Research Report</a></li>
+              </ul>
+            </div>
+            {/* Citation Styles */}
+            <div>
+              <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Citation Styles</h4>
+              <ul className="space-y-2">
+                <li><a href="/citation-styles/apa" className="text-sm text-muted-foreground hover:text-primary transition-colors">APA Style</a></li>
+                <li><a href="/citation-styles/ieee" className="text-sm text-muted-foreground hover:text-primary transition-colors">IEEE Style</a></li>
+                <li><a href="/citation-styles/chicago" className="text-sm text-muted-foreground hover:text-primary transition-colors">Chicago Style</a></li>
+                <li><a href="/citation-styles/harvard" className="text-sm text-muted-foreground hover:text-primary transition-colors">Harvard Style</a></li>
+                <li><a href="/citation-styles/vancouver" className="text-sm text-muted-foreground hover:text-primary transition-colors">Vancouver Style</a></li>
+              </ul>
+            </div>
+            {/* Guides & Comparisons */}
+            <div>
+              <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Guides</h4>
+              <ul className="space-y-2">
+                <li><a href="/vs/overleaf" className="text-sm text-muted-foreground hover:text-primary transition-colors">ThesisForge vs Overleaf</a></li>
+                <li><a href="/vs/word" className="text-sm text-muted-foreground hover:text-primary transition-colors">LaTeX vs Word for Thesis</a></li>
+                <li><a href="/blog" className="text-sm text-muted-foreground hover:text-primary transition-colors">Blog &amp; Guides</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </nav>
 
       {/* ============================================================ */}
       {/* Developer Credit */}
