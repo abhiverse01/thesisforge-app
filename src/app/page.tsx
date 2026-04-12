@@ -523,16 +523,17 @@ export default function Home() {
     try {
       const result = await exportThesis(thesis, selectedTemplate);
       if (result.errors && result.errors.length > 0) {
-        toast.error("Export blocked — LaTeX errors detected", {
-          description: result.errors.map(e => e.message).slice(0, 3).join("\n"),
+        // Download succeeded but with warnings — inform user
+        toast.warning("Exported with warnings", {
+          description: `Downloaded, but ${result.errors.length} issue(s) found. Review before compiling.`,
           duration: 5000,
         });
-        return;
+      } else {
+        toast.success("Your thesis is ready", {
+          description: "Compile it in Overleaf to get your PDF.",
+          duration: 5000,
+        });
       }
-      toast.success("Your thesis is ready", {
-        description: "Compile it in Overleaf to get your PDF.",
-        duration: 5000,
-      });
     } catch (err) {
       toast.error("Export failed", {
         description: err instanceof Error ? err.message : "Failed to create ZIP file.",
@@ -1087,6 +1088,7 @@ export default function Home() {
                     <Button
                       size="sm"
                       onClick={handleExportZip}
+                      disabled={isGenerating}
                       className="text-xs gap-1.5 font-semibold min-w-[140px] h-11 btn-primary"
                     >
                       {isGenerating ? (

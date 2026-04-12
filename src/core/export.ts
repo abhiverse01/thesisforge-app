@@ -183,11 +183,8 @@ export async function exportThesis(
   );
     const readme = generateReadme(data, templateId);
 
-    // FIX(ZONE-3A): Assert LaTeX contract before export
+    // Check LaTeX contract — warn but don't block download
     const contractErrors = assertLatexContract(tex, bib);
-    if (contractErrors.length > 0) {
-      return { errors: contractErrors };
-    }
 
     const zip = new JSZip();
     const folderName = sanitizeFilename(data.metadata.title) || 'thesis';
@@ -214,7 +211,9 @@ export async function exportThesis(
     });
 
     triggerDownload(blob, `${folderName}.zip`);
-    return {};
+
+    // Return warnings (not blocking) so UI can show them
+    return { errors: contractErrors.length > 0 ? contractErrors : undefined };
   } catch (err) {
     throw err;
   }
