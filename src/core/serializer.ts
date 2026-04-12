@@ -33,6 +33,10 @@ import type {
 } from './ast';
 import { escapeLatexBody } from '@/engine/escape';
 
+import {
+  rawLaTeX as rawLaTeXNode,
+} from './ast';
+
 /**
  * Serialize any AST node to LaTeX string.
  * @param node - The AST node to serialize
@@ -283,7 +287,8 @@ export function contentToLatexNodes(content: string, escaped = false): ASTNode[]
     const lines = trimmed.split('\n');
     for (let j = 0; j < lines.length; j++) {
       if (j > 0) {
-        nodes.push({ type: 'Command', name: '\\\\', args: [], options: [], star: false } as unknown as ASTNode);
+        // Line break within paragraph — use rawLaTeX node for correct \\
+        nodes.push(rawLaTeXNode('\\\\'));
       }
       const line = lines[j].trim();
       if (line) {

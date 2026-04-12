@@ -386,32 +386,46 @@ export function generateBibFile(
 
 export function generateBibFromThesisReferences(references: ThesisReference[]): string {
   return generateBibFile(
-    references.map(ref => ({
-      type: (ref.type === 'thesis' ? 'phdthesis' : ref.type === 'techreport' ? 'techreport' : ref.type) as BibEntryType,
-      fields: {
-        authors: ref.authors || '',
-        title: ref.title || '',
-        journal: ref.journal || '',
-        bookTitle: ref.bookTitle || '',
-        publisher: ref.publisher || '',
-        year: ref.year || '',
-        volume: ref.volume || '',
-        number: ref.number || '',
-        pages: ref.pages || '',
-        doi: ref.doi || '',
-        url: ref.url || '',
-        note: ref.note || '',
-        edition: ref.edition || '',
-        address: ref.address || '',
-        school: ref.school || '',
-        institution: ref.publisher || '',
-        howPublished: ref.howPublished || '',
-        accessed: ref.accessed || '',
-        month: '',
-        isbn: '',
-        organization: '',
-        type: ref.type === 'thesis' ? 'phdthesis' : ref.type,
-      },
-    }))
+    references.map(ref => {
+      // Map app-level ReferenceType to BibEntryType.
+      // 'thesis' in the app always maps to 'phdthesis' for BibTeX output.
+      // 'techreport' maps directly (same name in both type systems).
+      const bibType: BibEntryType =
+        ref.type === 'thesis' ? 'phdthesis' :
+        ref.type === 'techreport' ? 'techreport' :
+        ref.type as BibEntryType;
+
+      // Map institution: for techreport, use the publisher field.
+      // For all other types, leave empty (not applicable).
+      const institution = ref.type === 'techreport' ? (ref.publisher || '') : '';
+
+      return {
+        type: bibType,
+        fields: {
+          authors: ref.authors || '',
+          title: ref.title || '',
+          journal: ref.journal || '',
+          bookTitle: ref.bookTitle || '',
+          publisher: ref.publisher || '',
+          year: ref.year || '',
+          volume: ref.volume || '',
+          number: ref.number || '',
+          pages: ref.pages || '',
+          doi: ref.doi || '',
+          url: ref.url || '',
+          note: ref.note || '',
+          edition: ref.edition || '',
+          address: ref.address || '',
+          school: ref.school || '',
+          institution: institution,
+          howPublished: ref.howPublished || '',
+          accessed: ref.accessed || '',
+          month: '',
+          isbn: '',
+          organization: '',
+          type: '',
+        },
+      };
+    })
   );
 }

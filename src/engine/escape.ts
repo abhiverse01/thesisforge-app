@@ -171,11 +171,7 @@ export function escapeLatexBody(text: string): string {
       (acc, [pattern, replacement]) => acc.replace(pattern, replacement),
       seg.content
     );
-    // Post-processing: Fix smart quote pairing
-    // Replace straight " with proper LaTeX `` and '' pairs
-    let result = escaped.replace(/"(?=<[^"]*")/g, "``$&")
-      .replace(/(?<=[^"]*)"/g, "$&''");
-    return result;
+    return escaped;
   }).join('');
 }
 

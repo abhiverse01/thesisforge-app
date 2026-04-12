@@ -811,7 +811,6 @@ export function ReferenceEditor() {
                   const isExpanded =
                     !compactView || expandedRefId === ref.id;
                   const yearValid = isYearValid(ref.year);
-                  const doiValue = ref.doi || ref.url || "";
 
                   return (
                     <motion.div
@@ -1255,35 +1254,190 @@ export function ReferenceEditor() {
                                                 className="h-8 text-xs"
                                               />
                                             </div>
+                                            {/* Book Title (inproceedings) */}
+                                            {ref.type === "inproceedings" && (
+                                              <div className="space-y-1">
+                                                <Label className="text-xs font-medium text-muted-foreground">
+                                                  Book Title
+                                                </Label>
+                                                <Input
+                                                  value={ref.bookTitle || ""}
+                                                  onChange={(e) =>
+                                                    updateReference(ref.id, {
+                                                      bookTitle: e.target.value,
+                                                    })
+                                                  }
+                                                  placeholder="Proceedings of..."
+                                                  className="h-8 text-xs"
+                                                />
+                                              </div>
+                                            )}
                                           </>
                                         )}
 
-                                        {/* DOI / URL (simplified — no validation errors) */}
-                                        <div className="sm:col-span-2 space-y-1">
+                                        {/* Publisher (book) */}
+                                        {ref.type === "book" && (
+                                          <div className="space-y-1">
+                                            <Label className="text-xs font-medium text-muted-foreground">
+                                              Publisher
+                                            </Label>
+                                            <Input
+                                              value={ref.publisher || ""}
+                                              onChange={(e) =>
+                                                updateReference(ref.id, {
+                                                  publisher: e.target.value,
+                                                })
+                                              }
+                                              placeholder="Publisher Name"
+                                              className="h-8 text-xs"
+                                            />
+                                          </div>
+                                        )}
+
+                                        {/* Edition (book) */}
+                                        {ref.type === "book" && (
+                                          <div className="space-y-1">
+                                            <Label className="text-xs font-medium text-muted-foreground">
+                                              Edition
+                                            </Label>
+                                            <Input
+                                              value={ref.edition || ""}
+                                              onChange={(e) =>
+                                                updateReference(ref.id, {
+                                                  edition: e.target.value,
+                                                })
+                                              }
+                                              placeholder="e.g., 3rd"
+                                              className="h-8 text-xs"
+                                            />
+                                          </div>
+                                        )}
+
+                                        {/* School (thesis) */}
+                                        {ref.type === "thesis" && (
+                                          <div className="space-y-1">
+                                            <Label className="text-xs font-medium text-muted-foreground">
+                                              School / University
+                                            </Label>
+                                            <Input
+                                              value={ref.school || ""}
+                                              onChange={(e) =>
+                                                updateReference(ref.id, {
+                                                  school: e.target.value,
+                                                })
+                                              }
+                                              placeholder="MIT"
+                                              className="h-8 text-xs"
+                                            />
+                                          </div>
+                                        )}
+
+                                        {/* Institution (techreport) */}
+                                        {ref.type === "techreport" && (
+                                          <div className="space-y-1">
+                                            <Label className="text-xs font-medium text-muted-foreground">
+                                              Institution
+                                            </Label>
+                                            <Input
+                                              value={ref.publisher || ""}
+                                              onChange={(e) =>
+                                                updateReference(ref.id, {
+                                                  publisher: e.target.value,
+                                                })
+                                              }
+                                              placeholder="MIT"
+                                              className="h-8 text-xs"
+                                            />
+                                          </div>
+                                        )}
+
+                                        {/* Address (book, techreport) */}
+                                        {(ref.type === "book" || ref.type === "techreport") && (
+                                          <div className="space-y-1">
+                                            <Label className="text-xs font-medium text-muted-foreground">
+                                              Address
+                                            </Label>
+                                            <Input
+                                              value={ref.address || ""}
+                                              onChange={(e) =>
+                                                updateReference(ref.id, {
+                                                  address: e.target.value,
+                                                })
+                                              }
+                                              placeholder="City, Country"
+                                              className="h-8 text-xs"
+                                            />
+                                          </div>
+                                        )}
+
+                                        {/* How Published (misc) */}
+                                        {ref.type === "misc" && (
+                                          <div className="space-y-1">
+                                            <Label className="text-xs font-medium text-muted-foreground">
+                                              How Published
+                                            </Label>
+                                            <Input
+                                              value={ref.howPublished || ""}
+                                              onChange={(e) =>
+                                                updateReference(ref.id, {
+                                                  howPublished: e.target.value,
+                                                })
+                                              }
+                                              placeholder="Self-published"
+                                              className="h-8 text-xs"
+                                            />
+                                          </div>
+                                        )}
+
+                                        {/* Access Date (online) */}
+                                        {ref.type === "online" && (
+                                          <div className="space-y-1">
+                                            <Label className="text-xs font-medium text-muted-foreground">
+                                              Access Date
+                                            </Label>
+                                            <Input
+                                              value={ref.accessed || ""}
+                                              onChange={(e) =>
+                                                updateReference(ref.id, {
+                                                  accessed: e.target.value,
+                                                })
+                                              }
+                                              placeholder="2024-01-15"
+                                              className="h-8 text-xs"
+                                            />
+                                          </div>
+                                        )}
+
+                                        {/* DOI */}
+                                        <div className="space-y-1">
                                           <Label className="text-xs font-medium text-muted-foreground">
-                                            DOI / URL
+                                            DOI
                                           </Label>
                                           <Input
-                                            value={doiValue}
-                                            onChange={(e) => {
-                                              const val =
-                                                e.target.value;
-                                              const isUrl =
-                                                val.startsWith("http");
-                                              updateReference(
-                                                ref.id,
-                                                isUrl
-                                                  ? {
-                                                      url: val,
-                                                      doi: "",
-                                                    }
-                                                  : {
-                                                      doi: val,
-                                                      url: "",
-                                                    },
-                                              );
-                                            }}
-                                            placeholder="https://doi.org/10.1234/example or https://..."
+                                            value={ref.doi || ""}
+                                            onChange={(e) =>
+                                              updateReference(ref.id, {
+                                                doi: e.target.value,
+                                              })
+                                            }
+                                            placeholder="10.1234/example"
+                                            className="h-8 text-xs"
+                                          />
+                                        </div>
+
+                                        {/* URL */}
+                                        <div className="space-y-1">
+                                          <Label className="text-xs font-medium text-muted-foreground">
+                                            URL
+                                          </Label>
+                                          <Input
+                                            value={ref.url || ""}
+                                            onChange={(e) =>
+                                              updateReference(ref.id, {
+                                                url: e.target.value,
+                                              })
+                                            }
+                                            placeholder="https://..."
                                             className="h-8 text-xs"
                                           />
                                         </div>

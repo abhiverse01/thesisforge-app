@@ -34,8 +34,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  Mail,
-  ExternalLink,
 } from "lucide-react";
 import {
   Tooltip,
