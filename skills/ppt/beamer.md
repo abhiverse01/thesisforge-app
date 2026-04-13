@@ -1404,18 +1404,22 @@ Extract the font name (e.g., "Kaiti SC") from the error and determine whether it
 ```bash
 # Full system search
 find / -iname "*fontname*" 2>/dev/null
-# Common font directories
+# Common font directories — macOS
 ls ~/Library/Fonts/ /Library/Fonts/ /System/Library/Fonts/ /System/Library/Fonts/Supplemental/
 # macOS may store fonts under AssetsV2
 find /System/Library/AssetsV2 -iname "*.ttc" -o -iname "*.ttf" 2>/dev/null
+# Common font directory — Linux
+ls /usr/share/fonts/truetype/
 ```
 
 **3. Handle based on search results**
 
 | Situation | Solution |
 |---|---|
-| Font exists on system but not in standard Fonts directory | Copy to `~/Library/Fonts/` so the compiler can find it |
-| Font does not exist on the system | Download and install the font file to `~/Library/Fonts/` |
+| Font exists on system but not in standard Fonts directory (macOS) | Copy to `~/Library/Fonts/` so the compiler can find it |
+| Font exists on system but not in standard Fonts directory (Linux) | Copy to `/usr/share/fonts/truetype/` then run `fc-cache -fv` |
+| Font does not exist on the system (macOS) | Download and install the font file to `~/Library/Fonts/` |
+| Font does not exist on the system (Linux) | Download the font file to `/usr/share/fonts/truetype/` then run `fc-cache -fv` |
 | Cannot install fonts (server / no permissions) | Switch to `fontset=fandol` (bundled open-source fonts with ctex) or `fontset=none` + manually specify available fonts |
 
 **4. Verify**

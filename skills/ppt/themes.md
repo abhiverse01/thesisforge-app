@@ -84,7 +84,7 @@ Color Scale:
 |------|-----|
 | **Mood** | Natural, serene, organic and gentle |
 | **Suitable for** | Educational courseware, humanities/liberal arts academic, ESG/sustainability |
-| **Primary** | `#264653` |
+| **Primary** | `#1B4332` |
 | **Accent (A — default)** | `#DCBD74` (golden) |
 | **Accent B** | `#E18C70` (coral) |
 | **Accent C** | `#7EC8B0` (mint) |
@@ -93,20 +93,20 @@ Color Scale:
 | **Latin Title Font** | Palatino Linotype Bold |
 | **Latin Body Font** | Corbel |
 | **Image Keywords** | forest, nature, leaves, green, organic, sustainability, botanical, meadow |
-| **Mask Color** | `rgba(26,51,64,0.75)` (primary-90 based) |
+| **Mask Color** | `rgba(18,45,31,0.75)` (primary-90 based) |
 
 Color Scale:
 
 | Scale | Color Value |
 |------|------|
-| primary-100 | `#0F1C22` |
-| primary-90 | `#1A3340` |
-| primary-80 | `#264653` |
-| primary-60 | `#4A7A8A` |
-| primary-40 | `#7FAABB` |
-| primary-20 | `#B8D4DE` |
-| primary-10 | `#DFECF0` |
-| primary-5 | `#F1F6F8` |
+| primary-100 | `#0B1E14` |
+| primary-90 | `#122D1F` |
+| primary-80 | `#1B4332` |
+| primary-60 | `#2E6B4F` |
+| primary-40 | `#60A882` |
+| primary-20 | `#A8D4BC` |
+| primary-10 | `#D8EEE2` |
+| primary-5 | `#EEF7F1` |
 
 ---
 
@@ -117,7 +117,7 @@ Color Scale:
 | **Mood** | Creative, unique, personality-driven |
 | **Suitable for** | Creative proposals, brand planning, design sharing |
 | **Primary** | `#2D2B55` |
-| **Accent (A — default)** | `#A77BCA` (lavender) |
+| **Accent (A — default)** | `#9B50F5` (electric purple) |
 | **Accent B** | `#E3B27D` (warm orange) |
 | **Accent C** | `#5EC4D4` (sky blue) |
 | **CJK Title Font** | Microsoft YaHei Bold |
@@ -390,7 +390,7 @@ Color Scale:
 | **Mood** | Open, lightweight, approachable technology |
 | **Suitable for** | SaaS products, AI/tech, onboarding, training materials |
 | **Primary** | `#1E5F8C` |
-| **Accent (A — default)** | `#D7A042` (amber) |
+| **Accent (A — default)** | `#FF6B2B` (electric orange) |
 | **Accent B** | `#DD5F5F` (red) |
 | **Accent C** | `#9270E1` (violet) |
 | **CJK Title Font** | Microsoft YaHei Bold |
@@ -422,7 +422,7 @@ Color Scale:
 | **Mood** | Bold, energetic, high-impact |
 | **Suitable for** | Annual events, product launches, sales campaigns, motivational presentations |
 | **Primary** | `#8B2500` |
-| **Accent (A — default)** | `#E4A744` (golden amber) |
+| **Accent (A — default)** | `#F04828` (fire orange) |
 | **Accent B** | `#2EC4B6` (teal contrast) |
 | **Accent C** | `#EC7979` (coral red) |
 | **CJK Title Font** | SimHei Bold |
@@ -444,6 +444,81 @@ Color Scale:
 | primary-20 | `#EBB8A0` | Light decoration |
 | primary-10 | `#F5DCD0` | Card background / border |
 | primary-5 | `#FBF0EB` | Surface base color |
+
+---
+
+### 14. Volt (Electric / Startup Dark)
+
+| Property | Value |
+|------|-----|
+| **Mood** | Electric, aggressive, high-energy |
+| **Suitable for** | AI/tech product launches, startup pitches, youth tech brands, digital innovation |
+| **Primary** | `#FFFFFF` |
+| **Accent (A — default)** | `#00F5A0` (electric mint-green) |
+| **Accent B** | `#FF5E3A` (electric orange) |
+| **Accent C** | `#A855F7` (electric purple) |
+| **Background Override** | `#080B14` (near-black with blue tint, replaces default `#FFFFFF`) |
+| **CJK Title Font** | Microsoft YaHei Bold |
+| **CJK Body Font** | Microsoft YaHei |
+| **Latin Title Font** | Trebuchet MS Bold |
+| **Latin Body Font** | Corbel |
+| **Image Keywords** | neon, circuit board, futuristic, dark ui, electric glow, startup, code, data stream |
+| **Mask Color** | `rgba(5,7,16,0.70)` (primary-100 based) |
+
+**Dark theme notes**: Same inverted logic as Deep Mineral — see its notes above.
+- `background` = `#080B14`, `surface` = `#0F1424`, `surface-card` = `#162033`
+- `text-primary` = `#FFFFFF`, `text-secondary` = `rgba(255,255,255,0.75)`, `text-muted` = `rgba(255,255,255,0.45)`
+- Accents are extremely vivid by design — use sparingly (bars, numbers, key labels only)
+
+Color Scale (inverted):
+
+| Scale | Color Value | Usage |
+|------|------|---------|
+| primary-100 | `#050710` | Deepest background |
+| primary-90 | `#0D1320` | Title bar background |
+| primary-80 | `#FFFFFF` | Title text / primary elements |
+| primary-60 | `rgba(255,255,255,0.75)` | Subtitle / secondary text |
+| primary-40 | `rgba(255,255,255,0.45)` | Muted text / annotations |
+| primary-20 | `#1E2E48` | Card borders / subtle decorations |
+| primary-10 | `#0F1424` | Surface / content area base |
+| primary-5 | `#080B14` | Page background |
+
+---
+
+### 15. Vermillion (Chinese Red)
+
+| Property | Value |
+|------|-----|
+| **Mood** | Ceremonial, festive, culturally resonant |
+| **Suitable for** | Chinese cultural events, Spring Festival, traditional ceremonies, brand storytelling with Chinese aesthetics |
+| **Primary** | `#8B1A1A` |
+| **Accent (A — default)** | `#D4AF37` (Chinese gold) |
+| **Accent B** | `#C4762A` (copper bronze) |
+| **Accent C** | `#2D6B8A` (cool blue contrast) |
+| **Background Override** | `#FDF8F2` (warm rice-paper white, replaces default `#FFFFFF`) |
+| **CJK Title Font** | SimSun Bold |
+| **CJK Body Font** | Microsoft YaHei |
+| **Latin Title Font** | Palatino Linotype Bold |
+| **Latin Body Font** | Corbel |
+| **Image Keywords** | red lantern, Chinese architecture, traditional culture, festival, gold ornament, calligraphy, temple, Spring Festival |
+| **Mask Color** | `rgba(107,20,20,0.75)` (primary-90 based) |
+
+**Warm background notes**: Uses warm rice-paper white `#FDF8F2` instead of pure white:
+- `background` = `#FDF8F2`, `surface` = `#F5EDE0` (warm tint), `surface-card` = `#FEFDFB` (near-white card)
+- Avoid pure white elements that would look jarring against the warm base
+
+Color Scale:
+
+| Scale | Color Value | Usage |
+|------|------|---------|
+| primary-100 | `#450D0D` | Deepest background / dramatic pages |
+| primary-90 | `#6B1414` | Title bar background |
+| primary-80 | `#8B1A1A` | Title text / primary elements |
+| primary-60 | `#B84040` | Subtitle / icons |
+| primary-40 | `#D57070` | Secondary text |
+| primary-20 | `#EDB0B0` | Light decoration |
+| primary-10 | `#F8E0E0` | Card background / border |
+| primary-5 | `#FDF4F4` | Surface base color |
 
 ---
 

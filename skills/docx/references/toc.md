@@ -22,7 +22,7 @@ All 3 steps are **mandatory**. Skipping any step results in a broken or empty TO
 
 ## Step A: Code Generation (docx-js)
 
-Insert **3 elements** in sequence:
+Insert **4 elements** in sequence:
 
 ```js
 const { TableOfContents, Paragraph, TextRun, PageBreak, AlignmentType } = require("docx");
@@ -44,7 +44,16 @@ new TableOfContents("Table of Contents", {
   headingStyleRange: "1-3",  // match HeadingLevel range used in document
 }),
 
-// 3. ★ MANDATORY PageBreak after TOC — prevents TOC and body merging on same page
+// 3. ★ MANDATORY Refresh Hint — tells user how to update page numbers
+new Paragraph({
+  spacing: { before: 200 },
+  children: [new TextRun({
+    text: "Note: This Table of Contents is generated via field codes. To ensure page number accuracy after editing, please right-click the TOC and select \"Update Field.\"",
+    italics: true, size: 18, color: "888888"
+  })]
+}),
+
+// 4. ★ MANDATORY PageBreak after TOC — prevents TOC and body merging on same page
 new Paragraph({ children: [new PageBreak()] }),
 ```
 
@@ -217,9 +226,9 @@ docXml = docXml.replace(/<w:pgNumType\/>/g, "");
 | headingStyleRange doesn't match headings | Ensure `headingStyleRange: "1-3"` covers all HeadingLevel values used |
 | Cover section has header/footer | Don't set header/footer on cover section |
 
-## TOC Refresh Hint (Optional)
+## TOC Refresh Hint (MANDATORY)
 
-Add a note paragraph after TOC for user guidance:
+**⚠️ When the document contains a TOC, you MUST add the following hint paragraph between the `TableOfContents` element and the PageBreak (so it appears on the TOC page, not the body page).** This ensures users know how to refresh page numbers after editing.
 
 ```js
 new Paragraph({
@@ -251,4 +260,5 @@ new Paragraph({
 - [ ] `add_toc_placeholders.py --auto` runs after generation
 - [ ] Script exit code checked — if 1, fix code and regenerate
 - [ ] TOC page has visible placeholder content (not empty)
+- [ ] **TOC Refresh Hint present** — italic gray note after TOC PageBreak telling user to right-click → "Update Field"
 - [ ] `outlineLevel: 0` for H1, `1` for H2, etc. (needed for TOC field update)

@@ -163,14 +163,19 @@ These are **rendering engine limitations**, not design choices. Violating them c
 
 | Role | Suggested Size | Weight |
 |------|---------------|--------|
-| Hero / cover title | 40-48pt | Bold |
-| Section title | 28-34pt | Bold |
-| Page title (in title bar) | 26-30pt | Bold |
-| Card / sub heading | 20-24pt | Bold |
-| Body text | 14-16pt | Normal |
-| Annotations / footnotes | 12-13pt | Normal |
-| Captions / tiny labels | 10-12pt | Normal |
-| KPI numbers | 36-44pt | Bold |
+| Display / decorative number (ghost) | 80–100pt | Bold |
+| Hero focal metric (single-stat page) | 56–88pt | Bold |
+| Hero / cover title | 40–48pt | Bold |
+| KPI dashboard numbers | 36–48pt | Bold |
+| Section title | 28–34pt | Bold |
+| Page title (in title bar) | 26–30pt | Bold |
+| Card / sub heading | 20–24pt | Bold |
+| Body text | 14–16pt | Normal |
+| Annotations / footnotes | 12–13pt | Normal |
+| Captions / tiny labels | 10–12pt | Normal |
+| Tag / chip label | 10–11pt | Normal |
+
+**Ghost number technique**: Large decorative numbers (80–100pt) at very low opacity (`color:rgba(255,255,255,0.05)` on dark backgrounds, or `color:rgba(0,0,0,0.04)` on light) add visual depth without competing with readable content. Use as background layer behind chapter numbers, inside TOC cards, or behind section titles.
 
 ### Common Spacing Values
 

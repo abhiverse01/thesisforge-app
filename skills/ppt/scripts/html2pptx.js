@@ -48,9 +48,9 @@ const EMU_PER_IN = 914400;
 
 // ── v3: Compensation factors ──
 const COMPENSATION = {
-  HEADING_WIDTH: 0.22, SINGLE_LINE_NARROW: 0.14, SINGLE_LINE_NORMAL: 0.08,
+  HEADING_WIDTH: 0.25, SINGLE_LINE_NARROW: 0.18, SINGLE_LINE_NORMAL: 0.10,
   MULTI_LINE: 0.05, SHORT_TEXT_EXTRA: 0.12, NUMERIC_TEXT_EXTRA: 0.08,
-  NOWRAP_EXTRA: 0.15, MAX_WIDTH_FACTOR: 0.20,
+  NOWRAP_EXTRA: 0.15, MAX_WIDTH_FACTOR: 0.40,
   TEXT_HEIGHT: 0.08, LIST_HEIGHT: 0.06,
   MIN_FONT_SIZE_PT: 11, MAX_CHARS_CJK: 350, MAX_CHARS_LATIN: 550,
   VERTICAL_BALANCE_THRESHOLD: 0.55, OVERLAP_TOLERANCE_IN: 0.05, BOUNDS_TOLERANCE_IN: 0.02,
@@ -148,7 +148,7 @@ function calculateWidthCompensation(el, slideWidthIn) {
   if (/^[\d\s\.\,\-\/\+\%\$\#\@\!\?\:\;\(\)\[\]]+$/.test(txt)) f += COMPENSATION.NUMERIC_TEXT_EXTRA;
   if (el.noWrap) f += COMPENSATION.NOWRAP_EXTRA;
   // v4: Auto-detect short text that should not wrap even without explicit nowrap
-  if (!el.noWrap && single && txt.length > 0 && txt.length < COMPENSATION.AUTO_SHORT_TEXT_THRESHOLD) {
+  if (!el.noWrap && single && txt.length >= 10 && txt.length < COMPENSATION.AUTO_SHORT_TEXT_THRESHOLD) {
     f += COMPENSATION.SHORT_TEXT_EXTRA * 0.5; // Half bonus for auto-detected short text
   }
   // v4: Auto-detect card titles (>=18pt, single line, <20 chars) — treat like heading
