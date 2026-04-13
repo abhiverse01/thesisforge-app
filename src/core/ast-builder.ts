@@ -24,6 +24,11 @@ import {
   type CommentNode,
   type BlankLineNode,
   type PackageImportNode,
+  type MathNode,
+  type VerbatimNode,
+  type ListNode,
+  type FigureNode,
+  type TableNode,
   document,
   comment,
   blankLine,
@@ -36,6 +41,11 @@ import {
   rawLaTeX,
   newPage,
   label,
+  math,
+  verbatim,
+  list,
+  figure,
+  table,
 } from '@/core/ast';
 import { serialize, serializeDocument } from '@/core/serializer';
 
@@ -890,58 +900,143 @@ function buildBackMatter(data: ThesisData, schema: typeof TEMPLATE_SCHEMAS[strin
 // ============================================================
 
 function processChapterBody(content: string): ASTNode[] {
-  if (!content || !content.trim()) return [];
+  return buildChapterBodyNodes(content, 'ch');
+}
+
+/**
+ * Upgraded chapter body processor.
+ * Detects structure in plain text and promotes it to typed AST nodes.
+ * Preserves existing raw LaTeX pass-through for advanced users.
+ *
+ * Detects: ##/### headings, ``` code blocks, $$/\[ display math,
+ * - bullet lists, 1. numbered lists, [figure: caption], [table: caption].
+ */
+export function buildChapterBodyNodes(rawBody: string, chapterId: string): ASTNode[] {
+  if (!rawBody?.trim()) {
+    return [comment('TODO: Add content for this chapter')];
+  }
 
   const nodes: ASTNode[] = [];
+  const lines = rawBody.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  let buffer: string[] = [];
+  let i = 0;
+  let figCount = 0;
+  let tabCount = 0;
 
-  // 1. Normalize line endings
-  const normalized = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const flushBuffer = () => {
+    const text2 = buffer.join('\n').trim();
+    if (text2) {
+      // Process buffered text through placeholder splitter
+      const parts = splitPlaceholders(text2);
+      for (const part of parts) {
+        if (part.type === 'figure') {
+          figCount++;
+          nodes.push(...buildFigurePlaceholder(part.caption || '', figCount));
+        } else if (part.type === 'table') {
+          tabCount++;
+          nodes.push(...buildTablePlaceholder(part.caption || '', tabCount));
+        } else {
+          const contentLines = part.content.split('\n');
+          for (let j = 0; j < contentLines.length; j++) {
+            if (j > 0) nodes.push(text('\\\\', true));
+            const line = contentLines[j].trim();
+            if (line) nodes.push(text(escapeLatexBody(line)));
+          }
+          nodes.push(blankLine());
+        }
+      }
+    }
+    buffer = [];
+  };
 
-  // 2. Split into paragraphs (double newline separator)
-  const paragraphs = normalized.split(/\n\s*\n/).filter(p => p.trim());
+  while (i < lines.length) {
+    const line = lines[i];
 
-  for (const para of paragraphs) {
-    const trimmed = para.trim();
-    if (!trimmed) continue;
-
-    // 3. Check for ## markdown heading → \subsection
-    const headingMatch = trimmed.match(/^#{1,3}\s+(.+)$/);
-    if (headingMatch) {
-      const headingTitle = headingMatch[1].trim();
-      const headingLabel = generateLabel('section', headingTitle);
-      nodes.push(command('subsection', [escMeta(headingTitle)]));
+    // ── Subsection markers (## and ###) ──
+    if (/^#{2}\s+(.+)$/.test(line)) {
+      flushBuffer();
+      const title = line.replace(/^#{2}\s+/, '').trim();
+      const headingLabel = generateLabel('subsection', title);
+      nodes.push(command('subsection', [escMeta(title)]));
       nodes.push(label(headingLabel));
+      nodes.push(blankLine());
+      i++; continue;
+    }
+    if (/^#{3}\s+(.+)$/.test(line)) {
+      flushBuffer();
+      const title = line.replace(/^#{3}\s+/, '').trim();
+      const headingLabel = generateLabel('subsec', title);
+      nodes.push(command('subsubsection', [escMeta(title)]));
+      nodes.push(blankLine());
+      i++; continue;
+    }
+
+    // ── Code block (``` ... ```) ──
+    if (line.trimStart().startsWith('```')) {
+      flushBuffer();
+      const lang = line.replace(/```/, '').trim() || null;
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trimStart().startsWith('```')) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      nodes.push(verbatim(codeLines.join('\n'), lang));
+      nodes.push(blankLine());
+      i++; continue;
+    }
+
+    // ── Display math (\[ ... \] or $$ ... $$) ──
+    if (line.trim() === '\\[' || line.trim() === '$$') {
+      flushBuffer();
+      const mathLines: string[] = [];
+      const closer = line.trim() === '$$' ? '$$' : '\\]';
+      i++;
+      while (i < lines.length && lines[i].trim() !== closer) {
+        mathLines.push(lines[i]);
+        i++;
+      }
+      nodes.push(math(mathLines.join('\n'), true));
+      nodes.push(blankLine());
+      i++; continue;
+    }
+
+    // ── Bullet list (- item) ──
+    if (/^[\s]*[-*]\s+/.test(line)) {
+      flushBuffer();
+      const items: Array<{ term?: string; content: string }> = [];
+      while (i < lines.length && /^[\s]*[-*]\s+/.test(lines[i])) {
+        items.push({ content: lines[i].replace(/^[\s]*[-*]\s+/, '').trim() });
+        i++;
+      }
+      nodes.push(list('itemize', items));
       nodes.push(blankLine());
       continue;
     }
 
-    // 4. Handle figure/table placeholders and regular text
-    const parts = splitPlaceholders(trimmed);
-    for (const part of parts) {
-      if (part.type === 'figure') {
-        nodes.push(...buildFigurePlaceholder(part.caption || '', part.count || 0));
-      } else if (part.type === 'table') {
-        nodes.push(...buildTablePlaceholder(part.caption || '', part.count || 0));
-      } else {
-        // Regular text — process each line
-        const lines = part.content.split('\n');
-        for (let j = 0; j < lines.length; j++) {
-          if (j > 0) {
-            // Line break within paragraph
-            nodes.push(text('\\\\', true));
-          }
-          const line = lines[j].trim();
-          if (line) {
-            // Smart escape — preserves existing LaTeX commands
-            nodes.push(text(escapeLatexBody(line)));
-          }
-        }
-        nodes.push(blankLine());
+    // ── Numbered list (1. item) ──
+    if (/^[\s]*\d+\.\s+/.test(line)) {
+      flushBuffer();
+      const items: Array<{ term?: string; content: string }> = [];
+      while (i < lines.length && /^[\s]*\d+\.\s+/.test(lines[i])) {
+        items.push({ content: lines[i].replace(/^[\s]*\d+\.\s+/, '').trim() });
+        i++;
       }
+      nodes.push(list('enumerate', items));
+      nodes.push(blankLine());
+      continue;
     }
+
+    buffer.push(line);
+    i++;
   }
 
+  flushBuffer();
   return nodes;
+}
+
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
 }
 
 // ============================================================

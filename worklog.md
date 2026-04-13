@@ -1,25 +1,34 @@
 ---
 Task ID: 1
-Agent: main
-Task: Update README.md to reflect all new upgrades, fix links, remove Z logo, enhance visual experience
+Agent: Main
+Task: ENGINE SUPERCHARGE + SMART IMPORT SYSTEM for ThesisForge v2.0
 
 Work Log:
-- Explored full project structure via agent (files, directories, components)
-- Read current README.md (693 lines) to understand existing content
-- Read key component files: homepage.tsx, layout.tsx, ThesisDiff.tsx, thesisMemory.ts, compilation-simulator.ts, robots.ts, sitemap.ts
-- Identified Z logo issue: public/logo.svg contained a Z letterform SVG, referenced in README header as <img src="public/logo.svg"> — completely unused in the application
-- Identified incorrect links: README had thesisforge.vercel.app but actual deployed URL is thesisforge-web.vercel.app (confirmed from layout.tsx, robots.ts, sitemap.ts)
-- Identified missing features not documented: Compilation Simulator (4-pass), Thesis Memory System (10 insight rules), ThesisDiff version comparison, Writing Coach, Semantic Graph, SEO infrastructure (JSON-LD, OG image, hreflang, sitemap), Content pages (blog, templates, citation styles, VS comparisons)
-- Wrote comprehensive enhanced README with all fixes
+- Read all existing files that need modification (ast.ts, ast-builder.ts, compilation-simulator.ts, latexAssertions.ts, scheduler.ts, thesis-store.ts, thesis-types.ts, page.tsx, package.json, next.config.ts, intelligence/types.ts, templates.ts)
+- Confirmed Mission 1 Upgrades 2, 3, 4 were ALREADY IMPLEMENTED in previous sessions:
+  - runPass3Extended() with 10 COMMON_MISTAKES patterns in compilation-simulator.ts
+  - A04-A11 assertions in latexAssertions.ts
+  - passiveVoiceDetector, transitionAnalyzer, acronymChecker in scheduler.ts + types.ts
+- Implemented Mission 1 Upgrade 1: Enhanced AST Builder
+  - Added buildChapterBodyNodes() to ast-builder.ts with detection for: ##/### headings, ``` code blocks, $$/\[ display math, - bullet lists, 1. numbered lists
+  - Integrated into existing processChapterBody() pipeline
+  - Added imports for MathNode, VerbatimNode, ListNode, FigureNode, TableNode and their factory functions
+- Created complete Smart Import System (Mission 2):
+  - src/core/importer/types.ts — ImportSource, ExtractedMetadata, ExtractedChapter, ExtractedReference, ImportResult, ImportConfidence, FieldMapping
+  - src/core/importer/texImporter.ts — LaTeX source parser with \title, \author, \chapter extraction, BibTeX parsing, subsection support
+  - src/core/importer/pdfImporter.ts — PDF parsing via pdfjs-dist, metadata/chapter/reference extraction with regex patterns
+  - src/core/importer/templateDetector.ts — Heuristic template detection from degree keywords + word count
+  - src/core/importer/confidenceScorer.ts — Per-field confidence scoring (0-1), weighted overall
+  - src/core/importer/fieldMapper.ts — Map extracted data to ThesisData shape
+  - src/core/importer/index.ts — Public API: importFile(file)
+  - src/components/thesis/ImportReviewModal.tsx — Review UI with confidence badges, toggle switches, tabs (Metadata/Chapters/References)
+  - Added applyImportData action to thesis-store.ts with full template/chapter/reference/metadata support
+  - Added import trigger to page.tsx (hidden file input, ImportReviewModal, event listener for apply)
+  - Added import button to Homepage component with file input
+  - Installed pdfjs-dist@5.6.205
 
 Stage Summary:
-- Removed Z logo from README header (replaced with clean text-only header with badges)
-- Fixed all links from thesisforge.vercel.app to thesisforge-web.vercel.app
-- Added Live Demo & Links section with all 12 URLs
-- Added new sections: Compilation Simulator, Thesis Memory System, Writing Coach, Version Comparison & Diff, SEO Infrastructure, Content Pages
-- Enhanced visual experience with centered header, tech stack badges, improved table formatting
-- Documented all 10 thesis memory insight rules, 4-pass compilation simulator architecture, 14-page sitemap, 3 JSON-LD schemas
-- Updated architecture overview with new files and directories
-- Updated project structure to reflect current state
-- Added contributing guidelines for memory events and design tokens
-- Total README expanded from 693 lines to comprehensive documentation
+- Mission 1 complete: AST Builder upgraded with 6 new structure detections
+- Mission 2 complete: Full import system for .pdf and .tex files
+- ESLint passes with 0 errors
+- All 8 importer files created + 1 UI component + 2 store/page integrations

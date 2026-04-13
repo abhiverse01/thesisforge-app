@@ -3,7 +3,10 @@
 import React, { useRef, useEffect, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { useThesisStore } from "@/lib/thesis-store";
+import { toast } from "sonner";
+import { importFile, type ImportFileResult } from "@/core/importer";
 import { Button } from "@/components/ui/button";
+import { ImportReviewModal } from "@/components/thesis/ImportReviewModal";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Sparkles,
@@ -20,6 +23,7 @@ import {
   FileText,
   CheckCircle2,
   FileDown,
+  Upload,
   Zap,
   Shield,
   Users,
@@ -348,6 +352,10 @@ function StatCounter({ stat, index, isLast }: { stat: typeof stats[number]; inde
 
 export function Homepage() {
   const { startWizard } = useThesisStore();
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportFileResult | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const thesisImportRef = useRef<HTMLInputElement>(null);
   const [hasSavedState, setHasSavedState] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showLearnMore, setShowLearnMore] = useState(false);
@@ -496,6 +504,47 @@ export function Homepage() {
               Get Started — It&apos;s Free
               <ArrowRight className="w-5 h-5" />
             </Button>
+
+            {/* Import existing thesis button */}
+            <div className="flex flex-col items-center gap-1.5">
+              <input
+                ref={thesisImportRef}
+                type="file"
+                accept=".pdf,.tex"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  e.target.value = '';
+                  setImporting(true);
+                  try {
+                    const result = await importFile(file);
+                    setImportResult(result);
+                    setImportModalOpen(true);
+                  } catch (err: any) {
+                    toast.error(err.message || 'Import failed', { duration: 3000 });
+                  } finally {
+                    setImporting(false);
+                  }
+                }}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                onClick={() => thesisImportRef.current?.click()}
+                disabled={importing}
+                className="gap-2 px-8 h-11"
+              >
+                {importing ? (
+                  <span className="animate-spin">⟳</span>
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                Import Existing Thesis
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Supports .pdf and .tex files
+              </span>
+            </div>
 
             {/* Secondary ghost CTA */}
             <button
@@ -936,6 +985,12 @@ export function Homepage() {
           </p>
         </div>
       </section>
+
+      <ImportReviewModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        imported={importResult}
+      />
     </div>
   );
 }

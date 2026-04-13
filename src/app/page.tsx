@@ -19,6 +19,8 @@ import { SaveIndicator } from "@/components/thesis/save-indicator";
 import { intelligenceScheduler } from "@/intelligence/scheduler";
 import { saveDraft, loadDraft, clearDraft, createSnapshot, onSaveStatus } from "@/core/persistence";
 import { Button } from "@/components/ui/button";
+import { importFile, type ImportFileResult } from "@/core/importer";
+import { ImportReviewModal } from "@/components/thesis/ImportReviewModal";
 import {
   FileText,
   Moon,
@@ -29,6 +31,7 @@ import {
   FileDown,
   Loader2,
   FileUp,
+  Upload,
   Menu,
   BrainCircuit,
   ChevronLeft,
@@ -172,6 +175,12 @@ export default function Home() {
   const [showIntelligencePanel, setShowIntelligencePanel] = useState(false);
   const [showShortcutHint, setShowShortcutHint] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  // ---- Smart Import System state ----
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportFileResult | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const thesisImportInputRef = useRef<HTMLInputElement>(null);
 
   // ---- Refs ----
   const konamiBuffer = useRef<string[]>([]);
@@ -477,6 +486,25 @@ export default function Home() {
   }, [thesis, selectedTemplate, currentStep]);
 
   // ================================================================
+  // Smart Import System — listen for apply events from modal
+  // ================================================================
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) {
+        useThesisStore.getState().applyImportData(detail);
+        const fieldsCount = detail.mappings?.length || 0;
+        toast.success(`Imported ${detail.result?.fileName}`, {
+          description: `${fieldsCount} fields, ${detail.result?.chapters?.length || 0} chapters, ${detail.result?.references?.length || 0} references applied.`,
+          duration: 5000,
+        });
+      }
+    };
+    window.addEventListener('thesisforge:import-apply', handler);
+    return () => window.removeEventListener('thesisforge:import-apply', handler);
+  }, []);
+
+  // ================================================================
   // Handlers
   // ================================================================
   const handleReset = useCallback(() => {
@@ -494,6 +522,30 @@ export default function Home() {
     setShowGoHomeConfirm(false);
     setMobileMenuOpen(false);
   }, [goToHome]);
+
+  // ---- Smart Import: PDF/tex file import ----
+  const handleThesisImportClick = useCallback(() => {
+    thesisImportInputRef.current?.click();
+  }, []);
+
+  const handleThesisFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setImporting(true);
+    try {
+      const result = await importFile(file);
+      setImportResult(result);
+      setImportModalOpen(true);
+    } catch (err: any) {
+      toast.error(err.message || 'Import failed. Check the file and try again.', {
+        duration: 4000,
+      });
+    } finally {
+      setImporting(false);
+    }
+  }, []);
 
   const handleExport = useCallback(() => {
     try {
@@ -709,13 +761,29 @@ export default function Home() {
   return (
     <TooltipProvider delayDuration={300}>
       <div className={cn("flex flex-col bg-pattern", wizardStarted ? "h-screen overflow-hidden" : "min-h-screen")}>
-        {/* Hidden file input for import */}
+        {/* Hidden file input for .json project import */}
         <input
           ref={fileInputRef}
           type="file"
           accept=".json"
           onChange={handleFileChange}
           className="hidden"
+        />
+
+        {/* Hidden file input for PDF/tex thesis import */}
+        <input
+          ref={thesisImportInputRef}
+          type="file"
+          accept=".pdf,.tex"
+          onChange={handleThesisFileSelect}
+          className="hidden"
+        />
+
+        {/* Import Review Modal */}
+        <ImportReviewModal
+          open={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          imported={importResult}
         />
 
         {/* ============================================================ */}

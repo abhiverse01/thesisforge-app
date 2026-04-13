@@ -13,6 +13,7 @@ import type {
   ThesisReference,
   ThesisAppendix,
   ThesisOptions,
+  ReferenceType,
 } from './thesis-types';
 import { createDefaultThesisData } from './thesis-types';
 import { transition, getProgressPercentage, type WizardStateName, STATE_ORDER, TOTAL_WIZARD_STEPS } from '@/core/fsm';
@@ -139,6 +140,12 @@ interface ThesisStore {
   updateChapterTitle: (id: string, rawTitle: string) => void;
   updateMetadataSanitized: (metadata: Partial<ThesisMetadata>) => void;
   updateChapterBody: (id: string, rawBody: string) => void;
+
+  // Smart Import System
+  applyImportData: (importData: {
+    result: any;
+    mappings: Array<{ field: string; value: string; apply: boolean }>;
+  }) => void;
 }
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -691,6 +698,101 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
           ...s.thesis,
           chapters: s.thesis.chapters.map((c) => (c.id === id ? { ...c, content: sanitized } : c)),
         },
+      };
+    }),
+
+  // ---- Smart Import System: applyImport ----
+  // Applies extracted data from PDF/tex import to the current thesis.
+  // Triggered by ImportReviewModal via CustomEvent.
+  applyImportData: (importData: {
+    result: any;
+    mappings: Array<{ field: string; value: string; apply: boolean }>;
+  }) =>
+    set((s) => {
+      if (!s.thesis) return {};
+      const { result, mappings } = importData;
+      const newThesis = { ...s.thesis };
+
+      // Apply detected template if none selected
+      if (result.detectedTemplate && !s.selectedTemplate) {
+        const newThesisData = createDefaultThesisData(result.detectedTemplate);
+        newThesis.type = result.detectedTemplate;
+        // Keep existing metadata, override with imported
+        newThesis.chapters = newThesisData.chapters;
+        newThesis.options = newThesisData.options;
+        newThesis.references = newThesisData.references;
+        newThesis.appendices = newThesisData.appendices;
+      }
+
+      // Apply metadata fields that are toggled on
+      const metaMappings = mappings.filter(m => m.field.startsWith('metadata.') && m.apply);
+      if (metaMappings.length > 0) {
+        newThesis.metadata = { ...newThesis.metadata };
+        for (const m of metaMappings) {
+          const key = m.field.replace('metadata.', '') as keyof ThesisMetadata;
+          if (key in newThesis.metadata) {
+            (newThesis.metadata as Record<string, string>)[key] = m.value;
+          }
+        }
+      }
+
+      // Apply keywords
+      const keywordMapping = mappings.find(m => m.field === 'keywords' && m.apply);
+      if (keywordMapping) {
+        newThesis.keywords = keywordMapping.value.split(',').map(k => k.trim()).filter(Boolean);
+      }
+
+      // Apply abstract
+      const abstractMapping = mappings.find(m => m.field === 'metadata.abstract' && m.apply);
+      if (abstractMapping) {
+        newThesis.abstract = abstractMapping.value;
+      }
+
+      // Apply chapters
+      if (result.chapters && result.chapters.length > 0) {
+        newThesis.chapters = result.chapters.map((ch: any, i: number) => ({
+          id:          ch.id || `imported-${i}`,
+          number:      i + 1,
+          title:       ch.title,
+          content:     ch.body,
+          subSections: (ch.subsections || []).map((sub: any, j: number) => ({
+            id:      sub.id || `imported-sub-${i}-${j}`,
+            title:   sub.title,
+            content: sub.body,
+          })),
+        }));
+      }
+
+      // Apply references
+      if (result.references && result.references.length > 0) {
+        newThesis.references = result.references.map((ref: any, i: number) => ({
+          id:        `imported-ref-${i}`,
+          type:      'misc' as ReferenceType,
+          authors:   ref.author || '',
+          title:     ref.title || '',
+          year:      ref.year || '',
+          journal:   ref.journal || '',
+          bookTitle: ref.booktitle || '',
+          volume:    ref.volume || '',
+          pages:     ref.pages || '',
+          doi:       ref.doi || '',
+          url:       ref.url || '',
+          publisher: ref.publisher || '',
+          school:    ref.school || '',
+        }));
+      }
+
+      const appliedCount = mappings.filter(m => m.apply).length;
+      const fieldsApplied = mappings.filter(m => m.apply).length;
+      const chaptersImported = result.chapters?.length || 0;
+      const refsImported = result.references?.length || 0;
+
+      return {
+        thesis: newThesis,
+        selectedTemplate: result.detectedTemplate || s.selectedTemplate,
+        wizardStarted: true,
+        currentStep: 2 as WizardStep,
+        lastErrors: {},
       };
     }),
 }));
