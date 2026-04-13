@@ -731,7 +731,7 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
         for (const m of metaMappings) {
           const key = m.field.replace('metadata.', '') as keyof ThesisMetadata;
           if (key in newThesis.metadata) {
-            (newThesis.metadata as Record<string, string>)[key] = m.value;
+            (newThesis.metadata as unknown as Record<string, string>)[key] = m.value;
           }
         }
       }
