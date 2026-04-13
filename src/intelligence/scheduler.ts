@@ -18,6 +18,9 @@ import type {
   StructureAnalysis,
   CitationGraphResult,
   CrossCheckResult,
+  PassiveVoiceResult,
+  TransitionResult,
+  AcronymIssue,
 } from './types';
 import type { STGResult } from './semanticGraph';
 import type { CoachResult } from './writingCoach';
@@ -31,6 +34,9 @@ import { runHeuristics } from './latexHeuristics';
 import { computeReadingStats } from './readingStats';
 import { buildSemanticGraph } from './semanticGraph';
 import { runWritingCoach } from './writingCoach';
+import { detectPassiveVoice } from './passiveVoiceDetector';
+import { analyzeTransitions } from './transitionAnalyzer';
+import { checkAcronyms } from './acronymChecker';
 
 // ============================================================
 // Schedule Configuration
@@ -47,6 +53,11 @@ export const ALGORITHM_SCHEDULE: Record<AlgorithmId, AlgorithmSchedule> = {
   keywordExtractor:   { steps: [3, 6],              debounce: 2000, priority: 4 },
   latexHeuristics:    { steps: [3],                 debounce: 800,  priority: 4 },
   readingStats:       { steps: [3, 6],              debounce: 500,  priority: 4 },
+  passiveVoice:      { steps: [3, 6],              debounce: 2000, priority: 4 },
+  transitionAnalyzer:{ steps: [3, 6],              debounce: 2500, priority: 4 },
+  acronymChecker:    { steps: [3, 6],              debounce: 3000, priority: 4 },
+  semanticThesisGraph: { steps: [3, 6],           debounce: 2000, priority: 3 },
+  writingCoach:      { steps: [3, 6],              debounce: 2000, priority: 3 },
 };
 
 // ============================================================
@@ -70,6 +81,9 @@ export interface IntelligenceResults {
   duplicates: DuplicatePair[];
   mergeSuggestions: MergeSuggestion[];
   heuristics: Map<string, HeuristicFinding[]>;
+  passiveVoice: PassiveVoiceResult[] | null;
+  transitions: TransitionResult[] | null;
+  acronyms: AcronymIssue[] | null;
   circuitBreaker: Map<AlgorithmId, CircuitBreakerState>;
 }
 
@@ -89,6 +103,9 @@ const DEFAULT_RESULTS: IntelligenceResults = {
   duplicates: [],
   mergeSuggestions: [],
   heuristics: new Map(),
+  passiveVoice: null,
+  transitions: null,
+  acronyms: null,
   circuitBreaker: new Map(),
 };
 
@@ -342,6 +359,36 @@ export class IntelligenceScheduler {
             this.results.heuristics.set(ch.id, runHeuristics(fullText));
           }
         }
+        break;
+
+      case 'passiveVoice':
+        this.results.passiveVoice = detectPassiveVoice(
+          thesis.chapters.map((ch) => ({
+            id: ch.id,
+            title: ch.title,
+            body: ch.content || '',
+          }))
+        );
+        break;
+
+      case 'transitionAnalyzer':
+        this.results.transitions = analyzeTransitions(
+          thesis.chapters.map((ch) => ({
+            id: ch.id,
+            title: ch.title,
+            body: ch.content || '',
+          }))
+        );
+        break;
+
+      case 'acronymChecker':
+        this.results.acronyms = checkAcronyms(
+          thesis.chapters.map((ch) => ({
+            id: ch.id,
+            title: ch.title,
+            body: ch.content || '',
+          }))
+        );
         break;
 
       case 'citationParser':

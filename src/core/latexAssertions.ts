@@ -415,6 +415,47 @@ const ENGINE_CONTRACT: ContractCheck[] = [
       return longLines.length <= 5; // Allow a few long lines
     },
   },
+
+  // ── Advanced quality checks (Engine v4) ──────────────────────
+  { id: 'A04', severity: 'warning',
+    check: (tex: string) => !tex.includes('\\begin{table}') || tex.includes('\\usepackage{booktabs}'),
+    message: 'Tables present but booktabs not loaded — tables will look unprofessional' },
+  { id: 'A05', severity: 'info',
+    check: (tex: string) => !tex.includes('\\includegraphics') || tex.includes('\\listoffigures'),
+    message: 'Figures present but no List of Figures — consider adding \\listoffigures' },
+  { id: 'A06', severity: 'warning',
+    check: (tex: string) => {
+      const lines = tex.split('\n');
+      return !lines.some((l: string) => l.length > 160);
+    },
+    message: 'Lines > 160 characters reduce readability in editors' },
+  { id: 'A07', severity: 'error',
+    check: (tex: string) => {
+      const labelCaption = /\\caption\{[^}]*\}\s*\n?\s*\\label/;
+      const captionLabel = /\\label\{[^}]*\}\s*\n?\s*\\caption/;
+      return captionLabel.test(tex) || !captionLabel.test(tex);
+    },
+    message: '\\label appears before \\caption — numbering will be wrong' },
+  { id: 'A08', severity: 'info',
+    check: (tex: string) => tex.includes('\\usepackage{microtype}'),
+    message: 'microtype not loaded — typography and line-breaking will be suboptimal' },
+  { id: 'A09', severity: 'warning',
+    check: (tex: string) => !/\$\$[\s\S]+?\$\$/.test(tex),
+    message: 'Deprecated $$ math mode detected — use \\[ ... \\] for display math' },
+  { id: 'A10', severity: 'info',
+    check: (tex: string) => {
+      const keywordMatch = tex.match(/\bkeywords\s*[:=]\s*\{([^}]+)\}/i);
+      if (!keywordMatch) return true;
+      return tex.includes('pdfkeywords');
+    },
+    message: 'Keywords filled but not in PDF metadata (pdfkeywords missing from hypersetup)' },
+  { id: 'A11', severity: 'warning',
+    check: (tex: string) => {
+      const cites = [...tex.matchAll(/\\cite[a-z]*\{([^}]+)\}/g)]
+        .flatMap((m: RegExpMatchArray) => m[1].split(',').map((k: string) => k.trim()));
+      return !cites.some((k: string) => /\s/.test(k));
+    },
+    message: 'Citation key contains whitespace — will cause BibTeX parse error' },
 ];
 
 // ============================================================

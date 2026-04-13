@@ -204,7 +204,10 @@ export type AlgorithmId =
   | 'latexHeuristics'
   | 'readingStats'
   | 'semanticThesisGraph'
-  | 'writingCoach';
+  | 'writingCoach'
+  | 'passiveVoice'
+  | 'transitionAnalyzer'
+  | 'acronymChecker';
 
 export interface CircuitBreakerState {
   failures: number;
@@ -215,6 +218,9 @@ export interface CircuitBreakerState {
 // Re-export types from new algorithm modules for convenience
 export type { STGResult, STGNode, STGEdge } from './semanticGraph';
 export type { CoachSuggestion, CoachResult } from './writingCoach';
+export type { PassiveVoiceResult } from './passiveVoiceDetector';
+export type { TransitionResult } from './transitionAnalyzer';
+export type { AcronymIssue } from './acronymChecker';
 export type { TimelinePlan, ChapterPlan, Milestone, RiskLevel } from '../core/thesis-timeline';
 export type { SimulationResult as SimulationResultType } from '../core/compilation-simulator';
 export type { Annotation as AnnotationType, AnnotationSummary } from '../core/annotations';

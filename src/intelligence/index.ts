@@ -42,6 +42,10 @@ export type {
   MemoryInsight,
   SessionSummary,
   WritingVelocity,
+  // Algorithms 9-11
+  PassiveVoiceResult,
+  TransitionResult,
+  AcronymIssue,
 } from './types';
 
 export { parseCitationText } from './citationParser';
@@ -58,6 +62,9 @@ export {
 export { computeReadingStats } from './readingStats';
 export { buildSemanticGraph } from './semanticGraph';
 export { runWritingCoach } from './writingCoach';
+export { detectPassiveVoice } from './passiveVoiceDetector';
+export { analyzeTransitions } from './transitionAnalyzer';
+export { checkAcronyms } from './acronymChecker';
 export {
   IntelligenceScheduler,
   intelligenceScheduler,

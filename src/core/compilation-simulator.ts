@@ -917,6 +917,93 @@ function runCommandValidator(
 }
 
 // ============================================================
+// Pass 3 Extended — Common Student Mistakes Detection
+// Catches the 10 most common student LaTeX mistakes not yet detected
+// by the standard command validator.
+// ============================================================
+
+const COMMON_MISTAKES: Array<{
+  pattern: RegExp;
+  message: string;
+  fix: string;
+  severity: 'error' | 'warning' | 'info';
+}> = [
+  {
+    pattern: /\\begin\{center\}\s*\\includegraphics/,
+    message: 'Use the figure environment instead of \\begin{center}\\includegraphics',
+    fix: 'Wrap in \\begin{figure}[htbp]...\\end{figure} with \\centering',
+    severity: 'warning',
+  },
+  {
+    pattern: /\\footnote\{[^}]{200,}\}/,
+    message: 'Footnote exceeds 200 characters — consider moving to main text',
+    fix: 'Shorten the footnote or move content to main text',
+    severity: 'warning',
+  },
+  {
+    pattern: /\\\\(?!\[)/,
+    message: '\\\\ (forced line break) outside tabular/array — use \\par or blank line',
+    fix: 'Replace \\\\ with a blank line for paragraph breaks',
+    severity: 'warning',
+  },
+  {
+    pattern: /\\textbf\{\\textit\{|\\textit\{\\textbf\{/,
+    message: 'Nested \\textbf{\\textit{}} — use \\textbf{\\textit{text}} or \\emph{\\textbf{text}}',
+    fix: 'Use \\textbf{\\textit{text}} which is cleaner',
+    severity: 'info',
+  },
+  {
+    pattern: /\$\$([^$]+)\$\$/,
+    message: '$$ display math is deprecated — use \\[ ... \\] instead',
+    fix: 'Replace $$...$$ with \\[...\\]',
+    severity: 'warning',
+  },
+  {
+    pattern: /\\caption\{[^}]+\}\s*\\label/,
+    message: '\\label must come after \\caption, not before, for correct numbering',
+    fix: 'Ensure order is: \\caption{...}\\label{...}',
+    severity: 'error',
+  },
+  {
+    pattern: /\\ref\{(?!fig:|tab:|eq:|ch:|sec:|app:)/,
+    message: '\\ref{} without namespace prefix — use cleveref \\cref{} or add prefix',
+    fix: 'Use \\cref{fig:label} instead of \\ref{label}',
+    severity: 'info',
+  },
+  {
+    pattern: /\\begin\{table\}[\s\S]*?\\begin\{tabular\}[\s\S]*?(?!\\toprule)/,
+    message: 'Table without \\toprule — use booktabs rules for professional appearance',
+    fix: 'Add \\toprule, \\midrule, \\bottomrule from booktabs package',
+    severity: 'info',
+  },
+  {
+    pattern: /(?<![\\])(eg|ie|etc)\./,
+    message: '"eg.", "ie.", "etc." should use e.g., i.e., etc.\\ (with backslash-space)',
+    fix: 'Use e.g.,\\ and i.e.,\\ to prevent sentence-end spacing',
+    severity: 'info',
+  },
+  {
+    pattern: /\\includegraphics\{[^}]+\.(jpg|jpeg|bmp|gif)\}/i,
+    message: 'Raster image format detected — prefer .pdf, .eps, or .png for LaTeX',
+    fix: 'Convert images to PDF or PNG for best quality in LaTeX',
+    severity: 'info',
+  },
+];
+
+export function runPass3Extended(
+  texContent: string
+): Array<{ severity: 'error' | 'warning' | 'info'; message: string; fix: string; code: string }> {
+  return COMMON_MISTAKES
+    .filter(rule => rule.pattern.test(texContent))
+    .map((rule, index) => ({
+      code: `SIM-W03${index.toString().padStart(2, '0')}`,
+      severity: rule.severity,
+      message: rule.message,
+      fix: rule.fix,
+    }));
+}
+
+// ============================================================
 // Pass 4 — BibTeX Resolver
 // Parses citation keys from .tex and validates against .bib.
 // ============================================================

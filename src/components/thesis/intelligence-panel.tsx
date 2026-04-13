@@ -712,6 +712,9 @@ export default function IntelligencePanel({ isOpen, onClose, currentStep }: Inte
     duplicates: [],
     mergeSuggestions: [],
     heuristics: new Map(),
+    passiveVoice: null,
+    transitions: null,
+    acronyms: null,
     circuitBreaker: new Map(),
   });
 
