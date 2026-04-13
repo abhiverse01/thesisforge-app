@@ -709,19 +709,21 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
     mappings: Array<{ field: string; value: string; apply: boolean }>;
   }) =>
     set((s) => {
-      if (!s.thesis) return {};
       const { result, mappings } = importData;
-      const newThesis = { ...s.thesis };
 
-      // Apply detected template if none selected
-      if (result.detectedTemplate && !s.selectedTemplate) {
-        const newThesisData = createDefaultThesisData(result.detectedTemplate);
+      // If no thesis exists yet, create a default one so import data isn't silently dropped
+      let newThesis = s.thesis
+        ? { ...s.thesis }
+        : createDefaultThesisData(result.detectedTemplate || 'report');
+
+      // If a thesis exists but no template was selected, use the detected one
+      if (s.thesis && result.detectedTemplate && !s.selectedTemplate) {
+        const fresh = createDefaultThesisData(result.detectedTemplate);
         newThesis.type = result.detectedTemplate;
-        // Keep existing metadata, override with imported
-        newThesis.chapters = newThesisData.chapters;
-        newThesis.options = newThesisData.options;
-        newThesis.references = newThesisData.references;
-        newThesis.appendices = newThesisData.appendices;
+        newThesis.chapters = fresh.chapters;
+        newThesis.options = fresh.options;
+        newThesis.references = fresh.references;
+        newThesis.appendices = fresh.appendices;
       }
 
       // Apply metadata fields that are toggled on
@@ -783,9 +785,6 @@ export const useThesisStore = create<ThesisStore>((set, get) => ({
       }
 
       const appliedCount = mappings.filter(m => m.apply).length;
-      const fieldsApplied = mappings.filter(m => m.apply).length;
-      const chaptersImported = result.chapters?.length || 0;
-      const refsImported = result.references?.length || 0;
 
       return {
         thesis: newThesis,

@@ -492,12 +492,19 @@ export default function Home() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail) {
-        useThesisStore.getState().applyImportData(detail);
-        const fieldsCount = detail.mappings?.length || 0;
-        toast.success(`Imported ${detail.result?.fileName}`, {
-          description: `${fieldsCount} fields, ${detail.result?.chapters?.length || 0} chapters, ${detail.result?.references?.length || 0} references applied.`,
-          duration: 5000,
-        });
+        try {
+          useThesisStore.getState().applyImportData(detail);
+          const fieldsCount = detail.mappings?.length || 0;
+          toast.success(`Imported ${detail.result?.fileName}`, {
+            description: `${fieldsCount} fields, ${detail.result?.chapters?.length || 0} chapters, ${detail.result?.references?.length || 0} references applied.`,
+            duration: 5000,
+          });
+        } catch (err: any) {
+          toast.error('Failed to apply import', {
+            description: err.message || 'An unexpected error occurred.',
+            duration: 4000,
+          });
+        }
       }
     };
     window.addEventListener('thesisforge:import-apply', handler);

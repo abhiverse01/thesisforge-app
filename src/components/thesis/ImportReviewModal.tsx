@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Dialog,
@@ -26,6 +26,17 @@ interface Props {
 
 export function ImportReviewModal({ open, onClose, imported }: Props) {
   const [mappings, setMappings] = useState(imported?.mappings ?? []);
+  const lastImportedRef = useRef<ImportFileResult | null>(null);
+
+  // Re-sync mappings when a new import result is set (avoids stale state on re-open)
+  useEffect(() => {
+    if (imported && imported !== lastImportedRef.current) {
+      lastImportedRef.current = imported;
+      // Queue state update to avoid synchronous setState in effect
+      const latest = imported.mappings ?? [];
+      queueMicrotask(() => setMappings(latest));
+    }
+  }, [imported]);
 
   if (!imported) return null;
   const { result } = imported;

@@ -33,24 +33,56 @@ export function parseTeXSource(tex: string, fileName: string): ImportResult {
   };
 }
 
+// ---- Balanced-brace helper ----
+
+/**
+ * Extract content within balanced braces starting right after an opening '{'.
+ * Returns the string between (and excluding) the outermost braces.
+ * Advances `fromIdx` past the closing brace.
+ */
+function extractBalancedBraces(text: string, fromIdx: number): { content: string; endIdx: number } {
+  let depth = 0;
+  let i = fromIdx;
+  for (; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}') {
+      depth--;
+      if (depth === 0) {
+        return { content: text.slice(fromIdx, i), endIdx: i + 1 };
+      }
+    }
+  }
+  return { content: text.slice(fromIdx), endIdx: text.length };
+}
+
 function extractTeXMetadata(tex: string) {
   const meta: Record<string, any> = {};
 
   // Remove comments first
   const clean = tex.replace(/%[^\n]*/g, '');
 
-  // \title{}
-  const titleMatch = clean.match(/\\title\s*(?:\[[^\]]*\])?\s*\{([\s\S]*?)\}/);
-  if (titleMatch) meta.title = stripTeX(titleMatch[1]);
+  // \title{...} — use balanced braces for nested content
+  const titleRe = /\\title\s*(?:\[[^\]]*\])?\s*\{/;
+  const titleMatch = titleRe.exec(clean);
+  if (titleMatch) {
+    const { content } = extractBalancedBraces(clean, titleMatch.index + titleMatch[0].length);
+    meta.title = stripTeX(content);
+  }
 
-  // \author{}
-  const authorMatch = clean.match(/\\author\s*(?:\[[^\]]*\])?\s*\{([\s\S]*?)\}/);
-  if (authorMatch) meta.author = stripTeX(authorMatch[1]).split('\\\\')[0].trim();
+  // \author{...}
+  const authorRe = /\\author\s*(?:\[[^\]]*\])?\s*\{/;
+  const authorMatch = authorRe.exec(clean);
+  if (authorMatch) {
+    const { content } = extractBalancedBraces(clean, authorMatch.index + authorMatch[0].length);
+    meta.author = stripTeX(content).split('\\\\')[0].trim();
+  }
 
-  // \date{}
-  const dateMatch = clean.match(/\\date\s*\{([\s\S]*?)\}/);
+  // \date{...}
+  const dateRe = /\\date\s*\{/;
+  const dateMatch = dateRe.exec(clean);
   if (dateMatch) {
-    const dateStr = stripTeX(dateMatch[1]);
+    const { content } = extractBalancedBraces(clean, dateMatch.index + dateMatch[0].length);
+    const dateStr = stripTeX(content);
     const yearMatch = dateStr.match(/\b(20\d{2}|19\d{2})\b/);
     if (yearMatch) meta.year = yearMatch[1];
   }
@@ -69,9 +101,10 @@ function extractTeXMetadata(tex: string) {
   }
 
   // hypersetup metadata
-  const hyperMatch = clean.match(/\\hypersetup\s*\{([\s\S]*?)\}/);
+  const hyperRe = /\\hypersetup\s*\{/;
+  const hyperMatch = hyperRe.exec(clean);
   if (hyperMatch) {
-    const hyperContent = hyperMatch[1];
+    const { content: hyperContent } = extractBalancedBraces(clean, hyperMatch.index + hyperMatch[0].length);
     const hyperFields: Array<[RegExp, string]> = [
       [/pdftitle\s*=\s*\{([^}]+)\}/,    'title'],
       [/pdfauthor\s*=\s*\{([^}]+)\}/,   'author'],
@@ -90,9 +123,17 @@ function extractTeXMetadata(tex: string) {
     }
   }
 
-  // Abstract environment
-  const abstractMatch = clean.match(/\\begin\s*\{abstract\}([\s\S]*?)\\end\s*\{abstract\}/);
-  if (abstractMatch) meta.abstract = stripTeX(abstractMatch[1]).trim();
+  // Abstract environment — use balanced braces
+  const absRe = /\\begin\s*\{abstract\}/;
+  const absMatch = absRe.exec(clean);
+  if (absMatch) {
+    const afterAbs = clean.slice(absMatch.index + absMatch[0].length);
+    const endRe = /\\end\s*\{abstract\}/;
+    const endMatch = endRe.exec(afterAbs);
+    if (endMatch) {
+      meta.abstract = stripTeX(afterAbs.slice(0, endMatch.index)).trim();
+    }
+  }
 
   // Degree detection
   const degreePatterns = [
@@ -119,24 +160,26 @@ function extractTeXChapters(tex: string): ExtractedChapter[] {
 
   const body = clean.slice(docStart, docEnd > -1 ? docEnd : undefined);
 
-  // Match \chapter{title} or \chapter*{title}
-  const CHAPTER_RE = /\\chapter\*?\s*(?:\[[^\]]*\])?\s*\{([^}]+)\}/g;
+  // Match \chapter{title} or \chapter*{title} — use balanced braces
+  const CHAPTER_RE = /\\chapter\*?\s*(?:\[[^\]]*\])?\s*\{/g;
   const positions: Array<{ title: string; index: number }> = [];
   let m;
 
   while ((m = CHAPTER_RE.exec(body)) !== null) {
-    const title = stripTeX(m[1]).trim();
+    const { content: chapTitle } = extractBalancedBraces(body, m.index + m[0].length);
+    const title = stripTeX(chapTitle).trim();
     if (/abstract|acknowledgement|dedication|contents|bibliography/i.test(title)) continue;
-    positions.push({ title, index: m.index + m[0].length });
+    positions.push({ title, index: m.index + m[0].length + chapTitle.length + 1 });
   }
 
   // Fallback: \section (article class)
   if (positions.length === 0) {
-    const SECTION_RE = /\\section\*?\s*(?:\[[^\]]*\])?\s*\{([^}]+)\}/g;
+    const SECTION_RE = /\\section\*?\s*(?:\[[^\]]*\])?\s*\{/g;
     while ((m = SECTION_RE.exec(body)) !== null) {
-      const title = stripTeX(m[1]).trim();
+      const { content: secTitle } = extractBalancedBraces(body, m.index + m[0].length);
+      const title = stripTeX(secTitle).trim();
       if (/abstract|bibliography|references/i.test(title)) continue;
-      positions.push({ title, index: m.index + m[0].length });
+      positions.push({ title, index: m.index + m[0].length + secTitle.length + 1 });
     }
   }
 
@@ -162,12 +205,13 @@ function extractTeXChapters(tex: string): ExtractedChapter[] {
 }
 
 function extractTeXSubsections(body: string): Array<{ title: string; body: string }> {
-  const SUB_RE = /\\subsection\*?\s*(?:\[[^\]]*\])?\s*\{([^}]+)\}/g;
+  const SUB_RE = /\\subsection\*?\s*(?:\[[^\]]*\])?\s*\{/g;
   const positions: Array<{ title: string; index: number }> = [];
   let m;
 
   while ((m = SUB_RE.exec(body)) !== null) {
-    positions.push({ title: stripTeX(m[1]), index: m.index + m[0].length });
+    const { content: subTitle } = extractBalancedBraces(body, m.index + m[0].length);
+    positions.push({ title: stripTeX(subTitle), index: m.index + m[0].length + subTitle.length + 1 });
   }
 
   return positions.slice(0, 8).map((pos, i) => {
@@ -184,19 +228,25 @@ function extractTeXBibliography(tex: string): ExtractedReference[] {
   const refs: ExtractedReference[] = [];
   const clean = tex.replace(/%[^\n]*/g, '');
 
-  // BibTeX entries (@article{...})
-  const BIBTEX_RE = /@(\w+)\s*\{([^,]+),\s*([\s\S]*?)\n\}/g;
-  let m;
-  while ((m = BIBTEX_RE.exec(clean)) !== null) {
-    const type   = m[1].toLowerCase();
-    const fields = parseBibFields(m[3]);
-    refs.push({ type, ...fields, raw: m[0] });
+  // BibTeX entries (@article{...}) — use balanced-brace matching for nested braces
+  const bibStartRe = /@(\w+)\s*\{/g;
+  let bibMatch;
+  while ((bibMatch = bibStartRe.exec(clean)) !== null) {
+    const type = bibMatch[1].toLowerCase();
+    const { content: entryBody, endIdx } = extractBalancedBraces(clean, bibMatch.index + bibMatch[0].length);
+    // First token before comma is the citation key
+    const commaIdx = entryBody.indexOf(',');
+    if (commaIdx === -1) continue;
+    const fieldStr = entryBody.slice(commaIdx + 1);
+    const fields = parseBibFields(fieldStr);
+    refs.push({ type, ...fields, raw: clean.slice(bibMatch.index, endIdx) });
   }
 
   if (refs.length > 0) return refs;
 
   // thebibliography entries
   const BIBITEM_RE = /\\bibitem\{([^}]+)\}\s*([\s\S]*?)(?=\\bibitem|\\end\{thebibliography)/g;
+  let m;
   while ((m = BIBITEM_RE.exec(clean)) !== null) {
     refs.push({
       type: 'misc',
@@ -228,10 +278,14 @@ export function parseReferencesFromText(text: string): ExtractedReference[] {
 
 function parseBibFields(fieldStr: string): Record<string, string> {
   const fields: Record<string, string> = {};
-  const FIELD_RE = /(\w+)\s*=\s*\{([^}]*)\}/g;
+  // Use balanced-brace matching for field values
+  const FIELD_RE = /(\w+)\s*=\s*\{/g;
   let m;
   while ((m = FIELD_RE.exec(fieldStr)) !== null) {
-    fields[m[1].toLowerCase()] = m[2].trim();
+    const key = m[1].toLowerCase();
+    const startIdx = m.index + m[0].length;
+    const { content } = extractBalancedBraces(fieldStr, startIdx);
+    fields[key] = content.trim();
   }
   return fields;
 }
