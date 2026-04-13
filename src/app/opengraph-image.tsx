@@ -134,7 +134,7 @@ export default async function Image() {
             }}
           >
             <span style={{ color: "#6366f1" }}>{"\\documentclass"}</span>
-            <span style={{ color: "#a5b4fc" }}>[12pt]{article}</span>
+            <span style={{ color: "#a5b4fc" }}>{`[12pt]{article}`}</span>
             <span style={{ color: "#6366f1" }}>{"\\begin"}{`{document}`}</span>
             <span style={{ color: "#94a3b8" }}>
               {"  "}{`\\title`}{" {Your Thesis Title}"}
