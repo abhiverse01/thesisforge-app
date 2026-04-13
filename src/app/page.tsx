@@ -774,7 +774,7 @@ export default function Home() {
         <input
           ref={thesisImportInputRef}
           type="file"
-          accept=".pdf,.tex"
+          accept=".pdf,.tex,.docx,.doc,.md,.txt"
           onChange={handleThesisFileSelect}
           className="hidden"
         />

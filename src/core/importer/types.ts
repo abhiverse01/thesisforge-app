@@ -3,7 +3,7 @@
 // Types for importing PDF and .tex files into the thesis wizard.
 // ============================================================
 
-export type ImportSource = 'pdf' | 'tex';
+export type ImportSource = 'pdf' | 'tex' | 'docx' | 'md' | 'txt';
 
 export interface ExtractedMetadata {
   title?:        string;

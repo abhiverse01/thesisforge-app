@@ -510,7 +510,7 @@ export function Homepage() {
               <input
                 ref={thesisImportRef}
                 type="file"
-                accept=".pdf,.tex"
+                accept=".pdf,.tex,.docx,.doc,.md,.txt"
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
@@ -542,7 +542,7 @@ export function Homepage() {
                 Import Existing Thesis
               </Button>
               <span className="text-xs text-muted-foreground">
-                Supports .pdf and .tex files
+                Supports .pdf, .tex, .docx, .md, .txt files
               </span>
             </div>
 
