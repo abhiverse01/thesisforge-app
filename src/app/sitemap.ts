@@ -1,90 +1,87 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/config";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://thesisforge-web.vercel.app";
   const now = new Date();
 
   return [
     {
-      url: baseUrl,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 1.0,
+      url: SITE_URL,
     },
     {
-      url: `${baseUrl}/templates/bachelors`,
+      url: `${SITE_URL}/templates/bachelors`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/templates/masters`,
+      url: `${SITE_URL}/templates/masters`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/templates/phd`,
+      url: `${SITE_URL}/templates/phd`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/templates/research-report`,
+      url: `${SITE_URL}/templates/research-report`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/citation-styles/apa`,
+      url: `${SITE_URL}/citation-styles/apa`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/citation-styles/ieee`,
+      url: `${SITE_URL}/citation-styles/ieee`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/citation-styles/chicago`,
+      url: `${SITE_URL}/citation-styles/chicago`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/citation-styles/harvard`,
+      url: `${SITE_URL}/citation-styles/harvard`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/citation-styles/vancouver`,
+      url: `${SITE_URL}/citation-styles/vancouver`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/vs/overleaf`,
+      url: `${SITE_URL}/vs/overleaf`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
-      url: `${baseUrl}/vs/latex-templates`,
+      url: `${SITE_URL}/vs/latex-templates`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
-      url: `${baseUrl}/vs/word`,
+      url: `${SITE_URL}/vs/word`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
-      url: `${baseUrl}/blog`,
+      url: `${SITE_URL}/blog`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.7,

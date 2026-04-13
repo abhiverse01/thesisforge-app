@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE_URL } from "@/lib/config";
 import { notFound } from "next/navigation";
 
 // ============================================================
 // Blog Post Template — Ready for future content
 // ============================================================
 
-const BASE_URL = "https://thesisforge-web.vercel.app";
+const BASE_URL = SITE_URL;
 
 // Empty array for now — blog posts will be added later
 interface BlogPost {

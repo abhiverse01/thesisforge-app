@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE_URL } from "@/lib/config";
 import { notFound } from "next/navigation";
 
 // ============================================================
@@ -20,7 +21,7 @@ interface TemplateData {
   comparisonHighlights: string;
 }
 
-const BASE_URL = "https://thesisforge-web.vercel.app";
+const BASE_URL = SITE_URL;
 
 const templates: Record<string, TemplateData> = {
   bachelors: {

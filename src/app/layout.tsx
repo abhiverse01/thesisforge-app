@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
+import { SITE_URL } from "@/lib/config";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/thesis/theme-provider";
@@ -27,8 +28,8 @@ const softwareApplicationLd = {
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   description:
     "Free browser-based LaTeX thesis generator. No LaTeX knowledge required. Export compilable .tex and .bib files for Bachelor's, Master's, PhD, and Research Report theses.",
-  url: "https://thesisforge-web.vercel.app",
-  screenshot: "https://thesisforge-web.vercel.app/og-image.png",
+  url: SITE_URL,
+  screenshot: `${SITE_URL}/og-image.png`,
   featureList: [
     "4 academic thesis templates",
     "6-step guided wizard",
@@ -172,7 +173,7 @@ const faqPageLd = {
 // ============================================================
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://thesisforge-web.vercel.app"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default:
       "ThesisForge — Free LaTeX Thesis Generator | No LaTeX Knowledge Required",
@@ -216,7 +217,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://thesisforge-web.vercel.app",
+    url: SITE_URL,
     siteName: "ThesisForge",
     title: "ThesisForge — Free LaTeX Thesis Generator",
     description:
@@ -239,7 +240,7 @@ export const metadata: Metadata = {
     creator: "@abhishekshah",
   },
   alternates: {
-    canonical: "https://thesisforge-web.vercel.app",
+    canonical: SITE_URL,
   },
 };
 
@@ -259,12 +260,12 @@ export default function RootLayout({
         <link
           rel="alternate"
           hrefLang="en"
-          href="https://thesisforge-web.vercel.app"
+          href={SITE_URL}
         />
         <link
           rel="alternate"
           hrefLang="x-default"
-          href="https://thesisforge-web.vercel.app"
+          href={SITE_URL}
         />
         <link rel="me" href="mailto:abhishek.aimarine@gmail.com" />
 

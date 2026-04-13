@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE_URL } from "@/lib/config";
 
-const BASE_URL = "https://thesisforge-web.vercel.app";
+const BASE_URL = SITE_URL;
 
 export const metadata: Metadata = {
   title: "Blog — ThesisForge Tips, Guides & LaTeX Advice",
