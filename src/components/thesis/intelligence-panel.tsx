@@ -61,7 +61,8 @@ import { useThesisStore } from '@/lib/thesis-store';
 interface IntelligencePanelProps {
   isOpen: boolean;
   onClose: () => void;
-  currentStep: number;
+  /** @deprecated Not used internally — kept for API compatibility */
+  currentStep?: number;
 }
 
 // ============================================================
@@ -701,7 +702,7 @@ function CompletenessChecklist({ result }: { result: CompletenessResult | null }
 // Main Intelligence Panel Component
 // ============================================================
 
-export default function IntelligencePanel({ isOpen, onClose, currentStep }: IntelligencePanelProps) {
+export default function IntelligencePanel({ isOpen, onClose }: IntelligencePanelProps) {
   const [results, setResults] = useState<IntelligenceResults>({
     completeness: null,
     readingStats: null,

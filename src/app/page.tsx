@@ -789,7 +789,7 @@ export default function Home() {
         {/* ============================================================ */}
         {/* HEADER */}
         {/* ============================================================ */}
-        <header className={cn("sticky top-0 z-50 shrink-0 border-b transition-[background,backdrop-filter] duration-150", scrolled ? "bg-background/82 backdrop-blur-xl backdrop-saturate-[1.8]" : "bg-background border-b-transparent")}>
+        <header className={cn("sticky top-0 z-50 shrink-0 border-b transition-[background,backdrop-filter] duration-150", scrolled ? "bg-background/80 backdrop-blur-xl backdrop-saturate-[1.8]" : "bg-background border-b-transparent")}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
             {/* Left: Logo */}
             <div className="flex items-center gap-2.5 min-w-0">
@@ -1098,7 +1098,7 @@ export default function Home() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className="shrink-0 border-t bg-background/92 backdrop-blur-xl backdrop-saturate-[1.8]"
+              className="shrink-0 border-t bg-background/90 backdrop-blur-xl backdrop-saturate-[1.8]"
             >
               <div className={cn(
                 "px-4 sm:px-6 h-[72px] flex items-center justify-between gap-3",

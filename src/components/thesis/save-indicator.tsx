@@ -17,6 +17,7 @@ const STATUS_CONFIG: Record<SaveStatus, { icon: React.ElementType; label: string
   saved: { icon: Check, label: "Saved", color: "text-[var(--color-text-success)]" },
   error: { icon: AlertCircle, label: "Error", color: "text-[var(--color-text-danger)]" },
   'quota-exceeded': { icon: AlertCircle, label: "Storage full — backup downloaded", color: "text-[var(--color-text-danger)]" },
+  conflict: { icon: AlertCircle, label: "Conflict — save downloaded", color: "text-[var(--color-text-warning)]" },
 };
 
 export function SaveIndicator() {

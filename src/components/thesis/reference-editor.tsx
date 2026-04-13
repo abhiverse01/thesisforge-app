@@ -414,6 +414,7 @@ export function ReferenceEditor() {
   const [parsedFields, setParsedFields] = useState<Set<string>>(new Set());
   const [quickAddInput, setQuickAddInput] = useState("");
   const quickAddRef = useRef<HTMLInputElement>(null);
+  const quickAddIgnoreBlur = useRef(false);
 
   // ----- Derived data (safe even when thesis is null) -----
   const references = thesis?.references ?? [];
@@ -574,8 +575,8 @@ export function ReferenceEditor() {
             ref={quickAddRef}
             value={quickAddInput}
             onChange={(e) => setQuickAddInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleQuickAdd(); }}
-            onBlur={() => { if (quickAddInput.trim()) handleQuickAdd(); }}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); quickAddIgnoreBlur.current = true; handleQuickAdd(); } }}
+            onBlur={() => { if (quickAddIgnoreBlur.current) { quickAddIgnoreBlur.current = false; return; } if (quickAddInput.trim()) handleQuickAdd(); }}
             className="pl-8 h-9 text-xs"
             placeholder="Paste a citation to quick-add... (APA, Vancouver, MLA, or BibTeX)"
           />

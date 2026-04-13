@@ -359,17 +359,7 @@ export function ChapterEditor() {
   const handleDeleteChapter = (chapter: ThesisChapter) => {
     removeChapter(chapter.id);
     setDeleteConfirm(null);
-    toast(`"${chapter.title}" deleted.`, {
-      description: "The chapter and all its sections have been removed.",
-      action: {
-        label: "Undo",
-        onClick: () => {
-          undoDeleteChapter();
-          toast.success("Chapter restored!");
-        },
-      },
-      duration: 6000,
-    });
+    // Toast with undo is handled centrally in page.tsx via lastDeletedChapter effect
   };
 
 

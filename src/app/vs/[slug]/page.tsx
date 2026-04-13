@@ -505,6 +505,7 @@ export default async function ComparisonLandingPage({
                 { slug: "masters", label: "Master" },
                 { slug: "phd", label: "PhD" },
                 { slug: "research-report", label: "Research Report" },
+                { slug: "conference", label: "Conference" },
               ].map((t) => (
                 <Link
                   key={t.slug}

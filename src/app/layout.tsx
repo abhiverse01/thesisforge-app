@@ -137,7 +137,7 @@ const faqPageLd = {
       name: "What thesis templates does ThesisForge support?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "ThesisForge includes 4 templates: Bachelor's Thesis, Master's Thesis, PhD Dissertation, and Research Report. Each is pre-configured with appropriate chapter structures, citation styles, and formatting defaults.",
+        text: "ThesisForge includes 5 templates: Bachelor's Thesis, Master's Thesis, PhD Dissertation, Research Report, and Conference Paper. Each is pre-configured with appropriate chapter structures, citation styles, and formatting defaults.",
       },
     },
     {

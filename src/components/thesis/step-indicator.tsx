@@ -233,7 +233,7 @@ export function StepIndicator({ className }: StepIndicatorProps) {
 
       {/* Mobile view */}
       <div className="md:hidden">
-        {/* "Step X of 7" label */}
+        {/* "Step X of 6" label */}
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold text-foreground">
             Step {currentStep} of {totalSteps}

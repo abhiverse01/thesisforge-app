@@ -8,7 +8,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: 'Inter', 'SF Pro Text', system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-geist-mono);
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -793,28 +793,6 @@
 
   .animate-scale {
     animation: animateScale var(--dur-normal) var(--ease-out-snap) both;
-  }
-}
-
-/* ============================================================
-   Field Fill Flash — Smart Paste Detection
-   ============================================================ */
-@keyframes fieldFillFlash {
-  0% { background-color: oklch(0.80 0.12 85 / 0.3); }
-  100% { background-color: transparent; }
-}
-
-@keyframes fieldFillFlashDark {
-  0% { background-color: oklch(0.65 0.15 42 / 0.25); }
-  100% { background-color: transparent; }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .field-fill-flash {
-    animation: fieldFillFlash 0.6s ease-out;
-  }
-  .dark .field-fill-flash {
-    animation-name: fieldFillFlashDark;
   }
 }
 

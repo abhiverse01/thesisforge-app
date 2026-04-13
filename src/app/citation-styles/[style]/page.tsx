@@ -547,6 +547,7 @@ export default async function CitationStyleLandingPage({
     { slug: "masters", label: "Master" },
     { slug: "phd", label: "PhD" },
     { slug: "research-report", label: "Research Report" },
+    { slug: "conference", label: "Conference" },
   ];
 
   return (

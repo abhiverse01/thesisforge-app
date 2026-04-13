@@ -234,7 +234,7 @@ With ThesisForge, you get a publication-quality master thesis without spending t
       {
         question: "What citation styles work best for a master thesis?",
         answer:
-          "APA is the most common choice for social sciences and education, IEEE for engineering and computer science, Harvard for business and economics, and Chicago for humanities. ThesisForge supports all five of these styles and lets you switch between them at any time.",
+          "APA is the most common choice for social sciences and education, IEEE for engineering and computer science, Harvard for business and economics, Chicago for humanities, and Vancouver for health sciences. ThesisForge supports all five of these styles and lets you switch between them at any time.",
       },
       {
         question: "Can I include mathematical equations in my master thesis?",

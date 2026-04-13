@@ -46,7 +46,7 @@ const STATE_TO_STEP: Record<WizardStateName, WizardStep> = {
 // Save status for the indicator
 // ============================================================
 
-export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'quota-exceeded';
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'quota-exceeded' | 'conflict';
 
 interface ThesisStore {
   // Core state

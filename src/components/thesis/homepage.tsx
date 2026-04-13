@@ -42,8 +42,8 @@ const features = [
     icon: ClipboardList,
     title: "Standard Templates",
     description:
-      "Choose from Bachelor's, Master's, PhD, or Research Report templates with pre-configured academic structures. Each LaTeX thesis template includes the correct chapter layout, page margins, citation style, and formatting defaults for your degree level.",
-    badge: "4 Types",
+      "Choose from Bachelor's, Master's, PhD, Research Report, or Conference Paper templates with pre-configured academic structures. Each LaTeX thesis template includes the correct chapter layout, page margins, citation style, and formatting defaults for your degree level.",
+    badge: "5 Types",
   },
   {
     icon: PenTool,
@@ -108,7 +108,7 @@ const useCases = [
 ];
 
 const stats = [
-  { value: 4, suffix: "", label: "Templates" },
+  { value: 5, suffix: "", label: "Templates" },
   { value: 6, suffix: "-Step", label: "Wizard" },
   { value: 100, suffix: "%", label: "Browser-Based" },
   { value: 0, suffix: "", label: "Account Required", isSpecial: true },
@@ -597,7 +597,7 @@ export function Homepage() {
                         getReq.onsuccess = () => {
                           const record = getReq.result;
                           if (record?.data) {
-                            const validTypes = ['bachelor', 'master', 'phd', 'report'];
+                            const validTypes = ['bachelor', 'master', 'phd', 'report', 'conference'];
                             const templateId = validTypes.includes(record.templateId) ? record.templateId : null;
                             const step = typeof record.wizardStep === 'number' && record.wizardStep >= 1 && record.wizardStep <= 6 ? record.wizardStep : 1;
                             useThesisStore.setState({
