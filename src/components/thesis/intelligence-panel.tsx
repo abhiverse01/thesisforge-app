@@ -1,0 +1,1523 @@
+'use client';
+
+// ============================================================
+// ThesisForge Intelligence Panel — Unified Sidebar
+// All 8 algorithms feed into this single sidebar panel.
+// Shows completeness ring, active issues, word stats,
+// structure balance, keywords, and reading time.
+// ============================================================
+
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  X,
+  ChevronDown,
+  ChevronRight,
+  CheckCircle2,
+  AlertTriangle,
+  AlertCircle,
+  Info,
+  Lightbulb,
+  Sparkles,
+  BookOpen,
+  BarChart3,
+  Target,
+  Type,
+  Quote,
+  Clock,
+  CircleDot,
+  Wand2,
+  TrendingUp,
+  Zap,
+  RefreshCw,
+  XCircle,
+  Loader2,
+  Brain,
+  PanelRightClose,
+} from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import type {
+  IntelligenceResults,
+  CompletenessResult,
+  HeuristicFinding,
+} from '@/intelligence';
+import type { AlgorithmId, CircuitBreakerState } from '@/intelligence/types';
+import {
+  intelligenceScheduler,
+  DEFAULT_RESULTS,
+} from '@/intelligence/scheduler';
+import { applyAllHeuristicFixes } from '@/intelligence/latexHeuristics';
+import { useThesisStore } from '@/lib/thesis-store';
+import { cn } from '@/lib/utils';
+
+// ============================================================
+// Props
+// ============================================================
+
+interface IntelligencePanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  /** Current wizard step (1-6) used for filtering insights by relevance */
+  currentStep?: number;
+  showCloseButton?: boolean; // NEW
+}
+
+// ============================================================
+// Completeness Ring — Circular progress indicator
+// ============================================================
+
+const CompletenessRing = React.memo(function CompletenessRing({ result }: { result: CompletenessResult | null }) {
+  const [hasLeveledUp, setHasLeveledUp] = useState(false);
+  const prevScore = useRef(0);
+  const toastShown = useRef(false);
+
+  // Detect level-up (score crosses 90 for first time)
+  useEffect(() => {
+    if (result && result.score >= 90 && prevScore.current < 90 && !toastShown.current) {
+      toastShown.current = true;
+      toast.success('Export ready!', {
+        description: 'Your thesis looks complete. Time to generate your LaTeX files.',
+        duration: 4000,
+      });
+      // Defer setState to avoid synchronous setState in effect
+      queueMicrotask(() => setHasLeveledUp(true));
+    }
+    if (result) prevScore.current = result.score;
+  }, [result]);
+
+  if (!result) {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <div className="relative w-20 h-20">
+          <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="35" stroke="currentColor" strokeWidth="6" fill="none" className="text-muted-foreground/20" />
+            <circle cx="40" cy="40" r="35" stroke="currentColor" strokeWidth="6" fill="none"
+              className="text-muted-foreground/40" strokeDasharray="0 220" strokeLinecap="round" />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-2xl font-bold font-mono text-muted-foreground">--</span>
+          </div>
+        </div>
+        <span className="text-[10px] text-muted-foreground">Select a template to start</span>
+      </div>
+    );
+  }
+
+  const circumference = 2 * Math.PI * 35;
+  const progress = (result.score / 100) * circumference;
+
+  const scoreConfig =
+    result.score >= 90
+      ? { stroke: 'var(--c-brand-600)', text: 'var(--c-brand-600)', label: 'Export ready' }
+      : result.score >= 70
+        ? { stroke: 'var(--color-text-success)', text: 'var(--color-text-success)', label: 'Almost there' }
+        : result.score >= 40
+          ? { stroke: 'var(--color-text-warning)', text: 'var(--color-text-warning)', label: 'In progress' }
+          : { stroke: 'var(--color-text-danger)', text: 'var(--color-text-danger)', label: 'Getting started' };
+
+  return (
+    <div className={`flex flex-col items-center gap-2 ${hasLeveledUp ? 'score-ring--levelup' : ''}`}>
+      <div className="relative w-20 h-20">
+        {/* Level-up confetti burst */}
+        {hasLeveledUp && (
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            {[...Array(8)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 1, scale: 0, x: 0, y: 0 }}
+                animate={{
+                  opacity: 0,
+                  scale: 1,
+                  x: Math.cos((i / 8) * Math.PI * 2) * 40,
+                  y: Math.sin((i / 8) * Math.PI * 2) * 40,
+                }}
+                transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                className="absolute top-1/2 left-1/2 w-2 h-2 rounded-sm"
+                style={{
+                  backgroundColor: ['#7F77DD', '#1D9E75', '#BA7517', '#E24B4A', '#534AB7', '#0F6E56', '#854F0B', '#A32D2D'][i],
+                }}
+              />
+            ))}
+          </div>
+        )}
+        <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="35" stroke="currentColor" strokeWidth="6" fill="none" className="text-muted-foreground/20" />
+          <motion.circle
+            cx="40" cy="40" r="35"
+            stroke={scoreConfig.stroke}
+            strokeWidth="6" fill="none"
+            className="score-ring__fill"
+            strokeDasharray={`${progress} ${circumference}`}
+            strokeLinecap="round"
+            initial={false}
+            animate={{ strokeDasharray: [`${progress} ${circumference}`] }}
+            transition={{ duration: 0.5, ease: [0.25, 1, 0.5, 1] }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-2xl font-bold font-mono anim-count-up tabular-nums" style={{ color: scoreConfig.text }}>{result.score}</span>
+        </div>
+      </div>
+      <span className="text-[10px]" style={{ color: scoreConfig.text }}>{scoreConfig.label}</span>
+    </div>
+  );
+});
+
+// ============================================================
+// Issue Card — Single issue display (supports action buttons)
+// ============================================================
+
+const IssueCard = React.memo(function IssueCard({
+  severity,
+  message,
+  action,
+  onAction,
+}: {
+  severity: string;
+  message: string;
+  action?: string;
+  onAction?: () => void;
+}) {
+  const severityConfig = {
+    error: { icon: AlertCircle, color: 'text-[var(--color-text-danger)]', bg: 'bg-red-500/10', border: 'border-red-500/30' },
+    warning: { icon: AlertTriangle, color: 'text-[var(--color-text-warning)]', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+    suggestion: { icon: Lightbulb, color: 'text-[var(--color-text-brand)]', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
+    info: { icon: Info, color: 'text-muted-foreground', bg: 'bg-muted', border: 'border-border' },
+  };
+
+  const config = severityConfig[severity as keyof typeof severityConfig] || severityConfig.info;
+  const Icon = config.icon;
+
+  return (
+    <div className={`flex items-start gap-2 p-2 rounded-md ${config.bg} border ${config.border}`}>
+      <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${config.color}`} />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-foreground/80 leading-relaxed">{message}</p>
+        {action && onAction && (
+          <Button variant="ghost" size="sm" className="h-auto min-h-0 text-[11px] mt-1 p-0 hover:underline" onClick={onAction}>
+            {action}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+});
+
+// ============================================================
+// Dismissable Insight Card — Card with X dismiss button (severity grouped)
+// ============================================================
+
+const DismissableInsightCard = React.memo(function DismissableInsightCard({
+  severity,
+  message,
+  onDismiss,
+}: {
+  severity: string;
+  message: string;
+  onDismiss?: () => void;
+}) {
+  const severityConfig = {
+    error: { icon: AlertCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/30' },
+    warning: { icon: AlertTriangle, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+    suggestion: { icon: Lightbulb, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
+    info: { icon: Info, color: 'text-muted-foreground', bg: 'bg-muted', border: 'border-border' },
+  };
+
+  const config = severityConfig[severity as keyof typeof severityConfig] || severityConfig.info;
+  const Icon = config.icon;
+
+  return (
+    // WHY: Relative positioning allows the dismiss button to overlay the card corner
+    <div className={`relative flex items-start gap-2 p-2 rounded-md ${config.bg} border ${config.border}`}>
+      <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${config.color}`} />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-foreground/80 leading-relaxed pr-5">{message}</p>
+      </div>
+      {/* WHY: Dismiss button lets users hide non-actionable insights */}
+      {onDismiss && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-0.5 right-0.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-5 sm:w-5 flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
+          onClick={onDismiss}
+        >
+          <X className="w-3 h-3" />
+        </Button>
+      )}
+    </div>
+  );
+});
+
+// ============================================================
+// Collapsible Section
+// ============================================================
+
+// Storage key for persisting section open/closed state
+const PANEL_STATE_STORAGE_KEY = 'tf-intel-panel-state';
+
+function loadPanelState(): Record<string, boolean> {
+  try {
+    if (typeof window === 'undefined') return {};
+    const raw = localStorage.getItem(PANEL_STATE_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePanelState(state: Record<string, boolean>) {
+  try {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(PANEL_STATE_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Private browsing or quota exceeded — ignore
+  }
+}
+
+// Algorithm status indicator: shows running / complete / disabled
+const AlgoStatusIndicator = React.memo(function AlgoStatusIndicator({
+  circuitBreakerState,
+  isRefreshing,
+}: {
+  circuitBreakerState: CircuitBreakerState | undefined;
+  isRefreshing: boolean;
+}) {
+  if (isRefreshing) {
+    return <span className="tf-status-dot tf-status-dot--running"><Loader2 className="w-3 h-3 animate-spin text-[var(--color-text-brand)]" /></span>;
+  }
+  if (!circuitBreakerState) return null;
+  if (circuitBreakerState.disabled) {
+    return <span className="tf-status-dot tf-status-dot--idle"><XCircle className="w-3 h-3 text-muted-foreground" /></span>;
+  }
+  return <span className="tf-status-dot tf-status-dot--complete"><CheckCircle2 className="w-3 h-3 text-[var(--color-text-success)]" /></span>;
+});
+
+const CollapsibleSection = React.memo(function CollapsibleSection({
+  title,
+  icon: _Icon, // kept for interface compat, not rendered in new design
+  children,
+  defaultOpen = false,
+  badge,
+  algorithmId,
+  circuitBreakerMap,
+  isRefreshing = false,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  badge?: number;
+  algorithmId?: string;
+  circuitBreakerMap?: Map<AlgorithmId, CircuitBreakerState>;
+  isRefreshing?: boolean;
+}) {
+  // Persist open/closed state to localStorage keyed by algorithmId
+  const storageKey = algorithmId || title;
+
+  const [isOpen, setIsOpen] = useState(() => {
+    try {
+      if (typeof window === 'undefined') return defaultOpen;
+      const state = loadPanelState();
+      return state[storageKey] ?? defaultOpen;
+    } catch {
+      return defaultOpen;
+    }
+  });
+
+  const handleToggle = useCallback(() => {
+    setIsOpen(prev => {
+      const next = !prev;
+      try {
+        const state = loadPanelState();
+        state[storageKey] = next;
+        savePanelState(state);
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, [storageKey]);
+
+  const cbState = algorithmId ? circuitBreakerMap?.get(algorithmId as AlgorithmId) : undefined;
+  const hasIssues = badge !== undefined && badge > 0;
+  const statusColorClass = !hasIssues ? 'bg-green-500' : 'bg-amber-500';
+
+  return (
+    <div className="border-b border-border/50 last:border-0">
+      <button
+        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-accent/30 transition-colors"
+        onClick={handleToggle}
+      >
+        <div className="flex items-center gap-2">
+          <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", statusColorClass)} />
+          <span className="text-[12px] font-medium">{title}</span>
+          {hasIssues && (
+            <span className="text-[10px] font-mono text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full">
+              {badge}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          {algorithmId && (
+            <AlgoStatusIndicator
+              circuitBreakerState={cbState}
+              isRefreshing={isRefreshing}
+            />
+          )}
+          <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground/60 transition-transform duration-200", isOpen && "rotate-180")} />
+        </div>
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-3 pt-1 space-y-1.5">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+});
+
+// ============================================================
+// Word Stats Section
+// ============================================================
+
+const WordStatsSection = React.memo(function WordStatsSection({ results }: { results: IntelligenceResults }) {
+  if (!results.readingStats) return null;
+
+  const { readingStats } = results;
+  const { total } = readingStats;
+
+  return (
+    <div className="space-y-2">
+      {/* Total stats */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="bg-muted/30 rounded-xl p-3 sm:p-2 text-center">
+          <div className="text-lg font-semibold text-foreground tabular-nums">{total.words.toLocaleString()}</div>
+          <div className="text-xs text-muted-foreground">Total words</div>
+        </div>
+        <div className="bg-muted/30 rounded-xl p-3 sm:p-2 text-center">
+          <div className="text-lg font-semibold text-foreground tabular-nums">~{total.readingTime} min</div>
+          <div className="text-xs text-muted-foreground">Reading time</div>
+        </div>
+      </div>
+
+      {/* Abstract status */}
+      {total.abstractWords > 0 && (
+        <div className="bg-muted/30 rounded-lg p-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-muted-foreground">Abstract</span>
+            <span className={`text-xs font-medium tabular-nums ${
+              total.abstractStatus === 'good' ? 'text-[var(--color-text-success)]' : 'text-[var(--color-text-warning)]'
+            }`}>
+              {total.abstractWords} words
+              {total.abstractStatus !== 'good' && (
+                total.abstractWords < 100 ? ' (too short)' : ' (too long)'
+              )}
+            </span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-2.5 sm:h-2">
+            <div
+              className={`h-2.5 sm:h-2 rounded-full transition-[width] duration-500 ${
+                total.abstractStatus === 'good' ? 'bg-green-500' : 'bg-amber-500'
+              }`}
+              style={{ width: `${Math.min(100, (total.abstractWords / 300) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Per-chapter word counts */}
+      <div className="space-y-2">
+        {readingStats.chapters.map((ch) => (
+          <div key={ch.chapterId} className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground truncate max-w-[60%]" title={ch.chapterTitle}>
+              {ch.chapterTitle}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground tabular-nums">{ch.words.toLocaleString()}</span>
+              <span className="text-muted-foreground/60 tabular-nums">~{ch.readingTime}m</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Long sentence warning */}
+      {readingStats.longSentenceChapters.length > 0 && (
+        <div className="flex items-start gap-2 text-xs text-[var(--color-text-warning)]">
+          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+          <span>
+            Consider shorter sentences in: {readingStats.longSentenceChapters.join(', ')}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+});
+
+// ============================================================
+// Structure Balance Section
+// ============================================================
+
+function generateBalanceSuggestion(issue: { chapterTitle: string; direction: string; actualPct: number; idealPct: number }): string {
+  const title = issue.chapterTitle.toLowerCase();
+
+  if (issue.direction === 'over') {
+    if (title.includes('introduct') || title.includes('background') || title.includes('overview')) {
+      return `Consider moving background material from "${issue.chapterTitle}" to the Literature Review chapter to improve balance.`;
+    }
+    if (title.includes('method') || title.includes('approach')) {
+      return `"${issue.chapterTitle}" is large at ${issue.actualPct}%. Consider moving implementation details to an appendix.`;
+    }
+    return `"${issue.chapterTitle}" takes ${issue.actualPct}% of your thesis (${issue.idealPct}% ideal). Consider condensing or redistributing content.`;
+  }
+
+  if (issue.direction === 'under') {
+    if (title.includes('conclus') || title.includes('discussion') || title.includes('summary')) {
+      return `"${issue.chapterTitle}" is thin at ${issue.actualPct}%. Add implications, limitations, and future work sections.`;
+    }
+    if (title.includes('literature') || title.includes('review') || title.includes('related')) {
+      return `"${issue.chapterTitle}" is only ${issue.actualPct}% (ideal: ${issue.idealPct}%). Expand with more sources and critical analysis.`;
+    }
+    return `"${issue.chapterTitle}" is underrepresented at ${issue.actualPct}% vs ${issue.idealPct}% ideal. Consider adding more depth.`;
+  }
+
+  return `"${issue.chapterTitle}": ${issue.actualPct}% actual vs ${issue.idealPct}% ideal.`;
+}
+
+const StructureBalanceSection = React.memo(function StructureBalanceSection({ results }: { results: IntelligenceResults }) {
+  if (!results.structure) return null;
+
+  const { structure } = results;
+
+  return (
+    <div className="space-y-3">
+      {/* Balance score gauge */}
+      <div className="flex items-center gap-3 sm:gap-4">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={`text-2xl font-bold font-mono ${
+                (structure.balanceScore ?? 0) >= 80 ? 'text-[var(--color-text-success)]'
+                  : (structure.balanceScore ?? 0) >= 60 ? 'text-[var(--color-text-warning)]'
+                    : 'text-[var(--color-text-danger)]'
+              }`}>
+                {structure.balanceScore ?? '--'}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-[200px]">
+                Balance score 0-100. Measures how evenly your word count is distributed
+                across chapters compared to academic norms.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <div className="flex-1">
+          <div className="text-xs text-muted-foreground">Structural balance</div>
+          <div className="w-full bg-muted rounded-full h-2 mt-1">
+            <motion.div
+              className={`h-2 rounded-full transition-[width] duration-500 ${
+                (structure.balanceScore ?? 0) >= 80 ? 'bg-green-500'
+                  : (structure.balanceScore ?? 0) >= 60 ? 'bg-amber-500'
+                    : 'text-[var(--color-text-danger)] bg-red-500'
+              }`}
+              initial={{ width: 0 }}
+              animate={{ width: `${structure.balanceScore ?? 0}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Word count bars per chapter */}
+      <div className="space-y-2">
+        {structure.wordCounts.map((ch) => {
+          const issue = structure.issues.find((i) => i.chapterId === ch.id);
+          const pct = structure.totalWords > 0 ? (ch.words / structure.totalWords) * 100 : 0;
+          const barColor = issue
+            ? issue.severity === 'high' ? 'bg-red-500' : 'bg-amber-500'
+            : 'bg-green-500';
+
+          return (
+            <div key={ch.id}>
+              <div className="flex items-center justify-between text-xs mb-0.5">
+                <span className="text-muted-foreground truncate max-w-[60%]">{ch.title}</span>
+                <span className="text-muted-foreground tabular-nums">{Math.round(pct)}% ({ch.words})</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2.5 sm:h-2">
+                <motion.div
+                  className={`h-2.5 sm:h-2 rounded-full ${barColor}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, pct * 4)}%` }}
+                  transition={{ duration: 0.4 }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Issues */}
+      {structure.issues.length > 0 && (
+        <div className="space-y-2">
+          {structure.issues.slice(0, 3).map((issue, idx) => (
+            <div key={idx} className="space-y-1">
+              <div className="flex items-start gap-2 text-xs">
+                <AlertTriangle className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${
+                  issue.severity === 'high' ? 'text-[var(--color-text-danger)]' : 'text-[var(--color-text-warning)]'
+                }`} />
+                <span className="text-muted-foreground">
+                  <strong>{issue.chapterTitle}</strong> is {issue.direction}represented
+                  ({issue.actualPct}% vs {issue.idealPct}% ideal)
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground/80 pl-5 italic">
+                {generateBalanceSuggestion(issue)}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// ============================================================
+// Keywords Section
+// ============================================================
+
+const KeywordsSection = React.memo(function KeywordsSection({ keywords }: { keywords: string[] }) {
+  if (keywords.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {keywords.map((kw, idx) => (
+        <Badge key={idx} variant="secondary" className="text-xs font-normal">
+          {kw}
+        </Badge>
+      ))}
+    </div>
+  );
+});
+
+// ============================================================
+// Heuristics Section
+// ============================================================
+
+const HeuristicsSection = React.memo(function HeuristicsSection({ results }: { results: IntelligenceResults }) {
+  // FIX: Use getState() inside handlers instead of useThesisStore() hook.
+  // The hook subscribes the component to the ENTIRE thesis store, meaning
+  // every keystroke re-renders this component even when results haven't changed.
+
+  const [showFixAllDialog, setShowFixAllDialog] = useState(false);
+
+  // Collect all findings with fixes, capped at 5 for display
+  const allFindings: Array<{ chapterId: string; finding: HeuristicFinding }> = [];
+  for (const [chapterId, findings] of results.heuristics) {
+    for (const finding of findings) {
+      allFindings.push({ chapterId, finding });
+    }
+  }
+
+  // Collect all fixable findings
+  const fixableFindings = allFindings.filter((item) => item.finding.fix !== null);
+
+  // FIX: Only apply SAFE autofixes (errors + warnings), not stylistic suggestions
+  // Stylistic fixes like em-dash conversion can alter user intent
+  const SAFE_FIX_RULES = new Set([
+    'smart-quotes', 'percent-sign', 'ampersand', 'hash-symbol',
+    'double-dollar-math', 'markdown-bold', 'markdown-italic',
+    'literal-dots', 'obsolete-font-cmd',
+  ]);
+  const safeFixableFindings = fixableFindings.filter(
+    (item) => item.finding.fix !== null && SAFE_FIX_RULES.has(item.finding.ruleId)
+  );
+
+  const handleFixAll = () => {
+    const { thesis, updateChapter } = useThesisStore.getState();
+    if (!thesis) return;
+
+    // Group safe fixable findings by chapter
+    const fixesByChapter = new Map<string, HeuristicFinding[]>();
+    for (const item of safeFixableFindings) {
+      const existing = fixesByChapter.get(item.chapterId) || [];
+      existing.push(item.finding);
+      fixesByChapter.set(item.chapterId, existing);
+    }
+
+    let totalFixed = 0;
+    for (const [chapterId, findings] of fixesByChapter) {
+      const chapter = thesis.chapters.find((ch) => ch.id === chapterId);
+      if (!chapter) continue;
+
+      // Use the pre-built applyAllHeuristicFixes function
+      const newContent = applyAllHeuristicFixes(chapter.content || '');
+      const newSubSections = chapter.subSections.map((ss) => ({
+        ...ss,
+        content: applyAllHeuristicFixes(ss.content || ''),
+      }));
+
+      updateChapter(chapterId, { content: newContent, subSections: newSubSections });
+
+      // Count fixable findings for this chapter
+      const chapterFixable = findings.filter((f) => f.fix !== null).length;
+      totalFixed += chapterFixable;
+    }
+
+    if (totalFixed > 0) {
+      toast.success(`Applied ${totalFixed} autofix${totalFixed > 1 ? 'es' : ''}`, {
+        description: 'LaTeX patterns have been corrected across all chapters.',
+        duration: 3000,
+      });
+    }
+  };
+
+  // All-clear state: heuristic checks ran but found zero issues
+  if (allFindings.length === 0) {
+    return (
+      <div className="flex items-start gap-2 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-fill-success)' }}>
+        <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-text-success)' }} />
+        <div>
+          <p className="text-xs font-medium" style={{ color: 'var(--color-text-success)' }}>
+            Clean LaTeX
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+            No issues found. This file should compile on first try.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Sort by severity and cap at 5
+  const severityOrder: Record<string, number> = { error: 0, warning: 1, suggestion: 2, info: 3 };
+  allFindings.sort((a, b) =>
+    (severityOrder[a.finding.severity] ?? 99) - (severityOrder[b.finding.severity] ?? 99)
+  );
+  const displayFindings = allFindings.slice(0, 5);
+  const remaining = allFindings.length - 5;
+
+  return (
+    <div className="space-y-2">
+      {/* Fix all button — opens confirmation dialog */}
+      {safeFixableFindings.length > 0 && (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-12 sm:h-8 text-xs gap-2 border-dashed min-h-[48px]"
+            onClick={() => setShowFixAllDialog(true)}
+          >
+            <Wand2 className="w-3 h-3" />
+            Fix all ({safeFixableFindings.length} fix{safeFixableFindings.length > 1 ? 'es' : ''})
+          </Button>
+          <AlertDialog open={showFixAllDialog} onOpenChange={setShowFixAllDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Apply All Safe Fixes?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will apply all safe auto-fixes to your LaTeX code. Stylistic changes are excluded. Continue?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-[var(--color-text-danger)] text-white hover:bg-[var(--color-text-danger)]/90 dark:bg-red-700 dark:hover:bg-red-800"
+                  onClick={handleFixAll}
+                >
+                  Apply Fixes
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
+      {displayFindings.map((item, idx) => (
+        <IssueCard
+          key={idx}
+          severity={item.finding.severity}
+          message={item.finding.message}
+          action={item.finding.fix && SAFE_FIX_RULES.has(item.finding.ruleId) ? 'Fix' : undefined}
+          onAction={item.finding.fix && SAFE_FIX_RULES.has(item.finding.ruleId) ? () => {
+            const { thesis, updateChapter } = useThesisStore.getState();
+            if (!thesis) return;
+            const chapter = thesis.chapters.find((ch) => ch.id === item.chapterId);
+            if (!chapter) return;
+            const newContent = applyAllHeuristicFixes(chapter.content || '');
+            const newSubSections = chapter.subSections.map((ss) => ({
+              ...ss,
+              content: applyAllHeuristicFixes(ss.content || ''),
+            }));
+            updateChapter(item.chapterId, { content: newContent, subSections: newSubSections });
+            toast.success('Fix applied', { description: `${item.finding.ruleId} fixed in ${chapter.title || 'chapter'}`, duration: 2000 });
+          } : undefined}
+        />
+      ))}
+      {remaining > 0 && (
+        <div className="text-xs text-muted-foreground text-center py-1">
+          + {remaining} more suggestion{remaining > 1 ? 's' : ''}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// ============================================================
+// Citation Graph Section
+// ============================================================
+
+const CitationGraphSection = React.memo(function CitationGraphSection({ results }: { results: IntelligenceResults }) {
+  if (!results.citationGraph) return null;
+
+  const { citationGraph } = results;
+
+  return (
+    <div className="space-y-2">
+      {/* Citation ratio */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">Citation coverage</span>
+        <span className={`text-sm font-medium tabular-nums ${
+          citationGraph.citationRatio >= 80 ? 'text-[var(--color-text-success)]'
+            : citationGraph.citationRatio >= 50 ? 'text-[var(--color-text-warning)]'
+              : 'text-[var(--color-text-danger)]'
+        }`}>
+          {citationGraph.citationRatio}%
+        </span>
+      </div>
+      <div className="text-xs text-muted-foreground tabular-nums">
+        {citationGraph.totalCitations} of {citationGraph.totalReferences} references cited
+      </div>
+
+      {/* Undefined citations (errors) */}
+      {citationGraph.undefinedCitations.length > 0 && (
+        <div className="space-y-1">
+          {citationGraph.undefinedCitations.slice(0, 3).map((key, idx) => (
+            <IssueCard
+              key={idx}
+              severity="error"
+              message={`Your chapter uses \\cite{${key}} but this reference doesn't exist in your bibliography.`}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Uncited references (warnings) */}
+      {citationGraph.uncitedReferences.length > 0 && (
+        <IssueCard
+          severity="warning"
+          message={`You have ${citationGraph.uncitedReferences.length} reference${citationGraph.uncitedReferences.length > 1 ? 's' : ''} not cited anywhere.`}
+        />
+      )}
+    </div>
+  );
+});
+
+// ============================================================
+// Completeness Checklist
+// ============================================================
+
+const CompletenessChecklist = React.memo(function CompletenessChecklist({ result }: { result: CompletenessResult | null }) {
+  if (!result) return null;
+
+  const incompleteItems = result.breakdown.filter((item) => !item.achieved);
+  const nextAction = incompleteItems.sort((a, b) => b.weight - a.weight)[0];
+
+  return (
+    <div className="space-y-2">
+      {/* Next recommended action */}
+      {nextAction && (
+        <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-lg p-2">
+          <Sparkles className="w-4 h-4 text-[var(--color-text-brand)] shrink-0" />
+          <div>
+            <div className="text-xs font-medium text-[var(--color-text-brand)]">Next recommended</div>
+            <div className="text-xs text-muted-foreground">{nextAction.label}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Checklist */}
+      <div className="space-y-1">
+        {result.breakdown.map((item, idx) => (
+          <div key={idx} className="flex items-center gap-2.5 text-xs py-0.5 sm:py-0">
+            {item.achieved ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-text-success)] shrink-0" />
+            ) : (
+              <CircleDot className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+            )}
+            <span className={item.achieved ? 'text-muted-foreground' : 'text-foreground/70'}>
+              {item.label}
+            </span>
+            <span className="ml-auto text-muted-foreground/50 tabular-nums">{item.weight}pts</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+// ============================================================
+// Writing Velocity Line — Progress + pace indicator
+// ============================================================
+
+const WritingVelocityLine = React.memo(function WritingVelocityLine({ results }: { results: IntelligenceResults }) {
+  const totalWords = results.readingStats?.total.words ?? 0;
+  const readingTime = results.readingStats?.total.readingTime ?? 0;
+  const chapterCount = results.readingStats?.chapters.length ?? 0;
+
+  // Derive velocity status from existing data
+  const avgWordsPerChapter = chapterCount > 0 ? Math.round(totalWords / chapterCount) : 0;
+
+  // Pace indicator based on average words per chapter
+  const paceStatus = avgWordsPerChapter >= 2000
+    ? { label: 'Strong pace', color: 'text-[var(--color-text-success)]', icon: Zap }
+    : avgWordsPerChapter >= 500
+      ? { label: 'Good pace', color: 'text-[var(--color-text-warning)]', icon: TrendingUp }
+      : avgWordsPerChapter > 0
+        ? { label: 'Getting started', color: 'text-muted-foreground', icon: Clock }
+        : { label: 'Not started', color: 'text-muted-foreground/60', icon: Clock };
+
+  const PaceIcon = paceStatus.icon;
+
+  if (totalWords === 0 && chapterCount === 0) return null;
+
+  return (
+    <div className="flex items-center gap-3 px-2 py-1.5 rounded-lg bg-muted/20">
+      <PaceIcon className={`w-4 h-4 shrink-0 ${paceStatus.color}`} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs font-medium text-foreground">{totalWords.toLocaleString()} words</span>
+          <span className={`text-[10px] font-medium ${paceStatus.color}`}>{paceStatus.label}</span>
+        </div>
+        {/* Velocity bar: fills based on chapter count vs typical 6-chapter thesis */}
+        <div className="w-full bg-muted rounded-full h-2 sm:h-1.5">
+          <motion.div
+            className="h-2 sm:h-1.5 rounded-full bg-gradient-to-r from-[var(--c-brand-600,#534AB7)] to-[var(--color-text-brand,#6366f1)]"
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(100, (chapterCount / 6) * 100)}%` }}
+            transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+          />
+        </div>
+        <div className="flex items-center justify-between mt-0.5">
+          <span className="text-[10px] text-muted-foreground">
+            {chapterCount} chapter{chapterCount !== 1 ? 's' : ''}
+          </span>
+          <span className="text-[10px] text-muted-foreground">
+            ~{readingTime} min read
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ============================================================
+// Main Intelligence Panel Component
+// ============================================================
+
+export default function IntelligencePanel({ isOpen, onClose, currentStep = 1, showCloseButton = true }: IntelligencePanelProps) {
+  const [results, setResults] = useState<IntelligenceResults>(() => structuredClone(DEFAULT_RESULTS));
+
+  const panelRef = useRef<HTMLDivElement>(null);
+  // WHY: Track dismissed insight IDs so users can hide non-actionable insights
+  const [dismissedInsights, setDismissedInsights] = useState<Set<string>>(new Set());
+
+  // WHY: Track refresh state for the "Refresh" button
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // WHY: Thesis Health Score — weighted average of key algorithm outputs
+  const healthScore = useMemo(() => {
+    const components: Array<{ score: number; weight: number }> = [];
+
+    const completenessScore = results.completeness?.score ?? null;
+    const readabilityScore = results.readability
+      ? Math.max(0, Math.min(100, results.readability.overall.readingEase))
+      : null;
+    const coachScore = results.writingCoach ? results.writingCoach.coachScore : null;
+    const structureScore = results.structure?.balanceScore ?? null;
+
+    if (completenessScore !== null) components.push({ score: completenessScore, weight: 40 });
+    if (readabilityScore !== null) components.push({ score: readabilityScore, weight: 20 });
+    if (coachScore !== null) components.push({ score: coachScore, weight: 20 });
+    if (structureScore !== null) components.push({ score: structureScore, weight: 20 });
+
+    if (components.length === 0) return null;
+
+    const totalWeight = components.reduce((sum, c) => sum + c.weight, 0);
+    const weightedSum = components.reduce((sum, c) => sum + c.score * c.weight, 0);
+    return Math.round(weightedSum / totalWeight);
+  }, [results.completeness, results.readability, results.writingCoach, results.structure]);
+
+  // WHY: Refresh handler — forces all algorithms to re-run
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const newResults = await intelligenceScheduler.runAllForced();
+      // Guard: only update if panel is still open
+      setResults(newResults);
+    } catch {
+      // If runAllForced fails, the existing results are preserved
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isRefreshing]);
+
+  // Track thesis title from store for sidebar heading.
+  // FIX: Gate subscription on isOpen — when the panel is closed, we don't need
+  // to subscribe to store changes. The subscribe fires on every keystroke (every
+  // chapter edit), which caused re-render storms that froze the UI.
+  // Also use functional setState to skip re-renders when title hasn't changed.
+  const [thesisTitle, setThesisTitle] = useState('');
+  useEffect(() => {
+    if (!isOpen) return;
+    // Read current title immediately on open
+    const state = useThesisStore.getState();
+    setThesisTitle(state.thesis?.metadata?.title?.trim() || '');
+    const unsub = useThesisStore.subscribe((s) => {
+      const newTitle = s.thesis?.metadata?.title?.trim() || '';
+      setThesisTitle(prev => prev === newTitle ? prev : newTitle);
+    });
+    return unsub;
+  }, [isOpen]);
+  const displayTitle = results.completeness && results.completeness.score >= 40 && thesisTitle
+    ? thesisTitle : 'Intelligence';
+
+  // Track whether first results have arrived.
+  // FIX: Add fallback timeout — if no results arrive within 8 seconds,
+  // assume the worker failed and show a retry-able empty state instead of
+  // an infinite spinner. This prevents the panel from appearing "frozen."
+  const [hasResults, setHasResults] = useState(false);
+  const [resultsTimedOut, setResultsTimedOut] = useState(false);
+  useEffect(() => {
+    if (!isOpen || hasResults) {
+      setResultsTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setResultsTimedOut(true), 8000);
+    return () => clearTimeout(timer);
+  }, [isOpen, hasResults]);
+
+  useEffect(() => {
+    // Set hasResults to true once any results arrive
+    if (results.completeness || results.readingStats || results.structure ||
+        results.keywords.length > 0 || results.citationGraph) {
+      setHasResults(true);
+    }
+  }, [results.completeness, results.readingStats, results.structure, results.keywords, results.citationGraph]);
+
+  // Compute active issues for the current step, grouped by severity
+  const activeIssues = useMemo(() => {
+    const issues: Array<{
+      id: string;                    // WHY: unique ID for dismiss tracking
+      severity: string;
+      message: string;
+      action?: string;
+      weight: number;
+      relevantSteps: number[];       // WHY: which wizard steps this insight applies to
+    }> = [];
+
+    // Undefined citations → error (relevant at chapters and preview steps)
+    if (results.citationGraph?.undefinedCitations.length) {
+      results.citationGraph.undefinedCitations.forEach((key) => {
+        issues.push({
+          id: `error-cite-${key}`,
+          severity: 'error',
+          message: `Undefined citation: \\cite{${key}}`,
+          weight: 100,
+          relevantSteps: [3, 4, 6], // WHY: citations matter in chapters, references, and generate steps
+        });
+      });
+    }
+
+    // Duplicates → warning (relevant at references step)
+    if (results.duplicates.length > 0) {
+      const { thesis } = useThesisStore.getState();
+      results.duplicates.forEach((dup, idx) => {
+        const refA = thesis?.references[dup.indexA];
+        const refB = thesis?.references[dup.indexB];
+        const labelA = refA?.title?.slice(0, 40) || `Ref #${dup.indexA + 1}`;
+        const labelB = refB?.title?.slice(0, 40) || `Ref #${dup.indexB + 1}`;
+        issues.push({
+          id: `warn-dup-${idx}`,
+          severity: 'warning',
+          message: `Possible duplicate: "${labelA}" ~ "${labelB}" (${Math.round(dup.score * 100)}%)`,
+          weight: 80,
+          relevantSteps: [4, 6], // WHY: duplicates matter at references and generate steps
+        });
+      });
+    }
+
+    // Uncited references → warning
+    if (results.citationGraph?.uncitedReferences.length) {
+      issues.push({
+        id: 'warn-uncited',
+        severity: 'warning',
+        message: `${results.citationGraph.uncitedReferences.length} uncited reference(s)`,
+        weight: 70,
+        relevantSteps: [3, 4, 6],
+      });
+    }
+
+    // Structure issues → suggestion
+    if (results.structure?.issues.filter((i) => i.severity === 'high').length) {
+      issues.push({
+        id: 'sug-structure',
+        severity: 'suggestion',
+        message: `${results.structure.issues.filter((i) => i.severity === 'high').length} chapter(s) significantly ${results.structure.issues[0]?.direction === 'over' ? 'over' : 'under'}represented`,
+        weight: 50,
+        relevantSteps: [3, 6], // WHY: structure matters at chapters and generate steps
+      });
+    }
+
+    // Long sentence chapters → suggestion
+    if (results.readingStats?.longSentenceChapters.length) {
+      issues.push({
+        id: 'sug-sentences',
+        severity: 'suggestion',
+        message: `Consider shorter sentences in: ${results.readingStats.longSentenceChapters.join(', ')}`,
+        weight: 40,
+        relevantSteps: [3, 6],
+      });
+    }
+
+    // Sort by weight (severity) and cap at 8
+    return issues.sort((a, b) => b.weight - a.weight).slice(0, 8);
+  }, [results]);
+
+  // WHY: Filter insights to only those relevant to the current step, excluding dismissed
+  const filteredIssues = useMemo(() => {
+    return activeIssues.filter(
+      (issue) =>
+        issue.relevantSteps.includes(currentStep) &&
+        !dismissedInsights.has(issue.id)
+    );
+  }, [activeIssues, currentStep, dismissedInsights]);
+
+  // WHY: Dismiss handler removes an insight from view by ID
+  const dismissInsight = useCallback((id: string) => {
+    setDismissedInsights((prev) => new Set([...prev, id]));
+  }, []);
+
+  // WHY: Group filtered insights by severity for organized display
+  const { criticals, warnings, suggestions } = useMemo(() => {
+    const criticals = filteredIssues.filter((i) => i.severity === 'error');
+    const warnings = filteredIssues.filter((i) => i.severity === 'warning');
+    const suggestions = filteredIssues.filter((i) => i.severity === 'suggestion');
+    return { criticals, warnings, suggestions };
+  }, [filteredIssues]);
+
+  // FIX (ONCE AND FOR ALL): Gate scheduler init/dispose on isOpen.
+  // ROOT CAUSE OF REGRESSION: Previously init() was called on mount with [] deps,
+  // and setShouldRun() toggled execution. This caused several freeze paths:
+  //   1. Worker created on mount even if panel never opens — wastes resources
+  //   2. Stale callback after dispose/remount cycle — setResults fires on dead state
+  //   3. React StrictMode double-invokes effects — init→dispose→init races
+  //   4. Worker errors are silently swallowed — panel shows infinite spinner
+  // FIX: Only initialize the scheduler when the panel actually opens.
+  // Dispose it when the panel closes. This ensures:
+  //   - No Worker runs when panel is closed (zero CPU cost)
+  //   - Fresh init on every open eliminates stale state
+  //   - dispose cleans up everything including the Worker
+  //   - The parent's scheduleRun is gated on showIntelligencePanel anyway,
+  //     so there's no race between parent effects and our init.
+  const isOpenRef = useRef(isOpen);
+  const latestResultsRef = useRef(results);
+  latestResultsRef.current = results;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    isOpenRef.current = true;
+
+    // Wrapped callback: guard against stale calls after dispose
+    const guardedCallback = (newResults: IntelligenceResults) => {
+      // Only update state if panel is still open (not closed mid-flight)
+      if (isOpenRef.current) {
+        setResults(newResults);
+      }
+    };
+
+    intelligenceScheduler.init(guardedCallback);
+    intelligenceScheduler.setShouldRun(true);
+
+    return () => {
+      isOpenRef.current = false;
+      intelligenceScheduler.setShouldRun(false);
+      intelligenceScheduler.dispose();
+    };
+  }, [isOpen]);
+
+  if (!isOpen) {
+    // Panel is closed — render nothing. The useEffect cleanup above
+    // disposes the scheduler, so no algorithms run while hidden.
+    return null;
+  }
+
+  return (
+    <div
+      ref={panelRef}
+      className="flex flex-col"
+    >
+      {/* Header */}
+      <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Brain className="w-4 h-4 text-primary" />
+            <span className="text-[13px] font-semibold">Analysis</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {healthScore !== null && (
+              <>
+                <span className="tf-mono-value text-primary font-bold">{healthScore}</span>
+                <span className="text-[10px] text-muted-foreground">/100</span>
+              </>
+            )}
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="ml-1.5 p-1 rounded hover:bg-accent transition-colors disabled:opacity-50"
+              aria-label="Refresh intelligence analysis"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            {showCloseButton !== false && (
+              <button onClick={onClose} className="p-1 rounded hover:bg-accent transition-colors" aria-label="Close intelligence panel">
+                <PanelRightClose className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+        <div className="p-4 sm:p-3 space-y-3">
+            {!hasResults && !resultsTimedOut && (
+              <div className="tf-empty-state flex items-center justify-center py-8">
+                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              </div>
+            )}
+            {!hasResults && resultsTimedOut && (
+              <div className="tf-empty-state flex items-center justify-center py-8">
+                <div className="text-center">
+                  <Sparkles className="w-5 h-5 text-muted-foreground/40 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Waiting for analysis data...</p>
+                </div>
+              </div>
+            )}
+
+            {/* Completeness Ring */}
+            <div className="flex justify-center py-2">
+              <CompletenessRing result={results.completeness} />
+            </div>
+
+            {/* Writing Velocity Line */}
+            <WritingVelocityLine results={results} />
+
+            {/* Active Issues — grouped by severity with collapsible sections */}
+            {filteredIssues.length > 0 ? (
+              <div className="space-y-2">
+                {/* WHY: Critical section is expanded by default for visibility */}
+                {criticals.length > 0 && (
+                  <Collapsible defaultOpen={true}>
+                    <CollapsibleTrigger className="w-full flex items-center gap-2 px-3 py-3 sm:py-2 text-xs font-medium rounded-lg border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 transition-colors">
+                      <ChevronDown className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                      <AlertCircle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                      <span className="flex-1 text-left text-red-700 dark:text-red-400">Critical</span>
+                      <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">{criticals.length}</Badge>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="space-y-1.5 mt-1.5 pl-1">
+                        {criticals.map((issue, idx) => (
+                          <motion.div
+                            key={issue.id}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: idx * 0.04 }}
+                          >
+                            <DismissableInsightCard
+                              severity={issue.severity}
+                              message={issue.message}
+                              onDismiss={() => dismissInsight(issue.id)}
+                            />
+                          </motion.div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+
+                {/* WHY: Warnings section is expanded by default */}
+                {warnings.length > 0 && (
+                  <Collapsible defaultOpen={true}>
+                    <CollapsibleTrigger className="w-full flex items-center gap-2 px-3 py-3 sm:py-2 text-xs font-medium rounded-lg border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 transition-colors">
+                      <ChevronDown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      <span className="flex-1 text-left text-amber-700 dark:text-amber-400">Warnings</span>
+                      <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/30">{warnings.length}</Badge>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="space-y-1.5 mt-1.5 pl-1">
+                        {warnings.map((issue, idx) => (
+                          <motion.div
+                            key={issue.id}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: idx * 0.04 }}
+                          >
+                            <DismissableInsightCard
+                              severity={issue.severity}
+                              message={issue.message}
+                              onDismiss={() => dismissInsight(issue.id)}
+                            />
+                          </motion.div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+
+                {/* WHY: Suggestions section is collapsed by default to reduce noise */}
+                {suggestions.length > 0 && (
+                  <Collapsible defaultOpen={false}>
+                    <CollapsibleTrigger className="w-full flex items-center gap-2 px-3 py-3 sm:py-2 text-xs font-medium rounded-lg border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 transition-colors">
+                      <ChevronRight className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <Lightbulb className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <span className="flex-1 text-left text-blue-700 dark:text-blue-400">Suggestions</span>
+                      <Badge className="text-[10px] px-1.5 py-0 h-4 bg-blue-500/20 text-blue-700 dark:text-blue-400 hover:bg-blue-500/30">{suggestions.length}</Badge>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="space-y-1.5 mt-1.5 pl-1">
+                        {suggestions.map((issue, idx) => (
+                          <motion.div
+                            key={issue.id}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: idx * 0.04 }}
+                          >
+                            <DismissableInsightCard
+                              severity={issue.severity}
+                              message={issue.message}
+                              onDismiss={() => dismissInsight(issue.id)}
+                            />
+                          </motion.div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+              </div>
+            ) : (
+              // WHY: Friendly empty state with animation when no issues for the current step
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col items-center gap-2 py-4"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
+                >
+                  <CheckCircle2 className="w-6 h-6 text-[var(--color-text-success)]" />
+                </motion.div>
+                <p className="text-xs font-medium text-[var(--color-text-success)]">All clear for Step {currentStep}</p>
+                <p className="text-[10px] text-muted-foreground text-center max-w-[200px]">
+                  No issues detected. Continue writing or check other sections below.
+                </p>
+              </motion.div>
+            )}
+
+            {/* Completeness Checklist */}
+            <CollapsibleSection
+              title="Completeness"
+              icon={Target}
+              algorithmId="completenessScorer"
+              circuitBreakerMap={results.circuitBreaker}
+              isRefreshing={isRefreshing}
+            >
+              <CompletenessChecklist result={results.completeness} />
+            </CollapsibleSection>
+
+            {/* Word Stats */}
+            {results.readingStats && (
+              <CollapsibleSection
+                title="Word Stats"
+                icon={BookOpen}
+                badge={results.readingStats.total.words || undefined}
+                algorithmId="readingStats"
+                circuitBreakerMap={results.circuitBreaker}
+                isRefreshing={isRefreshing}
+              >
+                <WordStatsSection results={results} />
+              </CollapsibleSection>
+            )}
+
+            {/* Structure Balance */}
+            {results.structure && results.structure.totalWords >= 100 && (
+              <CollapsibleSection
+                title="Structure Balance"
+                icon={BarChart3}
+                algorithmId="structureAnalyzer"
+                circuitBreakerMap={results.circuitBreaker}
+                isRefreshing={isRefreshing}
+              >
+                <StructureBalanceSection results={results} />
+              </CollapsibleSection>
+            )}
+
+            {/* Citation Graph */}
+            {results.citationGraph && (results.citationGraph.totalCitations > 0 || results.citationGraph.totalReferences > 0) && (
+              <CollapsibleSection
+                title="Citation Graph"
+                icon={Quote}
+                badge={results.citationGraph.undefinedCitations.length || undefined}
+                algorithmId="citationGraph"
+                circuitBreakerMap={results.circuitBreaker}
+                isRefreshing={isRefreshing}
+              >
+                <CitationGraphSection results={results} />
+              </CollapsibleSection>
+            )}
+
+            {/* LaTeX Heuristics — always render when thesis has chapters to show all-clear state */}
+            {results.heuristics && (() => {
+              const totalCount = Array.from(results.heuristics.values())
+                .reduce((sum, f) => sum + f.length, 0);
+              if (results.heuristics.size === 0 && totalCount === 0) return null;
+              return (
+                <CollapsibleSection
+                  title="LaTeX Tips"
+                  icon={Lightbulb}
+                  badge={totalCount > 0 ? totalCount : undefined}
+                  algorithmId="latexHeuristics"
+                  circuitBreakerMap={results.circuitBreaker}
+                  isRefreshing={isRefreshing}
+                >
+                  <HeuristicsSection results={results} />
+                </CollapsibleSection>
+              );
+            })()}
+
+            {/* Writing Coach — always render when data exists to show all-clear state */}
+            {results.writingCoach && (
+              <CollapsibleSection
+                title="Writing Coach"
+                icon={Lightbulb}
+                badge={results.writingCoach.suggestions.length > 0 ? results.writingCoach.suggestions.length : undefined}
+                algorithmId="writingCoach"
+                circuitBreakerMap={results.circuitBreaker}
+                isRefreshing={isRefreshing}
+              >
+                {results.writingCoach.suggestions.length === 0 ? (
+                  <div className="flex items-start gap-2 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-fill-success)' }}>
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--color-text-success)' }} />
+                    <div>
+                      <p className="text-xs font-medium" style={{ color: 'var(--color-text-success)' }}>
+                        Great writing
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                        No issues found. Your writing quality looks strong.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-muted-foreground">Coach Score</span>
+                    <span className="text-xs font-semibold tabular-nums"
+                      style={{
+                        color: (results.writingCoach.coachScore ?? 0) >= 80
+                          ? 'var(--color-text-success)'
+                          : (results.writingCoach.coachScore ?? 0) >= 50
+                            ? 'var(--color-text-warning)'
+                            : 'var(--color-text-danger)',
+                      }}
+                    >
+                      {results.writingCoach.coachScore}/100
+                    </span>
+                  </div>
+                  {results.writingCoach.suggestions.slice(0, 8).map((suggestion, idx) => (
+                    <div key={idx} className="tf-surface-1 rounded-lg p-3 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                          {suggestion.ruleId}
+                        </span>
+                        <span className={cn(
+                          "text-xs font-semibold",
+                          suggestion.severity === 'critical' ? 'text-[var(--color-text-danger)]'
+                            : suggestion.severity === 'major' ? 'text-[var(--color-text-warning)]'
+                              : 'text-foreground/70'
+                        )}>
+                          {suggestion.headline}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        {suggestion.detail || ''}
+                      </p>
+                      {suggestion.suggestedAction && (
+                        <p className="text-[11px] text-muted-foreground/70 italic">
+                          → {suggestion.suggestedAction}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                  {results.writingCoach.suggestions.length > 8 && (
+                    <p className="text-xs text-muted-foreground text-center pt-1">
+                      + {results.writingCoach.suggestions.length - 8} more suggestion{results.writingCoach.suggestions.length - 8 !== 1 ? 's' : ''}
+                    </p>
+                  )}
+                </div>
+                )}
+              </CollapsibleSection>
+            )}
+
+            {/* Keywords */}
+            {results.keywords.length > 0 && (
+              <CollapsibleSection
+                title="Keywords"
+                icon={Type}
+                algorithmId="keywordExtractor"
+                circuitBreakerMap={results.circuitBreaker}
+                isRefreshing={isRefreshing}
+              >
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">
+                    Generated from your chapter content
+                  </div>
+                  <KeywordsSection keywords={results.keywords} />
+                </div>
+              </CollapsibleSection>
+            )}
+          </div>
+    </div>
+  );
+}

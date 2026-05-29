@@ -1,0 +1,4050 @@
+@import "../ui/tokens.css";
+@import "../ui/rail.css";
+@import "tailwindcss";
+@import "tw-animate-css";
+/* typography plugin loaded via postcss */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: 'Poppins', 'Inter', 'SF Pro Text', system-ui, -apple-system, sans-serif;
+  --font-poppins: 'Poppins', 'Inter', 'SF Pro Text', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ============================================================
+   Light Theme — Warmer, More Inviting
+   ============================================================ */
+:root {
+  --radius: 0.75rem;
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-full: 9999px;
+
+  /* Warmer white background */
+  --background: oklch(0.990 0.002 80);
+  --foreground: oklch(0.131 0.013 260);
+
+  /* Pure white cards with very subtle warm tint */
+  --card: oklch(0.998 0.001 80);
+  --card-foreground: oklch(0.131 0.013 260);
+  --popover: oklch(0.998 0.001 80);
+  --popover-foreground: oklch(0.131 0.013 260);
+
+  /* Primary — slightly more vibrant blue */
+  --primary: oklch(0.50 0.22 264);
+  --primary-foreground: oklch(1 0 0);
+
+  /* Secondary — soft blue-grey */
+  --secondary: oklch(0.962 0.005 247);
+  --secondary-foreground: oklch(0.25 0.013 260);
+
+  /* Muted */
+  --muted: oklch(0.962 0.005 247);
+  --muted-foreground: oklch(0.44 0.013 260);
+
+  /* Accent */
+  --accent: oklch(0.95 0.01 247);
+  --accent-foreground: oklch(0.25 0.013 260);
+
+  /* Destructive — Google Red */
+  --destructive: oklch(0.577 0.245 27.325);
+
+  /* Borders & inputs */
+  --border: oklch(0.905 0.006 247);
+  --input: oklch(0.905 0.006 247);
+  --ring: oklch(0.50 0.22 264);
+
+  /* Charts */
+  --chart-1: oklch(0.50 0.22 264);
+  --chart-2: oklch(0.60 0.18 155);
+  --chart-3: oklch(0.65 0.19 305);
+  --chart-4: oklch(0.55 0.20 42);
+  --chart-5: oklch(0.70 0.15 150);
+
+  /* Semantic status colors */
+  --success:          oklch(0.60 0.15 145);
+  --success-foreground: oklch(0.98 0.01 145);
+  --success-muted:    oklch(0.60 0.15 145 / 0.12);
+  --warning:          oklch(0.75 0.17 78);
+  --warning-foreground: oklch(0.15 0.04 78);
+  --warning-muted:    oklch(0.75 0.17 78 / 0.12);
+  --info:             oklch(0.62 0.16 230);
+  --info-foreground:  oklch(0.98 0.01 230);
+  --info-muted:       oklch(0.62 0.16 230 / 0.12);
+
+  /* Sidebar */
+  --sidebar: oklch(0.98 0.002 247);
+  --sidebar-foreground: oklch(0.131 0.013 260);
+  --sidebar-primary: oklch(0.50 0.22 264);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0.01 247);
+  --sidebar-accent-foreground: oklch(0.25 0.013 260);
+  --sidebar-border: oklch(0.905 0.006 247);
+  --sidebar-ring: oklch(0.50 0.22 264);
+
+  /* Google Surface elevation shadows */
+  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.05), 0 1px 3px 0 oklch(0 0 0 / 0.03);
+  --shadow-md: 0 1px 3px 0 oklch(0 0 0 / 0.06), 0 4px 6px -1px oklch(0 0 0 / 0.04);
+  --shadow-lg: 0 2px 6px 0 oklch(0 0 0 / 0.07), 0 10px 15px -3px oklch(0 0 0 / 0.04);
+  --shadow-xl: 0 4px 12px 0 oklch(0 0 0 / 0.08), 0 20px 25px -5px oklch(0 0 0 / 0.04);
+}
+
+/* ============================================================
+   Dark Theme — Deeper, More Premium
+   ============================================================ */
+.dark {
+  /* True dark background */
+  --background: oklch(0.105 0.015 260);
+  --foreground: oklch(0.941 0.006 247);
+
+  /* Slightly lighter card surface */
+  --card: oklch(0.155 0.018 260);
+  --card-foreground: oklch(0.941 0.006 247);
+  --popover: oklch(0.155 0.018 260);
+  --popover-foreground: oklch(0.941 0.006 247);
+
+  /* Brighter blue primary for better contrast */
+  --primary: oklch(0.65 0.22 259);
+  --primary-foreground: oklch(0.105 0.015 260);
+
+  --secondary: oklch(0.215 0.018 260);
+  --secondary-foreground: oklch(0.941 0.006 247);
+
+  --muted: oklch(0.215 0.018 260);
+  --muted-foreground: oklch(0.65 0.013 247);
+
+  --accent: oklch(0.24 0.022 260);
+  --accent-foreground: oklch(0.941 0.006 247);
+
+  --destructive: oklch(0.704 0.191 22.216);
+
+  --border: oklch(0.28 0.02 260);
+  --input: oklch(0.28 0.02 260);
+  --ring: oklch(0.65 0.22 259);
+
+  --chart-1: oklch(0.65 0.22 259);
+  --chart-2: oklch(0.60 0.18 155);
+  --chart-3: oklch(0.65 0.19 305);
+  --chart-4: oklch(0.55 0.20 42);
+  --chart-5: oklch(0.70 0.15 150);
+
+  /* Semantic status colors — dark mode */
+  --success:          oklch(0.70 0.17 145);
+  --success-foreground: oklch(0.15 0.04 145);
+  --warning:          oklch(0.82 0.16 78);
+  --warning-foreground: oklch(0.15 0.04 78);
+  --info:             oklch(0.72 0.15 230);
+  --info-foreground:  oklch(0.15 0.03 230);
+
+  --sidebar: oklch(0.125 0.016 260);
+  --sidebar-foreground: oklch(0.941 0.006 247);
+  --sidebar-primary: oklch(0.65 0.22 259);
+  --sidebar-primary-foreground: oklch(0.105 0.015 260);
+  --sidebar-accent: oklch(0.24 0.022 260);
+  --sidebar-accent-foreground: oklch(0.941 0.006 247);
+  --sidebar-border: oklch(0.28 0.02 260);
+  --sidebar-ring: oklch(0.65 0.22 259);
+
+  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.2), 0 1px 3px 0 oklch(0 0 0 / 0.15);
+  --shadow-md: 0 1px 3px 0 oklch(0 0 0 / 0.25), 0 4px 6px -1px oklch(0 0 0 / 0.2);
+  --shadow-lg: 0 2px 6px 0 oklch(0 0 0 / 0.3), 0 10px 15px -3px oklch(0 0 0 / 0.2);
+  --shadow-xl: 0 4px 12px 0 oklch(0 0 0 / 0.35), 0 20px 25px -5px oklch(0 0 0 / 0.25);
+}
+
+/* ============================================================
+   Base Styles
+   ============================================================ */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  /* GODMODE 7: Prevent iOS Safari from adjusting font-size in landscape orientation.
+     Without this, text in flex containers can shrink unexpectedly on rotation. */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  /* GODMODE 7: Improve font rendering on mobile for cleaner text.
+     Subpixel antialiasing gives darker, crisper text on LCD screens.
+     Antialiased gives more consistent cross-platform rendering. */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* FIX: Removed global overscroll-behavior: contain from html.
+     Previously this was causing homepage scroll freeze on some browsers
+     (Chrome/Safari) where contain prevented normal document scroll.
+     The wizard <main> still has overscroll-contain locally via Tailwind class,
+     which is the correct scope — only the wizard's internal scroll
+     container should have contain behavior, not the entire document. */
+  textarea {
+    line-height: 1.65;
+  }
+  /* NOTE: iOS Safari zoom prevention is handled OUTSIDE @layer base below.
+     Tap highlight and text-selection rules are here inside @layer base — they don't
+     conflict with Tailwind utilities (no Tailwind utility sets -webkit-tap-highlight-color
+     or -webkit-user-select), so @layer placement is safe. The zoom fix uses !important
+     outside @layer to override Tailwind's text-size utilities. */
+  /* FIX: Remove tap highlight on mobile (Android/Chrome blue flash) */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* FIX: Allow body scrolling — the app manages its own scroll containers.
+       overscroll-behavior: contain on html already handles iOS rubber-band.
+       REMOVED overflow-y: auto — this was creating a SECOND scroll context
+       alongside the viewport, causing multiple scrollbars and scroll-sticking.
+       The viewport (html) should be the sole scroll context for the homepage.
+       The wizard <main> still has overflow-y:auto via Tailwind class when needed. */
+}
+
+/* ============================================================
+   Subtle Warm Body Gradient — Light Theme
+   ============================================================ */
+@layer base {
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 0%, oklch(0.50 0.22 264 / 0.025) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, oklch(0.65 0.19 305 / 0.02) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 50% 50%, oklch(0.990 0.002 80) 0%, transparent 100%);
+  }
+}
+
+.dark body::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, oklch(0.65 0.22 259 / 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, oklch(0.65 0.19 305 / 0.025) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 50% 50%, oklch(0.105 0.015 260) 0%, transparent 100%);
+}
+
+/* ============================================================
+   Custom Scrollbar — 6px Round, Primary on Hover
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.78 0.01 247);
+  border-radius: var(--radius-md);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: oklch(0.35 0.01 264);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.45 0.01 264);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: oklch(0.15 0.01 264);
+}
+
+/* ============================================================
+   Professional Micro-Interactions
+   ============================================================ */
+
+/* Button hover: scale + shadow — primary action buttons only.
+   Wrapped in @media (hover: hover) to avoid GPU layer promotion on
+   touch devices where sticky hover after tap keeps the compositor layer alive. */
+@media (hover: hover) {
+  button.btn-primary:not(:disabled):hover,
+  button.btn-next:not(:disabled):hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px 0 oklch(0.50 0.22 264 / 0.15);
+  }
+  button.btn-primary:not(:disabled):active,
+  button.btn-next:not(:disabled):active {
+    transform: scale(0.98);
+    box-shadow: 0 1px 2px 0 oklch(0.50 0.22 264 / 0.1);
+  }
+  .dark button.btn-primary:not(:disabled):hover,
+  .dark button.btn-next:not(:disabled):hover {
+    box-shadow: 0 4px 12px 0 oklch(0.65 0.22 259 / 0.2);
+  }
+  .dark button.btn-primary:not(:disabled):active,
+  .dark button.btn-next:not(:disabled):active {
+    box-shadow: 0 1px 2px 0 oklch(0.65 0.22 259 / 0.15);
+  }
+}
+
+/* Smooth input focus rings */
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+  textarea:focus,
+  select:focus {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: calc(var(--radius) - 2px);
+  }
+
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+  .dark textarea:focus,
+  .dark select:focus {
+    outline-color: var(--ring);
+  }
+}
+
+/* Better select dropdown styling */
+@layer base {
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    padding-right: 2.5rem;
+  }
+
+  .dark select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  }
+}
+
+/* ============================================================
+   LaTeX Code Block Styling
+   ============================================================ */
+.latex-code-block {
+  font-family: 'Google Sans Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.8rem;
+  line-height: 1.7;
+  tab-size: 2;
+  background: oklch(0.97 0.003 260);
+  color: oklch(0.25 0.01 260);
+}
+
+.dark .latex-code-block {
+  background: oklch(0.14 0.014 260);
+  color: oklch(0.88 0.006 247);
+}
+
+.latex-code-block .latex-comment {
+  color: oklch(0.52 0.015 155);
+  font-style: italic;
+}
+
+.latex-code-block .latex-command {
+  color: oklch(0.55 0.20 264);
+  font-weight: 500;
+}
+
+.dark .latex-code-block .latex-command {
+  color: oklch(0.70 0.16 264);
+}
+
+.latex-code-block .latex-brace {
+  color: oklch(0.42 0.02 42);
+}
+
+.latex-code-block .latex-bracket {
+  color: oklch(0.50 0.15 305);
+}
+
+.latex-code-block .latex-option {
+  color: oklch(0.55 0.18 155);
+}
+
+/* ============================================================
+   Step Indicator Animation
+   ============================================================ */
+@keyframes stepPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 oklch(0.50 0.22 264 / 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 12px oklch(0.50 0.22 264 / 0);
+  }
+}
+
+@keyframes stepPulseDark {
+  0%, 100% {
+    box-shadow: 0 0 0 0 oklch(0.65 0.22 259 / 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 12px oklch(0.65 0.22 259 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .step-active {
+    animation: stepPulse 2s ease-in-out infinite;
+  }
+  .dark .step-active {
+    animation: stepPulseDark 2s ease-in-out infinite;
+  }
+}
+
+/* ============================================================
+   Google-style Ripple Effect (keyframe preserved)
+   ============================================================ */
+@keyframes ripple-anim {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   Material Surface Elevation
+   ============================================================ */
+/* Material Surface Elevation — surface-2 is used in templates */
+.surface-2 {
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================================
+   Google-style Gradient Accent
+   ============================================================ */
+.google-gradient {
+  background: linear-gradient(135deg,
+    oklch(0.50 0.22 264) 0%,
+    oklch(0.55 0.20 280) 50%,
+    oklch(0.60 0.18 305) 100%
+  );
+}
+
+.google-gradient-text {
+  background: linear-gradient(135deg,
+    oklch(0.50 0.22 264) 0%,
+    oklch(0.55 0.20 280) 50%,
+    oklch(0.60 0.18 305) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================================
+   Subtle background pattern — lightweight CSS-only academic grid dots
+   Pure CSS gradients, zero JS/SVG/canvas, zero animation.
+   ============================================================ */
+.bg-pattern {
+  background-image:
+    radial-gradient(circle, oklch(0.50 0.02 264 / 0.08) 1px, transparent 1px),
+    radial-gradient(circle, oklch(0.60 0.02 305 / 0.05) 0.5px, transparent 0.5px);
+  background-size: 32px 32px, 48px 48px;
+  background-position: 0 0, 16px 16px;
+}
+
+.dark .bg-pattern {
+  background-image:
+    radial-gradient(circle, oklch(0.65 0.02 259 / 0.10) 1px, transparent 1px),
+    radial-gradient(circle, oklch(0.65 0.02 305 / 0.06) 0.5px, transparent 0.5px);
+  background-size: 32px 32px, 48px 48px;
+  background-position: 0 0, 16px 16px;
+}
+
+/* ============================================================
+   Keyboard Shortcut Badge — 3D Realistic Key Effect
+   ============================================================ */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  font-family: 'Google Sans Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: oklch(0.30 0.015 260);
+  background: linear-gradient(
+    to bottom,
+    oklch(0.985 0.002 80) 0%,
+    oklch(0.965 0.004 80) 100%
+  );
+  border: 1px solid oklch(0.88 0.008 80);
+  border-bottom-width: 2px;
+  border-bottom-color: oklch(0.82 0.01 80);
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.06),
+    inset 0 1px 0 oklch(1 0 0 / 0.8);
+  text-shadow: 0 0.5px 0 oklch(1 0 0 / 0.5);
+}
+
+.dark .kbd {
+  color: oklch(0.80 0.01 247);
+  background: linear-gradient(
+    to bottom,
+    oklch(0.25 0.02 260) 0%,
+    oklch(0.20 0.018 260) 100%
+  );
+  border-color: oklch(0.35 0.022 260);
+  border-bottom-color: oklch(0.42 0.025 260);
+  box-shadow:
+    0 1px 3px oklch(0 0 0 / 0.3),
+    inset 0 1px 0 oklch(1 0 0 / 0.05);
+  text-shadow: none;
+}
+
+/* ============================================================
+   Toast customization
+   ============================================================ */
+[data-sonner-toast][data-type="success"] {
+  --normal-bg: oklch(0.95 0.03 155) !important;
+  --normal-border: oklch(0.85 0.03 155) !important;
+  --normal-text: oklch(0.25 0.06 155) !important;
+}
+
+.dark [data-sonner-toast][data-type="success"] {
+  --normal-bg: oklch(0.25 0.06 155) !important;
+  --normal-border: oklch(0.30 0.05 155) !important;
+  --normal-text: oklch(0.88 0.03 155) !important;
+}
+
+/* ============================================================
+   Homepage Animations
+   ============================================================ */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+/* Save indicator pulse */
+@keyframes savePulse {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .float-animation {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .save-indicator {
+    animation: savePulse 1.5s ease-out forwards;
+  }
+}
+
+/* ============================================================
+   Focus Styles — Unified in Phase 2 (see bottom of file)
+   ============================================================ */
+/* NOTE: All focus-visible rules consolidated at line ~3504 with
+   border-radius: inherit, :focus-visible:active, and input inner ring.
+   These legacy blocks were removed to eliminate specificity conflicts. */
+
+/* ============================================================
+   Smooth Selection Color
+   ============================================================ */
+::selection {
+  background: oklch(0.50 0.22 264 / 0.2);
+  color: inherit;
+}
+
+/* ============================================================
+   Theme Transition — Removed wildcard for performance.
+   Component-specific transitions handle their own timing.
+   ============================================================ */
+
+/* ============================================================
+   Skeleton Loading Animation (keyframe preserved)
+   ============================================================ */
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============================================================
+   Counter Animation Pulse
+   ============================================================ */
+@keyframes countPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .count-pulse {
+    animation: countPulse 0.3s var(--ease-bounce);
+  }
+}
+
+/* ============================================================
+   Card Shimmer Effect — Loading Placeholder
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference) {
+  .tf-shimmer { position: relative; overflow: hidden; }
+  .tf-shimmer::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent 25%, oklch(from var(--primary) l c h / 0.06) 50%, transparent 75%);
+    background-size: 200% 100%; animation: tf-shimmer 2s ease-in-out infinite;
+  }
+}
+
+/* ============================================================
+   Glass Effect — Backdrop Blur Overlay
+   ============================================================ */
+.tf-glass { backdrop-filter: blur(16px) saturate(1.8); -webkit-backdrop-filter: blur(16px) saturate(1.8); background: oklch(1 0 0 / 0.7); border: 1px solid oklch(1 0 0 / 0.15); }
+.dark .tf-glass { background: oklch(0 0 0 / 0.5); border-color: oklch(1 0 0 / 0.08); }
+
+/* ============================================================
+   CTA Pulse Button Animation
+   ============================================================ */
+@keyframes ctaPulse {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.50 0.22 264 / 0.4); }
+  50% { box-shadow: 0 0 0 12px oklch(0.50 0.22 264 / 0); }
+}
+
+@keyframes ctaPulseDark {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.65 0.22 259 / 0.4); }
+  50% { box-shadow: 0 0 0 12px oklch(0.65 0.22 259 / 0); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cta-pulse {
+    animation: ctaPulse 2s ease-in-out infinite;
+  }
+  .dark .cta-pulse {
+    animation: ctaPulseDark 2s ease-in-out infinite;
+  }
+}
+
+/* ============================================================
+   Code Line Numbers — Preview Panel
+   ============================================================ */
+.tf-line-numbers { counter-reset: line; padding-left: var(--space-4, 16px); user-select: none; }
+.tf-line-numbers .line::before { counter-increment: line; content: counter(line); display: inline-block; width: 2em; margin-right: var(--space-3, 12px); text-align: right; font-variant-numeric: tabular-nums; color: var(--color-text-tertiary); opacity: 0.5; font-size: var(--text-xs, 11px); }
+
+/* ============================================================
+   Animation Utility Classes
+   ============================================================ */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Fade + slide up entrance */
+  @keyframes animateIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-in {
+    animation: animateIn var(--dur-slow) var(--ease-out-snap) both;
+  }
+
+  /* Simple fade */
+  @keyframes animateFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .animate-fade {
+    animation: animateFade var(--dur-normal) var(--ease-in-out) both;
+  }
+
+  /* Pop-in scale effect */
+  @keyframes animateScale {
+    from {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-scale {
+    animation: animateScale var(--dur-normal) var(--ease-out-snap) both;
+  }
+}
+
+/* ============================================================
+   GODMODE 4 — Motion Language (keyframes preserved)
+   ============================================================ */
+
+@keyframes tf-fade-up {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+@keyframes tf-pop {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+
+@keyframes tf-slide-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+
+@keyframes tf-exit {
+  to { opacity: 0; transform: scale(0.96); }
+}
+
+@keyframes tf-step-enter {
+  from { opacity: 0; transform: translateX(16px) scale(0.99); }
+  to   { opacity: 1; transform: translateX(0)    scale(1);    }
+}
+
+@keyframes tf-step-exit {
+  to   { opacity: 0; transform: translateX(-12px) scale(0.99); }
+}
+
+/* Mobile step enter — gentler slide */
+@keyframes tf-step-enter-mobile {
+  from { opacity: 0; transform: translateX(12px) scale(0.99); }
+  to   { opacity: 1; transform: translateX(0)    scale(1);    }
+}
+
+@keyframes tf-mobile-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* Number counter — score ring animation (used in intelligence-panel) */
+@media (prefers-reduced-motion: no-preference) {
+  .anim-count-up {
+    animation: tf-count-up var(--dur-sluggish) var(--ease-out-smooth) both;
+  }
+  @keyframes tf-count-up {
+    from { opacity: 0.4; }
+    to   { opacity: 1; }
+  }
+}
+
+/* Ring pulse — for level-up moment (keyframe preserved) */
+@keyframes tf-ring-pulse {
+  0%   { stroke-width: 6; }
+  50%  { stroke-width: 9; }
+  100% { stroke-width: 6; }
+}
+
+/* Shimmer keyframe preserved for future use */
+@keyframes tf-shimmer {
+  to { transform: translateX(100%); }
+}
+
+/* Toast keyframe preserved for future use */
+@keyframes tf-toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* Chapter slide-in keyframe preserved for future use */
+@keyframes tf-chapter-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Export success keyframe preserved for future use */
+@keyframes tf-export-success {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Card pulse keyframe preserved for future use */
+@keyframes tf-card-pulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* Word milestone keyframe preserved for future use */
+@keyframes tf-milestone {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   Responsive Text Utilities
+   ============================================================ */
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* ============================================================
+   Utility Classes — Token-Based Helpers
+   ============================================================ */
+
+/* 4px Grid Enforcement — Tabular numeric alignment for all numbers in scores/stats */
+.score-number, .word-count, .stat-value, .tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Exception for full-width containers — max-w-4xl intentionally excluded so it works as a content constraint */
+.max-w-full, textarea, .latex-code-block, pre {
+  max-width: none;
+}
+
+/* Card selection ring animation — for template card selected checkmark */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes check-pop {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+}
+
+/* Scrollbar-none utility */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Truncate to N lines ── */
+.tf-line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.tf-line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tf-line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ── Interactive states ── */
+.tf-clickable {
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* ── Full viewport height ── */
+.h-dvh  { height: 100dvh; }
+.min-h-dvh { min-height: 100dvh; }
+
+/* ── Smooth gradient fade ── */
+.tf-fade-right {
+  mask-image: linear-gradient(to right, black 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+}
+.tf-fade-bottom {
+  mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+}
+
+/* ── Badge system ── */
+.tf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.6;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Status dot system ── */
+.tf-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  display: inline-block;
+}
+.tf-dot--success { background: var(--success); }
+.tf-dot--warning { background: var(--warning); }
+.tf-dot--error   { background: var(--destructive); }
+.tf-dot--info    { background: var(--info); }
+.tf-dot--muted   { background: var(--muted-foreground); opacity: 0.4; }
+.tf-dot--running {
+  background: var(--warning);
+  animation: tf-pulse-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes tf-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(0.75); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-dot--running { animation: none; opacity: 0.7; }
+}
+
+/* ── Card system ── */
+.tf-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  position: relative;
+  overflow: hidden;
+}
+
+.tf-card--interactive {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .tf-card--interactive:hover {
+    border-color: oklch(from var(--border) calc(l - 0.08) c h);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+}
+
+.tf-card--interactive:active {
+  transform: translateY(0px);
+  box-shadow: var(--shadow-sm);
+}
+
+.tf-card--selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px oklch(from var(--primary) l c h / 0.15);
+}
+
+.dark .tf-card {
+  background: linear-gradient(
+    160deg,
+    oklch(0.155 0.018 260) 0%,
+    oklch(0.135 0.015 260) 100%
+  );
+}
+
+/* ── Form system ── */
+.tf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tf-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--foreground);
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  user-select: none;
+}
+
+.tf-label--required::after {
+  content: ' *';
+  color: var(--destructive);
+  font-weight: 400;
+}
+
+.tf-helper {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  line-height: 1.45;
+  margin-top: 3px;
+}
+
+.tf-error {
+  font-size: 11px;
+  color: var(--destructive);
+  line-height: 1.45;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: tf-fade-up 0.2s ease both;
+}
+
+/* ── Empty state ── */
+.tf-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  gap: 12px;
+}
+
+.tf-empty__icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-2xl);
+  background: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.tf-empty__icon { color: var(--muted-foreground); opacity: 0.5; }
+.tf-empty__title { font-size: 14px; font-weight: 600; color: var(--foreground); line-height: 1.3; }
+.tf-empty__desc { font-size: 12px; color: var(--muted-foreground); line-height: 1.6; max-width: 240px; }
+
+/* ── Skeleton loader ── */
+.tf-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    oklch(from var(--muted-foreground) l c h / 0.08) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: tf-skeleton-sweep 1.8s ease-in-out infinite;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+@keyframes tf-skeleton-sweep {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-skeleton { animation: none; background: var(--muted); }
+}
+
+/* ── Section dividers ── */
+.tf-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+  border: none;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.tf-divider--labeled {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tf-divider--labeled::before,
+.tf-divider--labeled::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.tf-group-header {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+/* ── Terminal cursor blink ── */
+@keyframes tf-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.tf-cursor-blink { animation: tf-blink 1s step-end infinite; }
+@media (prefers-reduced-motion: reduce) { .tf-cursor-blink { animation: none; } }
+
+/* ── Spinner ── */
+.tf-spinner {
+  display: inline-block;
+  border: 2px solid oklch(from var(--primary) l c h / 0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: tf-spin 0.6s linear infinite;
+}
+.tf-spinner--sm { width: 16px; height: 16px; border-width: 2px; }
+.tf-spinner--md { width: 20px; height: 20px; border-width: 2px; }
+
+@keyframes tf-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) { .tf-spinner { animation: none; border-color: var(--primary); } }
+
+/* ============================================================
+   Dark Mode — Semantic Fill Overrides
+   ============================================================ */
+.dark .bg-red-500\/10 { background-color: rgba(226, 75, 74, 0.12); }
+.dark .bg-amber-500\/10 { background-color: rgba(186, 117, 23, 0.12); }
+.dark .bg-green-500\/10 { background-color: rgba(29, 158, 117, 0.12); }
+.dark .bg-blue-500\/10 { background-color: rgba(55, 138, 221, 0.12); }
+.dark .bg-emerald-500\/10 { background-color: rgba(29, 158, 117, 0.12); }
+.dark .bg-violet-500\/10 { background-color: rgba(127, 119, 221, 0.12); }
+.dark .bg-purple-500\/10 { background-color: rgba(127, 119, 221, 0.12); }
+.dark .bg-gray-500\/10 { background-color: rgba(156, 163, 175, 0.12); }
+.dark .bg-destructive\/5 { background-color: rgba(226, 75, 74, 0.08); }
+.dark .bg-destructive\/10 { background-color: rgba(226, 75, 74, 0.12); }
+
+/* ============================================================
+   Dark Mode — LaTeX Code Block Override
+   ============================================================ */
+.dark .latex-code-block pre {
+  background: oklch(0.13 0.016 260) !important;
+}
+
+/* ============================================================
+   FLUIDITY OVERHAUL — Smooth Scrolling & Fluid CSS
+   ============================================================ */
+
+/* FLUIDITY: smooth scroll is scoped to .tf-snap-container in rail.css.
+     Removed from html to prevent conflict with snap scrolling. */
+
+/* FLUIDITY: custom thin scrollbar for the wizard main area */
+main::-webkit-scrollbar {
+  width: 6px;
+}
+
+main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+main::-webkit-scrollbar-thumb {
+  background: oklch(from var(--border) l c h / 0.5);
+  border-radius: 3px;
+}
+
+main::-webkit-scrollbar-thumb:hover {
+  background: oklch(from var(--border) l c h / 0.8);
+}
+
+/* FLUIDITY: global transition utility for interactive elements */
+.wizard-transition {
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* FLUIDITY: respect reduced motion — kill all animations for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Safe area inset utilities — for mobile notch / home indicator */
+.pb-safe {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+.pt-safe {
+  padding-top: max(1.5rem, env(safe-area-inset-top, 0px));
+}
+.inset-safe-b {
+  bottom: env(safe-area-inset-bottom, 0px);
+}
+.inset-safe-t {
+  top: env(safe-area-inset-top, 0px);
+}
+
+/* Mobile-specific spacing helpers */
+.px-safe {
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+}
+.mx-safe {
+  margin-left: max(1rem, env(safe-area-inset-left, 0px));
+  margin-right: max(1rem, env(safe-area-inset-right, 0px));
+}
+
+/* ============================================================
+   MOBILE UX — GODMODE Enhancements
+   ============================================================ */
+
+/* GODMODE 6: Removed html safe-area padding.
+     ROOT CAUSE: html padding pushed the flex container down, but h-dvh on the inner div
+     made it viewport-sized, causing the bottom to overflow and be clipped by overflow-hidden.
+     This meant the footer's safe-area-inset-bottom padding was effectively clipped by
+     safe-area-inset-top pixels on iPhones with BOTH notch AND home indicator.
+     FIX: Safe-area is now handled entirely in JSX (header pt-[max(0rem,env(safe-area-inset-top))],
+     footer pb-[max(0.75rem,env(safe-area-inset-bottom))]), which correctly applies insets
+     WITHOUT shifting the viewport-height container. */
+
+/* FIX: Prevent iOS Safari from zooming on input focus.
+     Inputs with font-size < 16px trigger auto-zoom.
+     This is intentionally outside @layer to beat Tailwind utilities.
+     Selector excludes checkbox/radio/range/color/submit/reset/button/image
+     to avoid affecting form controls that should stay small. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="reset"]):not([type="button"]):not([type="image"]),
+textarea,
+select {
+  font-size: max(16px, 1rem) !important;
+}
+
+/* FIX: Ensure minimum touch target size (44x44px) for all interactive elements on mobile.
+     Uses a more targeted approach to avoid breaking compact toolbar buttons.
+     Only applies to buttons that don't have explicit small sizing classes. */
+@media (pointer: coarse) {
+  /* Buttons in footers, forms, cards, sheets — primary interactive elements.
+     FIX20: Exclude [data-slot="switch"] — Switch tracks are already correctly
+     sized (h-4 w-7 on mobile). Forcing min-height:44px stretches them into
+     tall oblong shapes that look like "big circles" — the #3 user complaint. */
+  footer button:not([data-slot="switch"]),
+  .wizard-transition button:not([data-slot="switch"]),
+  nav button:not([data-slot="switch"]),
+  .mobile-menu button:not([data-slot="switch"]) {
+    min-height: 44px;
+  }
+  /* Links should be tappable */
+  a[target="_blank"], a[href^="/"] {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* FIX: Prevent text selection on interactive elements during touch */
+@media (pointer: coarse) {
+  button, [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* FIX: Ensure all sheet/overlay buttons meet 44px touch target.
+     FIX20: Exclude [data-slot="switch"] to prevent stretching Switch toggles.
+     FIX22: Replaced [data-radix-sheet-content] with [data-slot="sheet-content"]
+     — Radix Dialog never emits data-radix-sheet-content. The Sheet component
+     sets data-slot="sheet-content" on SheetPrimitive.Content. */
+  [data-slot="sheet-content"] button:not([data-slot="switch"]),
+  [data-radix-dialog-content] button:not([data-slot="switch"]) {
+    min-height: 44px;
+  }
+}
+
+/* FIX: Improve scroll performance on mobile — hint browser to use GPU compositing */
+@supports (overflow: overlay) {
+  .scroll-smooth {
+    overflow: overlay;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ============================================================
+   GODMODE 5 — Mobile Performance & UX Optimizations
+   ============================================================ */
+@media (max-width: 767px) {
+  /* Sheet/overlay backdrop blur performance on mobile — reduce blur radius */
+  .backdrop-blur-xl {
+    backdrop-filter: blur(8px) saturate(1.2);
+    -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  }
+  .backdrop-blur-2xl {
+    backdrop-filter: blur(10px) saturate(1.3);
+    -webkit-backdrop-filter: blur(10px) saturate(1.3);
+  }
+  .backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  /* GODMODE 13: Catch-all for Tailwind arbitrary saturate classes on mobile.
+       When backdrop-blur-xl and backdrop-saturate-[1.8] coexist on the same
+       element, Tailwind v4 generates a merged class selector (specificity 0-2-0)
+       that overrides the single-class .backdrop-blur-xl mobile reduction above.
+       This rule targets elements with BOTH classes, ensuring performance-friendly
+       values always win on mobile. Covers blog, templates, vs, citation-styles
+       pages without modifying each component. Unlayered CSS beats @layer utilities. */
+  .backdrop-blur-xl[class*="backdrop-saturate"] {
+    backdrop-filter: blur(8px) saturate(1.2);
+    -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  }
+  .backdrop-blur-2xl[class*="backdrop-saturate"] {
+    backdrop-filter: blur(10px) saturate(1.3);
+    -webkit-backdrop-filter: blur(10px) saturate(1.3);
+  }
+
+  /* GODMODE 8: Reduce .tf-glass backdrop-filter on mobile.
+       .tf-glass uses blur(16px) saturate(1.8) which is expensive on mid-range GPUs.
+       Same reduction as backdrop-blur-xl above. */
+  .tf-glass {
+    backdrop-filter: blur(8px) saturate(1.2);
+    -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  }
+
+  /* Reduce Framer Motion layout animation cost on mobile.
+     layout animations cause GPU repaints on every step change.
+     Mobile devices with limited GPU benefit from reduced motion. */
+  /* GODMODE 6: Removed !important from will-change.
+       Previous version used will-change: auto !important which killed ALL intentional
+       GPU layering (e.g., sidebar slide, sheet transitions). Unlayered CSS already
+       overrides Tailwind utilities without !important. auto is correct here — it tells
+       the browser to decide when to promote to GPU layer instead of forcing it. */
+  [data-framer-motion-layout-id] {
+    will-change: auto;
+  }
+
+  /* NOTE: Sheet transition speed is controlled by Radix UI internals.
+       CSS custom properties here have no effect — removed dead code. */
+
+  /* GODMODE: Optimize scrolling performance on mobile.
+       -webkit-overflow-scrolling: touch enables iOS momentum scrolling.
+       FIXTEN: Removed will-change: scroll-position — this was forcing GPU
+       compositing layer promotion on ALL <main> elements on mobile, consuming GPU
+       memory and causing scroll jank on mid-range Android phones. The browser
+       should decide when to promote to GPU layer, not us. -webkit-overflow-scrolling
+       alone provides sufficient scroll performance hints. */
+  main {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* GODMODE 6: Removed broad .shadow-sm/.shadow-md overrides.
+       Previous version applied simplified shadows to ALL elements using these classes,
+       which flattened intentionally elevated cards (template cards, issue cards, etc.).
+       Modern mobile GPUs handle multi-layer box-shadows fine during scroll.
+       The performance gain was marginal (~0.5ms per paint) and the visual regression
+       (flat, lifeless cards) was noticeable. Removed — let Tailwind defaults render. */
+
+  /* GODMODE: Prevent unnecessary repaints from hover effects on touch devices.
+     Touch devices don't have hover, so :hover rules cause extra style recalculation. */
+  .tf-issue-card:hover {
+    border-color: var(--color-border-subtle, rgba(0,0,0,0.06));
+    box-shadow: none;
+  }
+  .tf-ref-item:hover {
+    border-color: var(--color-border-subtle, rgba(0,0,0,0.06));
+    box-shadow: none;
+  }
+
+  /* GODMODE 7: Prevent text selection on non-input elements during scroll.
+     GODMODE FIX: Changed from `main *` (which prevented ALL text selection including
+     readable content) to `main button, main [role=button], main a, main nav, main label`.
+     Users can now select and copy text in chapter cards, reference lists, etc.
+     while still preventing selection on interactive elements during touch scroll. */
+  main button,
+  main [role="button"],
+  main a,
+  main nav,
+  main label {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* GODMODE: Ensure Shadcn dialog/sheet content doesn't exceed viewport.
+     FIX22: Both selectors are correct — data-radix-dialog-content covers Dialog,
+     data-slot="sheet-content" covers Sheet (custom data-slot on SheetPrimitive.Content).
+     v4: Changed max-height from calc(100dvh - 2rem) to 100dvh — the Sheet component
+     now uses inset-y-0 + h-full for full viewport height. Safe area insets are
+     handled via pt/pb safe-area classes on the sheet's inner content. */
+  [data-radix-dialog-content],
+  [data-slot="sheet-content"] {
+    max-height: 100dvh !important;
+    overscroll-behavior: contain;
+  }
+
+  /* FIX22: Ensure Sheet content uses transform for slide animation,
+     not the CSS translate property. Tailwind v4 translate-x-* uses the
+     individual translate property which conflicts with data-state transitions.
+     Our sheet-slide-* classes use transform: translateX/Y which is reliable. */
+  [data-slot="sheet-content"] {
+    translate: none !important;
+  }
+
+  /* MOBILE SLIDER OVERHAUL — Larger thumb, thicker track, visible value
+     The default shadcn slider has a 16px thumb and 6px track — unusable on mobile.
+     These rules make the slider touch-friendly with a 28px thumb and 8px track. */
+  [data-slot="slider"] {
+    height: 44px;
+    padding: 8px 0;
+  }
+  [data-slot="slider-track"] {
+    height: 8px !important;
+    border-radius: 9999px;
+  }
+  [data-slot="slider-thumb"] {
+    width: 28px !important;
+    height: 28px !important;
+    border-width: 2px;
+    box-shadow: 0 2px 8px oklch(0 0 0 / 0.15);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+  [data-slot="slider-thumb"]:active {
+    transform: scale(1.15);
+    box-shadow: 0 4px 12px oklch(0 0 0 / 0.2);
+  }
+  /* Range input (native) mobile sizing */
+  input[type="range"] {
+    height: 44px;
+    padding: 8px 0;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    background: var(--background);
+    box-shadow: 0 2px 8px oklch(0 0 0 / 0.15);
+    margin-top: -10px;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--muted);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    background: var(--background);
+    box-shadow: 0 2px 8px oklch(0 0 0 / 0.15);
+  }
+  input[type="range"]::-moz-range-track {
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--muted);
+    border: none;
+  }
+
+  /* MOBILE SELECT — Larger touch targets, better spacing */
+  [data-slot="select-trigger"] {
+    min-height: 48px !important;
+    padding-left: 14px !important;
+    padding-right: 36px !important;
+    font-size: 16px !important;
+  }
+  [data-slot="select-content"] {
+    max-height: 50vh !important;
+  }
+  [data-slot="select-item"] {
+    min-height: 44px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    font-size: 15px;
+  }
+
+  /* MOBILE CARDS — Full-width tap area, no hover effects on touch */
+  .card-hover {
+    transform: none !important;
+    box-shadow: var(--shadow-sm) !important;
+  }
+  /* Expand card tap target to full width on mobile */
+  [data-slot="card-header"] {
+    min-height: 48px;
+  }
+
+  /* MOBILE BUTTON ENHANCEMENT — Ensure all primary buttons are 48px tall */
+  .btn-primary,
+  .btn-next {
+    min-height: 48px !important;
+    font-size: 15px !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  /* MOBILE DIALOG — Full-width, rounded top corners only */
+  [data-radix-dialog-content] {
+    max-width: calc(100vw - 16px) !important;
+    border-radius: 16px !important;
+    max-height: 85dvh !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* MOBILE TOOLTIP — Convert to bottom sheet style on mobile */
+  @media (pointer: coarse) {
+    [data-slot="tooltip-content"] {
+      display: none !important;
+    }
+  }
+}
+
+/* ============================================================
+   MOBILE TRANSITIONS — Smooth, Native-Feeling
+   ============================================================ */
+
+/* Mobile page transitions — fast and smooth */
+@media (max-width: 767px) {
+  /* Wizard step transitions — slide from right on mobile */
+  .tf-step-enter {
+    animation: tf-step-enter 250ms cubic-bezier(0.22, 1, 0.36, 1) both !important;
+  }
+  .tf-step-exit {
+    animation: tf-step-exit 200ms cubic-bezier(0.22, 1, 0.36, 1) both !important;
+  }
+
+  /* Faster hero animations on mobile — users see content sooner */
+  .hero-gradient {
+    animation-duration: 4s !important;
+  }
+
+  /* Reduced float animation amplitude on mobile */
+  @keyframes floatMobile {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  /* Mobile progress bar animation — spring-like */
+  .tf-step-enter {
+    animation: tf-step-enter-mobile 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes tf-step-enter-mobile {
+    from { opacity: 0; transform: translateX(12px) scale(0.99); }
+    to   { opacity: 1; transform: translateX(0)    scale(1);    }
+  }
+
+  /* Smooth collapsible open/close on mobile */
+  [data-slot="collapsible-content"] {
+    transition: height 250ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
+  }
+
+  /* Mobile badge sizing — slightly larger for touch */
+  [data-slot="badge"] {
+    min-height: 24px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: 12px;
+  }
+
+  /* Mobile separator — more spacing */
+  [data-slot="separator"] {
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+}
+
+/* ============================================================
+   MOBILE TOUCH FEEDBACK — Haptic-Feel Interactions
+   ============================================================ */
+
+/* Active state feedback on mobile — subtle scale-down for tactile feel */
+@media (pointer: coarse) {
+  button:active:not(:disabled):not([data-slot="switch"]):not([data-slot="slider-thumb"]) {
+    transform: scale(0.97);
+    transition: transform 80ms ease;
+  }
+  [data-slot="select-trigger"]:active {
+    transform: scale(0.98);
+    transition: transform 80ms ease;
+  }
+}
+
+/* ============================================================
+   MOBILE SCROLL CONTAINMENT — Prevent Body Scroll Leak
+   ============================================================ */
+@media (max-width: 767px) {
+  /* When a sheet or dialog is open, prevent background scroll */
+  body[data-radix-scroll-locked] {
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  /* Smooth scroll for all scrollable containers on mobile */
+  .overscroll-contain,
+  [data-radix-scroll-area-viewport] {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* ============================================================
+   MOBILE FORM ELEMENTS — Polished & Consistent
+   ============================================================ */
+@media (max-width: 767px) {
+  /* Input fields — larger padding, better touch target */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="reset"]):not([type="button"]):not([type="image"]):not([type="hidden"]),
+  textarea,
+  select {
+    min-height: 48px !important;
+    padding: 12px 14px !important;
+    border-radius: 12px !important;
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Textarea specific — taller minimum */
+  textarea {
+    min-height: 120px !important;
+    resize: vertical !important;
+  }
+
+  /* Label positioning — more spacing below label */
+  label {
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  /* Focus ring — thicker on mobile for visibility */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+  textarea:focus,
+  select:focus {
+    outline-width: 2px;
+    outline-offset: 1px;
+  }
+
+  /* Date input — full-width on mobile */
+  input[type="date"] {
+    min-width: 100%;
+  }
+}
+
+/* ============================================================
+   MOBILE NAVIGATION — Bottom-Sheet Feel
+   ============================================================ */
+@media (max-width: 767px) {
+  /* Sheet content — bottom sheet style with rounded top */
+  [data-slot="sheet-content"][data-side="right"] {
+    border-radius: 20px 0 0 20px !important;
+    max-width: 85vw !important;
+  }
+  [data-slot="sheet-content"][data-side="bottom"] {
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 90dvh !important;
+    padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Sheet overlay — darker on mobile for focus */
+  [data-radix-dialog-overlay] {
+    background: oklch(0 0 0 / 0.6) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+}
+
+/* ============================================================
+   MOBILE SWITCH — Enhanced Touch Target
+   ============================================================ */
+@media (pointer: coarse) {
+  /* Switch track — slightly larger on mobile for easier toggling */
+  [data-slot="switch"] {
+    min-width: 52px !important;
+    min-height: 32px !important;
+  }
+  [data-slot="switch-thumb"] {
+    width: 26px !important;
+    height: 26px !important;
+  }
+}
+
+/* FLUIDITY: subtle pulse for active step indicator */
+@keyframes fluid-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.02); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fluid-pulse {
+    animation: fluid-pulse 2s ease-in-out infinite;
+  }
+}
+
+/* Logo gentle float animation */
+@keyframes tf-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* ============================================================
+   Dark Mode — Input Field Overrides
+   ============================================================ */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.dark textarea,
+.dark select {
+  background: var(--color-bg-subtle, oklch(0.215 0.018 260));
+  color: var(--color-text-primary, oklch(0.941 0.006 247));
+  border-color: var(--color-border-default, oklch(0.28 0.02 260));
+}
+
+/* ============================================================
+   Typography Scale — Used levels only
+   ============================================================*/
+.page-title {
+  font-size: var(--text-3xl, 38px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+.section-title {
+  font-size: var(--text-xl, 24px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+/* ============================================================
+   Component CSS — Intelligence Issue Cards (Semantic)
+   ============================================================*/
+.tf-issue-card {
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
+  background: var(--color-bg-base, var(--card));
+  transition:
+    border-color var(--dur-normal, 220ms) var(--ease-out-smooth),
+    box-shadow var(--dur-normal, 220ms) var(--ease-out-smooth);
+}
+.tf-issue-card:hover {
+  border-color: var(--color-border-default, rgba(0,0,0,0.12));
+  box-shadow: var(--shadow-sm);
+}
+.tf-issue-card--error {
+  border-left: 3px solid var(--color-text-danger, #A32D2D);
+}
+.tf-issue-card--warning {
+  border-left: 3px solid var(--color-text-warning, #854F0B);
+}
+.tf-issue-card--info {
+  border-left: 3px solid var(--c-brand-600, #534AB7);
+}
+.tf-issue-card--success {
+  border-left: 3px solid var(--color-text-success, #0F6E56);
+}
+.tf-issue-fix-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  font-size: var(--text-xs, 11px);
+  font-weight: var(--weight-medium, 500);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-fill-brand, #EEEDFE);
+  color: var(--c-brand-600, #534AB7);
+  border: none;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast, 150ms) var(--ease-out-smooth),
+    transform var(--dur-instant, 80ms) var(--ease-out-snap);
+}
+.tf-issue-fix-btn:hover {
+  background: var(--c-brand-100, #CECBF6);
+  transform: translateY(-1px);
+}
+.tf-issue-fix-btn:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tf-issue-card {
+    animation: issue-enter var(--dur-normal, 220ms) var(--ease-out-snap) both;
+  }
+  .tf-issue-card:nth-child(2) { animation-delay: 40ms; }
+  .tf-issue-card:nth-child(3) { animation-delay: 80ms; }
+  .tf-issue-card:nth-child(4) { animation-delay: 120ms; }
+  .tf-issue-card:nth-child(5) { animation-delay: 160ms; }
+}
+
+/* ============================================================
+   Component CSS — Reference Type Accent Bars
+   ============================================================*/
+.tf-ref-item {
+  position: relative;
+  padding: var(--space-3, 12px) var(--space-4, 16px) var(--space-3, 12px) calc(var(--space-4, 16px) + 4px);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
+  background: var(--color-bg-base, var(--card));
+  transition:
+    border-color var(--dur-normal, 220ms) var(--ease-out-smooth),
+    box-shadow var(--dur-normal, 220ms) var(--ease-out-smooth);
+}
+.tf-ref-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--muted-foreground, oklch(0.44 0.013 260));
+  transition: background var(--dur-normal, 220ms) var(--ease-out-smooth);
+}
+.tf-ref-item:hover {
+  border-color: var(--color-border-default, rgba(0,0,0,0.12));
+  box-shadow: var(--shadow-sm);
+}
+.tf-ref-item[data-type="article"]::before  { background: oklch(0.55 0.20 264); }
+.tf-ref-item[data-type="book"]::before     { background: oklch(0.55 0.18 155); }
+.tf-ref-item[data-type="inproceedings"]::before { background: oklch(0.65 0.19 305); }
+.tf-ref-item[data-type="misc"]::before     { background: oklch(0.55 0.20 42); }
+.tf-ref-item[data-type="online"]::before   { background: oklch(0.60 0.18 155); }
+.tf-ref-item[data-type="phdthesis"]::before { background: oklch(0.50 0.22 264); }
+.tf-ref-item[data-type="mastersthesis"]::before { background: oklch(0.60 0.18 155); }
+.tf-ref-item[data-type="techreport"]::before { background: oklch(0.55 0.20 42); }
+
+/* ============================================================
+   Component CSS — Step Dot Navigation
+   ============================================================*/
+.tf-step-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+.tf-step-connector {
+  position: absolute;
+  top: 50%;
+  left: 24px;
+  right: 24px;
+  height: 3px;
+  background: var(--primary);
+  opacity: 0.15;
+  border-radius: 2px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.tf-step-dot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  outline: none;
+  transition: transform var(--dur-normal, 220ms) var(--ease-out-smooth);
+}
+.tf-step-dot:hover:not([disabled]) {
+  transform: translateY(-2px);
+}
+.tf-step-dot[disabled] {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* ============================================================
+   Component CSS — Next Button (Most Important CTA)
+   ============================================================*/
+.btn-next {
+  min-width: 140px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  transition:
+    background-color 150ms var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1)),
+    box-shadow 150ms var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1)),
+    transform 80ms var(--ease-out-snap, cubic-bezier(0.16,1,0.3,1));
+}
+.btn-next:hover:not(:disabled) {
+  box-shadow: var(--shadow-md);
+}
+.btn-next:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn-next:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   Component CSS — Template Card Selected Checkmark
+   ============================================================*/
+.template-card--selected::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--c-brand-600, #534AB7);
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='10' viewBox='0 0 12 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 5L4.5 8.5L11 1.5' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .template-card--selected::after {
+    animation: check-pop 200ms var(--ease-bounce, cubic-bezier(0.34,1.56,0.64,1)) both;
+  }
+}
+
+/* ============================================================
+   Component CSS — Template Card Feature Dot
+   ============================================================*/
+.template-card__feature::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-border-strong);
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Component CSS — Score Ring (Intelligence Panel)
+   ============================================================*/
+.tf-score-ring-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tf-score-ring-wrap svg {
+  transform: rotate(-90deg);
+}
+.tf-score-ring-bg {
+  fill: none;
+  stroke: var(--color-border-subtle, rgba(0,0,0,0.06));
+  stroke-width: 6;
+}
+.tf-score-ring-fill {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition:
+    stroke-dashoffset var(--dur-sluggish, 700ms) var(--ease-out-smooth),
+    stroke var(--dur-slow, 350ms) var(--ease-out-smooth);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tf-score-ring-fill {
+    transition:
+      stroke-dashoffset var(--dur-sluggish, 700ms) var(--ease-out-smooth),
+      stroke var(--dur-slow, 350ms) var(--ease-out-smooth),
+      stroke-width var(--dur-normal, 220ms) var(--ease-out-smooth);
+  }
+}
+/* Intelligence panel container */
+.tf-intel-panel {
+  padding: var(--space-4, 16px);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
+  overscroll-behavior: contain;
+  background: var(--color-bg-base, var(--card));
+  overflow-y: auto;
+  max-height: calc(100dvh - 120px);
+}
+
+/* ============================================================
+   Component CSS — Chapter Drag Handle
+   ============================================================*/
+.tf-chapter-drag-handle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 20px;
+  padding: var(--space-2, 8px) 0;
+  cursor: grab;
+  opacity: 0.3;
+  transition: opacity var(--dur-normal, 220ms) var(--ease-out-smooth);
+  flex-shrink: 0;
+}
+.tf-chapter-drag-handle:hover {
+  opacity: 0.7;
+}
+.tf-chapter-drag-handle:active {
+  cursor: grabbing;
+  opacity: 1;
+}
+.tf-chapter-drag-handle::before,
+.tf-chapter-drag-handle::after {
+  content: '';
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+/* ============================================================
+   Component CSS — Chapter Textarea
+   ============================================================*/
+.tf-chapter-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  font-family: var(--font-sans);
+  font-size: var(--text-base, 15px);
+  line-height: var(--leading-normal, 1.6);
+ color: var(--color-text-primary);
+  background: var(--color-bg-base, var(--card));
+  border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
+  border-radius: var(--radius-md, 8px);
+  resize: vertical;
+  transition:
+    border-color var(--dur-normal, 220ms) var(--ease-out-smooth),
+    box-shadow var(--dur-normal, 220ms) var(--ease-out-smooth),
+    min-height var(--dur-slow, 350ms) var(--ease-out-snap);
+}
+.tf-chapter-textarea:focus {
+  outline: none;
+  border-color: var(--c-brand-600, #534AB7);
+  box-shadow: 0 0 0 3px oklch(0.50 0.22 264 / 0.08);
+}
+.tf-chapter-textarea::placeholder {
+  color: var(--color-text-tertiary);
+  opacity: 0.6;
+}
+
+/* ============================================================
+   AREA 4 — CSS Performance Layer & UI Improvements
+   ============================================================ */
+
+/* 4.1 — Performance CSS Layer: content-visibility for off-screen steps */
+@layer utilities {
+  .content-hidden {
+    content-visibility: hidden;
+  }
+  .content-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 500px;
+  }
+}
+
+/* 4.1 — will-change utilities for animation performance */
+@layer utilities {
+  .will-change-transform { will-change: transform; }
+  .will-change-opacity   { will-change: opacity; }
+  .will-change-auto      { will-change: auto; }
+}
+
+/* 4.1 — Smooth scroll for preview panel chapter navigation */
+@layer utilities {
+  .scroll-smooth-custom {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px;
+  }
+}
+
+/* 4.2 — Template Card Gradient Border */
+@layer components {
+  .template-card-wrapper {
+    position: relative;
+    border-radius: var(--radius-xl);
+    padding: 1.5px;
+    background: transparent;
+    transition: background var(--dur-normal, 200ms) var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1));
+  }
+  .template-card-wrapper:hover {
+    background: linear-gradient(
+      135deg,
+      oklch(0.75 0.12 280 / 0.4),
+      oklch(0.75 0.12 320 / 0.2)
+    );
+  }
+  .template-card-wrapper--selected {
+    background: linear-gradient(
+      135deg,
+      oklch(0.65 0.22 280),
+      oklch(0.70 0.18 320)
+    );
+  }
+  .template-card-inner {
+    border-radius: calc(var(--radius-xl) - 1.5px);
+    background: var(--color-bg-base, var(--card));
+    height: 100%;
+    padding: var(--space-6, 24px);
+  }
+}
+
+/* 4.3 — Chapter Editor Focus Mode */
+@layer components {
+  .chapter-list:has(.chapter-item:focus-within) .chapter-item:not(:focus-within) {
+    opacity: 0.5;
+    transition: opacity var(--dur-normal, 200ms) var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1));
+  }
+  .chapter-item:focus-within .chapter-body-textarea {
+    min-height: 240px;
+    transition: min-height var(--dur-slow, 350ms) var(--ease-out-snap, cubic-bezier(0.16,1,0.3,1));
+  }
+  .chapter-item:focus-within {
+    border-color: oklch(0.65 0.22 280 / 0.4);
+    box-shadow: 0 0 0 3px oklch(0.65 0.22 280 / 0.08);
+  }
+}
+
+/* 4.4 — Step Progress Shimmer Animation (keyframe preserved) */
+@keyframes progress-shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(200%); }
+}
+
+/* 4.5 — Intelligence Issue Card Staggered Entrance (keyframe preserved) */
+@keyframes issue-enter {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0);   }
+}
+
+/* Score ring keyframe preserved for future use */
+@keyframes ring-surge {
+  0%   { stroke-width: 6; }
+  40%  { stroke-width: 10; }
+  100% { stroke-width: 6; }
+}
+
+/* ============================================================
+   Smooth Scroll — Main Content Only
+   FIX: Removed scroll-behavior: smooth from html. This was causing
+   scroll "sticking" — one scroll works, then the next doesn't fire
+   until the mouse moves. scroll-behavior: smooth on the viewport
+   causes the browser to animate/queue scroll events, which can
+   consume subsequent wheel events during the animation.
+   
+   The scroll dots already use scrollIntoView({behavior:'smooth'})
+   for programmatic smooth scroll — no CSS needed for that.
+   
+   main keeps scroll-behavior: smooth for wizard mode where it
+   has its own overflow-y: auto scroll context.
+   ============================================================ */
+main {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  main {
+    scroll-behavior: auto;
+  }
+}
+
+/* ============================================================
+   Dialog & Modal — Prevent Content Clipping
+   ============================================================ */
+[role="dialog"] {
+  max-height: 85vh;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* ============================================================
+   Dialog Footer — Consistent Button Layout
+   ============================================================ */
+/* All dialog footers should use flex-row-reverse so the
+   primary action is on the right, with proper spacing */
+[data-slot="dialog-footer"] {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  justify-content: flex-start;
+}
+@media (min-width: 640px) {
+  [data-slot="dialog-footer"] {
+    justify-content: flex-end;
+  }
+}
+
+/* ============================================================
+   Import Review Modal — Better Layout & Spacing
+   ============================================================ */
+.tf-import-review {
+  max-height: 70vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Confidence bar styling */
+.tf-confidence-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: oklch(0.92 0.01 264);
+  overflow: hidden;
+}
+.tf-confidence-bar > div {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Import field row hover */
+.tf-import-field:hover {
+  background: oklch(0.97 0.005 264 / 0.5);
+}
+
+/* ============================================================
+   Homepage — Hero Section Enhancements
+   ============================================================ */
+.tf-hero-gradient {
+  background: linear-gradient(
+    135deg,
+    oklch(0.98 0.01 280) 0%,
+    oklch(0.95 0.02 264) 50%,
+    oklch(0.98 0.01 320) 100%
+  );
+}
+
+/* ============================================================
+   Card & Surface — Elevated Interactions
+   ============================================================ */
+.card-interactive {
+  transition:
+    transform var(--dur-normal, 200ms) var(--ease-out-smooth),
+    box-shadow var(--dur-normal, 200ms) var(--ease-out-smooth);
+}
+.card-interactive:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 12px oklch(0 0 0 / 0.06),
+    0 1px 3px oklch(0 0 0 / 0.04);
+}
+.card-interactive:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.04);
+}
+
+/* ============================================================
+   Step Indicator — Refined States
+   ============================================================ */
+.step-active {
+  color: oklch(0.65 0.22 264);
+  font-weight: 600;
+}
+.step-completed {
+  color: oklch(0.55 0.18 150);
+}
+.step-pending {
+  color: oklch(0.55 0.01 264);
+  opacity: 0.5;
+}
+
+/* ============================================================
+   Buttons — Primary Action Emphasis
+   ============================================================ */
+.btn-primary-action {
+  background: linear-gradient(135deg, oklch(0.65 0.22 280), oklch(0.60 0.20 264));
+  color: white;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition:
+    transform 120ms cubic-bezier(0.25, 1, 0.5, 1),
+    box-shadow 120ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+.btn-primary-action:hover {
+  transform: translateY(-0.5px);
+  box-shadow: 0 4px 14px oklch(0.65 0.22 280 / 0.35);
+}
+
+/* ============================================================
+   Input Fields — Consistent Focus States
+   NOTE: Inner ring style consolidated at line ~3515 (Phase 2 upgrade)
+   ============================================================ */
+
+/* ============================================================
+   Mobile Responsiveness — Touch Targets
+   ============================================================ */
+@media (max-width: 640px) {
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ============================================================
+   Print Styles
+   ============================================================ */
+@media print {
+  nav, header, footer, .no-print {
+    display: none !important;
+  }
+  main {
+    max-width: 100%;
+    padding: 0;
+  }
+}
+
+[role="dialog"] [data-radix-scroll-area-viewport] {
+  overscroll-behavior: contain;
+}
+
+/* ============================================================
+   Dark Mode — Enhanced Text Selection
+   ============================================================ */
+.dark ::selection {
+  background: oklch(0.65 0.22 259 / 0.3);
+  color: inherit;
+}
+
+/* ============================================================
+   GODMODE 12: Typography Refinements — Poppins Optimization
+   Appended to end of globals.css — existing type scale untouched.
+   All classes use tf- prefix to avoid collisions with shadcn/ui.
+   ============================================================ */
+
+/* Tabular numbers for all numeric displays (word counts, stats, timers) */
+.tf-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "zero";
+}
+
+/* Tighter tracking for large display headings (hero, step titles) */
+.tf-display {
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+/* Optimized body reading — prevent orphaned single words on last line */
+.tf-body-readable {
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  hyphenate-limit-chars: 6 3 3;
+}
+
+/* Balanced headline wrapping — evens out multi-line heading widths */
+.tf-headline {
+  text-wrap: balance;
+  max-width: 22ch;
+}
+
+/* Caption and label text — academic document style */
+.tf-caption {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground, oklch(0.55 0.02 260));
+}
+
+/* Mono code in UI contexts — for inline code references and labels */
+.tf-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 0.875em;
+  font-feature-settings: "liga", "calt";
+}
+
+/* ============================================================
+   Accessibility — Focus Indicators
+   NOTE: Consolidated at line ~3504 with border-radius: inherit
+   ============================================================ */
+
+/* ============================================================
+   Print Styles — Clean thesis output
+   ============================================================ */
+@media print {
+  .no-print, header, nav, footer, [role="dialog"] {
+    display: none !important;
+  }
+
+  main {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* ============================================================
+   Form Controls — Enhanced Textarea & Input Styling
+   ============================================================ */
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+textarea:focus {
+  box-shadow: 0 0 0 3px oklch(0.50 0.22 264 / 0.08);
+}
+
+.dark textarea:focus {
+  box-shadow: 0 0 0 3px oklch(0.65 0.22 259 / 0.12);
+}
+
+/* Placeholder styling */
+::placeholder {
+  opacity: 0.5;
+  transition: opacity var(--dur-fast, 150ms) var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1));
+}
+
+:focus::placeholder {
+  opacity: 0.3;
+}
+
+/* ============================================================
+   Tooltip — Prevent text selection inside tooltips
+   ============================================================ */
+[data-radix-popper-content-wrapper] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ============================================================
+   Navbar — Subtle Enhancements (light & dark safe)
+   ============================================================ */
+
+/* Ghost buttons in navbar: improve hover visibility */
+header button[class*="ghost"]:hover {
+  background: oklch(0.50 0.22 264 / 0.06);
+}
+
+.dark header button[class*="ghost"]:hover {
+  background: oklch(0.65 0.22 259 / 0.08);
+}
+
+header button[class*="ghost"]:active {
+  transform: scale(0.97);
+}
+
+/* Light mode only: subtle warm tint + muted-foreground contrast */
+:root:not(.dark) header {
+  background: oklch(0.995 0.003 80);
+}
+
+:root:not(.dark) header.scrolled,
+:root:not(.dark) header[class*="shadow"] {
+  background: oklch(0.990 0.002 80 / 0.85);
+}
+
+:root:not(.dark) header .text-muted-foreground {
+  color: oklch(0.38 0.013 260);
+}
+
+:root:not(.dark) header .text-muted-foreground:hover {
+  color: oklch(0.131 0.013 260);
+}
+
+/* ============================================================
+   Loading — Enhanced Skeleton Animation
+   ============================================================ */
+@layer base {
+  [data-state="loading"] {
+    pointer-events: none;
+  }
+
+  [data-state="loading"] * {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}
+
+/* ============================================================
+   Mobile — Touch Optimization
+   ============================================================ */
+@media (hover: none) and (pointer: coarse) {
+  button, [role="button"], a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Smaller elements can opt out */
+  .kbd, .badge, [data-badge] {
+    min-height: unset;
+    min-width: unset;
+  }
+}
+
+/* ============================================================
+   Card — Enhanced Transitions
+   ============================================================ */
+.card, [data-slot="card"] {
+  transition:
+    box-shadow var(--dur-normal, 220ms) var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1)),
+    border-color var(--dur-normal, 220ms) var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1)),
+    background-color var(--dur-normal, 220ms) var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1));
+}
+
+/* ============================================================
+   Sheet — Slide Animation v4 (GODMODE FIX)
+   ============================================================
+   HISTORY:
+   v1: Tailwind data-[state=open]:translate-x-0 → FAIL (Tailwind v4 uses
+       CSS `translate` property, not `transform`).
+   v2: Custom CSS classes with [data-state] selectors → FLAKY (CSS bundle
+       could be stale, Tailwind @layer utilities override unlayered CSS).
+   v3: MutationObserver + inline styles → BROKEN (React 19 ref forwarding
+       + Radix timing caused observer to miss mutations or fire on null ref,
+       leaving inline visibility:hidden that CSS couldn't override).
+   v4 (CURRENT): Pure CSS with !important guarantees.
+       - No JS animation logic whatsoever.
+       - Uses [data-slot="sheet-content"] combined with [data-side] and
+         [data-state] attribute selectors for maximum specificity.
+       - !important on transform + visibility ensures these rules beat
+         ANY conflicting Tailwind utility, @layer rule, or inline style.
+       - .sheet-transition provides smooth 300ms cubic-bezier animation.
+   ============================================================ */
+
+.sheet-transition {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.35s;
+}
+
+/* ── Open state: panel slides in from its side ── */
+.sheet-slide-right[data-state="open"] {
+  transform: translateX(0) !important;
+  visibility: visible !important;
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0ms 0ms !important;
+}
+
+.sheet-slide-left[data-state="open"] {
+  transform: translateX(0) !important;
+  visibility: visible !important;
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0ms 0ms !important;
+}
+
+.sheet-slide-top[data-state="open"] {
+  transform: translateY(0) !important;
+  visibility: visible !important;
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0ms 0ms !important;
+}
+
+.sheet-slide-bottom[data-state="open"] {
+  transform: translateY(0) !important;
+  visibility: visible !important;
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0ms 0ms !important;
+}
+
+/* ── Closed state: panel slides out to its side ── */
+.sheet-slide-right[data-state="closed"] {
+  transform: translateX(100%) !important;
+  visibility: hidden !important;
+}
+
+.sheet-slide-left[data-state="closed"] {
+  transform: translateX(-100%) !important;
+  visibility: hidden !important;
+}
+
+.sheet-slide-top[data-state="closed"] {
+  transform: translateY(-100%) !important;
+  visibility: hidden !important;
+}
+
+.sheet-slide-bottom[data-state="closed"] {
+  transform: translateY(100%) !important;
+  visibility: hidden !important;
+}
+
+/* ============================================================
+   Sheet — Mobile Menu Scroll
+   ============================================================ */
+/* FIX21: Target both data-radix-dialog-content (actual Radix attribute) and
+   data-slot="sheet-content" (shadcn convention). Previous code used
+   [data-radix-sheet-content] which doesn't exist — Radix Dialog uses
+   data-radix-dialog-content. The dead selector meant these rules never
+   applied to Sheet overlays on mobile, causing bottom-cutoff issues. */
+[data-radix-dialog-content],
+[data-slot="sheet-content"] {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  max-height: 100dvh;
+}
+
+/* ============================================================
+   Progress Bar — Smooth Fill Animation
+   ============================================================ */
+[role="progressbar"] > div {
+  transition: width var(--dur-slow, 350ms) var(--ease-out-snap, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+/* ============================================================
+   Monaco Editor — Integrated Code Editor Styles
+   ============================================================ */
+
+/* Editor container — prevents layout thrash, clean chrome */
+.editor-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--card, oklch(0.998 0.001 80));
+  border: 1px solid var(--border, oklch(0.905 0.006 247));
+  border-radius: var(--radius-lg, 0.75rem);
+  overflow: hidden;
+}
+
+.dark .editor-container {
+  background: oklch(0.13 0.016 260);
+  border-color: oklch(0.25 0.02 260);
+}
+
+/* Editor tab bar */
+.editor-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted-foreground, oklch(0.44 0.013 260));
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    color 150ms var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1)),
+    background-color 150ms var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1)),
+    border-color 150ms var(--ease-out-smooth, cubic-bezier(0.25,1,0.5,1));
+  user-select: none;
+  white-space: nowrap;
+}
+
+.editor-tab:hover:not(.editor-tab--active) {
+  color: var(--foreground, oklch(0.131 0.013 260));
+  background: oklch(0.50 0.22 264 / 0.06);
+}
+
+.dark .editor-tab:hover:not(.editor-tab--active) {
+  background: oklch(0.65 0.22 259 / 0.08);
+}
+
+.editor-tab--active {
+  color: var(--foreground, oklch(0.131 0.013 260));
+  background: var(--background, oklch(0.990 0.002 80));
+  border-bottom-color: var(--primary, oklch(0.50 0.22 264));
+}
+
+.dark .editor-tab--active {
+  color: var(--foreground, oklch(0.941 0.006 247));
+  background: oklch(0.105 0.015 260);
+  border-bottom-color: var(--primary, oklch(0.65 0.22 259));
+}
+
+/* Editor sidebar — file tree / outline */
+.editor-sidebar {
+  width: 220px;
+  min-width: 180px;
+  flex-shrink: 0;
+  overscroll-behavior: contain;
+  background: var(--popover, oklch(0.998 0.001 80));
+  border-right: 1px solid var(--border, oklch(0.905 0.006 247));
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.dark .editor-sidebar {
+  background: oklch(0.125 0.016 260);
+  border-right-color: oklch(0.22 0.018 260);
+}
+
+.editor-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground, oklch(0.44 0.013 260));
+  cursor: pointer;
+  border-radius: var(--radius-sm, calc(var(--radius) - 4px));
+  transition:
+    background-color 100ms ease,
+    color 100ms ease;
+}
+
+.editor-sidebar-item:hover {
+  background: oklch(0.50 0.22 264 / 0.06);
+  color: var(--foreground, oklch(0.131 0.013 260));
+}
+
+.dark .editor-sidebar-item:hover {
+  background: oklch(0.65 0.22 259 / 0.08);
+  color: var(--foreground, oklch(0.941 0.006 247));
+}
+
+.editor-sidebar-item--active {
+  background: oklch(0.50 0.22 264 / 0.10);
+  color: var(--primary, oklch(0.50 0.22 264));
+  font-weight: 500;
+}
+
+.dark .editor-sidebar-item--active {
+  background: oklch(0.65 0.22 259 / 0.12);
+  color: var(--primary, oklch(0.65 0.22 259));
+}
+
+/* Diagnostics panel — problems / warnings list */
+.diagnostics-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--popover, oklch(0.998 0.001 80));
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--border, oklch(0.905 0.006 247));
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+.dark .diagnostics-panel {
+  background: oklch(0.125 0.016 260);
+  border-top-color: oklch(0.22 0.018 260);
+}
+
+.diagnostics-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  border-bottom: 1px solid oklch(0.50 0.02 260 / 0.08);
+  cursor: pointer;
+  transition: background-color 100ms ease;
+}
+
+.diagnostics-item:last-child {
+  border-bottom: none;
+}
+
+.diagnostics-item:hover {
+  background: oklch(0.50 0.22 264 / 0.04);
+}
+
+.dark .diagnostics-item:hover {
+  background: oklch(0.65 0.22 259 / 0.06);
+}
+
+.diagnostics-item--error {
+  color: oklch(0.50 0.22 25);
+  border-left: 2px solid oklch(0.58 0.24 27);
+}
+
+.dark .diagnostics-item--error {
+  color: oklch(0.75 0.18 25);
+  border-left-color: oklch(0.70 0.19 22);
+}
+
+.diagnostics-item--warning {
+  color: oklch(0.40 0.14 65);
+  border-left: 2px solid oklch(0.70 0.16 75);
+}
+
+.dark .diagnostics-item--warning {
+  color: oklch(0.80 0.14 75);
+  border-left-color: oklch(0.75 0.16 75);
+}
+
+.diagnostics-item--info {
+  color: oklch(0.45 0.12 250);
+  border-left: 2px solid oklch(0.55 0.18 250);
+}
+
+.dark .diagnostics-item--info {
+  color: oklch(0.75 0.12 250);
+  border-left-color: oklch(0.65 0.16 250);
+}
+
+/* Editor status bar */
+.editor-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: oklch(0.55 0.02 260);
+  background: oklch(0.975 0.004 260);
+  border-top: 1px solid var(--border, oklch(0.905 0.006 247));
+  user-select: none;
+  letter-spacing: 0.01em;
+}
+
+.dark .editor-statusbar {
+  color: oklch(0.60 0.015 247);
+  background: oklch(0.14 0.016 260);
+  border-top-color: oklch(0.22 0.018 260);
+}
+
+/* Smooth scrollbar — editor-specific context */
+.editor-container ::-webkit-scrollbar,
+.editor-sidebar ::-webkit-scrollbar,
+.diagnostics-panel ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.editor-container ::-webkit-scrollbar-track,
+.editor-sidebar ::-webkit-scrollbar-track,
+.diagnostics-panel ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.editor-container ::-webkit-scrollbar-thumb,
+.editor-sidebar ::-webkit-scrollbar-thumb,
+.diagnostics-panel ::-webkit-scrollbar-thumb {
+  background: oklch(0.78 0.01 247 / 0.5);
+  border-radius: 3px;
+}
+
+.editor-container ::-webkit-scrollbar-thumb:hover,
+.editor-sidebar ::-webkit-scrollbar-thumb:hover,
+.diagnostics-panel ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.65 0.02 247);
+}
+
+.dark .editor-container ::-webkit-scrollbar-thumb,
+.dark .editor-sidebar ::-webkit-scrollbar-thumb,
+.dark .diagnostics-panel ::-webkit-scrollbar-thumb {
+  background: oklch(0.35 0.015 260 / 0.6);
+}
+
+.dark .editor-container ::-webkit-scrollbar-thumb:hover,
+.dark .editor-sidebar ::-webkit-scrollbar-thumb:hover,
+.dark .diagnostics-panel ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.50 0.02 260);
+}
+
+/* ============================================================
+   GODMODE: Enhanced Wizard Button System
+   ============================================================ */
+
+/* Enhanced wizard action buttons — consistent gradient overlay + press feedback */
+.wizard-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 200ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.wizard-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg,
+    oklch(0.50 0.22 264 / 0.12),
+    oklch(0.60 0.18 305 / 0.06));
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.wizard-btn:hover::before {
+  opacity: 1;
+}
+
+.wizard-btn:active {
+  transform: scale(0.97);
+}
+
+/* Template card enhanced hover states — smoother lift */
+.template-card-enhanced {
+  transition: all 250ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.template-card-enhanced:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 12px oklch(0 0 0 / 0.06),
+    0 8px 24px oklch(0 0 0 / 0.04);
+}
+
+.dark .template-card-enhanced:hover {
+  box-shadow:
+    0 4px 12px oklch(0 0 0 / 0.2),
+    0 8px 24px oklch(0 0 0 / 0.15);
+}
+
+/* Wizard path CTA buttons — hover lift + glow */
+.path-cta-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 200ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.path-cta-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px oklch(from var(--primary) l c h / 0.25);
+}
+
+.path-cta-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px oklch(from var(--primary) l c h / 0.15);
+}
+
+/* Mobile stat divider — vertical line on mobile between stats */
+.stat-divider-mobile::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  right: 25%;
+  height: 1px;
+  background: var(--border, oklch(0.905 0.006 247));
+}
+
+.stat-divider-mobile:last-child::after {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .stat-divider-mobile::after {
+    display: none;
+  }
+}
+
+/* Enhanced mobile header safe area */
+@media (max-width: 639px) {
+  .mobile-header-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Wizard step button glow effect on active */
+.step-active-glow {
+  box-shadow: 0 0 0 3px oklch(0.50 0.22 264 / 0.12);
+}
+
+.dark .step-active-glow {
+  box-shadow: 0 0 0 3px oklch(0.65 0.22 259 / 0.15);
+}
+
+/* Template selection dialog button — gradient primary */
+.template-switch-btn {
+  background: linear-gradient(135deg,
+    oklch(0.50 0.22 264),
+    oklch(0.55 0.20 280));
+  color: white;
+  transition: all 200ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.template-switch-btn:hover {
+  box-shadow: 0 4px 12px oklch(0.50 0.22 264 / 0.3);
+  transform: translateY(-1px);
+}
+
+.template-switch-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Enhanced card interactive states for use-case cards */
+.use-case-card-interactive {
+  transition: all 250ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.use-case-card-interactive:hover {
+  transform: translateY(-2px);
+}
+
+.use-case-card-interactive:active {
+  transform: translateY(-1px);
+}
+
+/* Smooth scrollbar for all overflow containers */
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track,
+.overflow-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb,
+.overflow-auto::-webkit-scrollbar-thumb {
+  background: oklch(from var(--border) l c h / 0.4);
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover,
+.overflow-auto::-webkit-scrollbar-thumb:hover {
+  background: oklch(from var(--border) l c h / 0.7);
+}
+
+/* ============================================================
+   PWA MOBILE MODE — Standalone & Safe Area Enhancements
+   ============================================================ */
+
+/* Standalone mode: use dynamic viewport height for proper sizing */
+@supports (height: 100dvh) {
+  .h-screen {
+    height: 100dvh;
+  }
+}
+
+/* iOS safe area for the entire viewport
+   GODMODE 13: Removed padding-top from body — every page layout
+   (homepage, wizard, editor) already handles its own top safe-area
+   inset via per-component Tailwind classes. The body padding-top was
+   stacking with component-level padding, causing double-offset on
+   the editor page (~88px instead of ~44px on iPhones). */
+@supports (padding-top: env(safe-area-inset-top)) {
+  body {
+    padding-top: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+}
+
+/* Wizard footer safe area — prevent home indicator overlap */
+@media (max-width: 639px) {
+  footer[class*="border-t"] {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* PWA standalone: suppress default browser UI overscroll */
+@supports (display: standalone) {
+  html, body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Mobile touch targets — minimum 44x44px tap area
+   GODMODE 13: Fixed cascade regression where this 639px rule used 36px
+   while the 640px rule used 44px — creating a 10px regression at exactly 639px.
+   Now consistently 44px across all mobile breakpoints. */
+@media (max-width: 639px) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Mobile sheet: ensure full visibility with safe area */
+  [data-slot="sheet-content"] {
+    max-height: 100dvh;
+    /* Safe area: default padding for menu Sheets, overridable via Tailwind classes */
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+  }
+  /* Allow individual Sheets to opt out of default padding */
+  [data-slot="sheet-content"].p-0 {
+    padding: 0 !important;
+  }
+
+  /* Mobile navbar: compact height for notch devices */
+  header {
+    height: max(3.5rem, calc(3.5rem + env(safe-area-inset-top, 0px)));
+  }
+}
+
+/* Toast position fix for mobile — avoid overlap with home indicator */
+@media (max-width: 639px) {
+  [data-sonner-toaster] {
+    --width: 360px;
+    bottom: max(1rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem)) !important;
+  }
+}
+
+/* Dialog safe area — prevent notch/home indicator overlap on mobile */
+@media (max-width: 639px) {
+  [data-radix-dialog-content] {
+    max-height: calc(100dvh - 2rem);
+    margin-top: env(safe-area-inset-top, 0px);
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Prevent text selection on tap-hold for interactive elements (mobile UX) */
+@media (max-width: 639px) {
+  button, [role="button"], [role="tab"], [role="option"] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Smooth momentum scrolling for mobile */
+@media (hover: none) and (pointer: coarse) {
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  .overflow-y-auto, .overflow-auto {
+    scrollbar-width: none;
+  }
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-auto::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Mobile Editor — Touch & Monaco Fixes
+   ============================================================ */
+
+/* Prevent browser zoom on double-tap inside the editor area */
+@media (max-width: 639px) {
+  .touch-manipulation,
+  .touch-manipulation * {
+    touch-action: manipulation;
+  }
+}
+
+/* Ensure Monaco editor canvas fills its container on mobile */
+@media (max-width: 639px) {
+  .monaco-editor,
+  .monaco-editor .overflow-guard {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .monaco-editor .lines-content {
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+  }
+}
+
+/* Radix Dialog (Sheet) mobile: ensure full-height behavior */
+@media (max-width: 639px) {
+  [data-slot="sheet-content"] {
+    max-height: 100dvh;
+    max-height: -webkit-fill-available;
+  }
+  [data-slot="sheet-overlay"] {
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+}
+
+/* Prevent pull-to-refresh inside editor viewport on iOS */
+@media (max-width: 639px) {
+  .h-screen, [style*="height: 100vh"], [style*="height:100vh"] {
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Mobile: ensure toolbar buttons have adequate touch targets
+   GODMODE 13: Fixed from 36px to 44px to match global mobile touch target standard. */
+@media (max-width: 639px) {
+  [data-slot="sheet-content"] button,
+  [data-slot="sheet-content"] [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ============================================================
+   Mobile Editor — Layout & Viewport Fixes
+   FIX: Editor shell must use dynamic viewport height on mobile
+   to prevent white gap at bottom when browser chrome shows/hides.
+   GODMODE FIX: Ensure editor flex children properly fill viewport.
+   ============================================================ */
+@media (max-width: 639px) {
+  /* Editor shell: full dynamic viewport height on mobile */
+  .h-dvh,
+  [style*="height: 100dvh"] {
+    height: 100dvh !important;
+    height: -webkit-fill-available !important;
+  }
+
+  /* GODMODE FIX: Ensure editor fills the viewport on mobile.
+   The editor layout is: h-dvh > flex-1 > flex-col h-full.
+   On mobile, h-full can resolve incorrectly in nested flex containers.
+   Force the editor container to use flex-1 sizing instead of h-full. */
+  [data-slot="sheet-content"] {
+    max-height: 100dvh;
+    max-height: -webkit-fill-available;
+  }
+
+  /* Prevent Monaco from being 0px tall in flex container */
+  .monaco-editor-container,
+  .monaco-editor {
+    min-height: 150px !important;
+  }
+
+  /* Toolbar: prevent horizontal scroll, allow touch scroll */
+  .overflow-x-auto.scrollbar-none {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* GODMODE FIX: Editor inner layout — force flex-1 to work correctly.
+   On mobile, the editor's flex-1 child wasn't getting proper height,
+   causing "only half page rendered" issue. */
+  .flex.flex-col.min-h-0 {
+    min-height: 0;
+  }
+
+  /* Ensure editor area fills available space on mobile */
+  .flex.flex-1.min-w-0.min-h-0 {
+    flex: 1 1 0% !important;
+    min-height: 200px;
+  }
+}
+
+/* ============================================================
+   Mobile Homepage — Responsive Grid Fixes
+   FIX: Hero buttons stack, features go single column,
+   stats grid goes 2-column, prevent horizontal overflow.
+   ============================================================ */
+@media (max-width: 639px) {
+  main *:not([data-radix-popper-content-wrapper]):not([role="dialog"]):not([data-slot="sheet-overlay"]) {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
+/* ============================================================
+   GODMODE: Mobile Safety CSS
+   ============================================================ */
+
+/* Input zoom prevention — iOS zooms page if font-size < 16px */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: max(1rem, 16px) !important;
+  }
+}
+
+/* Prevent horizontal overflow at root.
+   FIX: overflow-x: clip hides overflow WITHOUT creating a scroll container
+   (unlike overflow-x: hidden which implicitly sets overflow-y: auto per CSS spec).
+   Only apply to body, NOT html, to avoid nested scroll container conflicts.
+   Use max-width: 100% instead of 100vw to avoid scrollbar-width issues. */
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+/* Prevent tap highlight flash on all interactive elements */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Focus rings — consolidated at line ~3504 */
+
+/* ============================================================
+   Resizable Panel Handle — Cursor Feedback
+   FIX 6: Add col-resize / row-resize cursor to panel handles
+   on desktop (hover-capable devices). Only applies when the
+   pointer device supports hover — avoids showing resize cursor
+   on touch devices where drag handles don't apply.
+   ============================================================ */
+@media (hover: hover) {
+  [data-slot="resizable-handle"] {
+    cursor: col-resize;
+  }
+  [data-panel-group-direction="vertical"] [data-slot="resizable-handle"] {
+    cursor: row-resize;
+  }
+}
+
+/* ============================================================
+   GODMODE MOBILE — Comprehensive Premium Mobile UX
+   Every element crafted for touch-first, smooth interactions
+   ============================================================ */
+
+/* ---- Mobile Switch Enhancement ---- */
+@media (max-width: 767px) {
+  [data-slot="switch"] {
+    min-width: 51px !important;
+    min-height: 31px !important;
+  }
+  [data-slot="switch-thumb"] {
+    width: 27px !important;
+    height: 27px !important;
+  }
+  /* Switch container row — ensure label + switch pair has adequate spacing */
+  .flex.items-center.justify-between.gap-3:has([data-slot="switch"]) {
+    min-height: 52px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+}
+
+/* ---- Premium Mobile Transitions ---- */
+@media (max-width: 767px) {
+  /* All interactive cards get subtle tap-scale feedback */
+  [data-slot="card"]:active {
+    transform: scale(0.985);
+    transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Smooth card entrance stagger */
+  [data-slot="card"] {
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Settings section cards — no hover lift, just subtle press */
+  .card-hover:active {
+    transform: scale(0.985) !important;
+  }
+}
+
+/* ---- Mobile Settings Layout ---- */
+@media (max-width: 767px) {
+  /* Wider cards with breathing room */
+  .space-y-6 > [data-slot="card"],
+  .space-y-6 > div > [data-slot="card"] {
+    border-radius: 16px !important;
+  }
+
+  /* Card headers — more padding for mobile */
+  [data-slot="card-header"] {
+    padding-top: 16px !important;
+    padding-bottom: 10px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Card content — more padding for mobile */
+  [data-slot="card-content"] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-bottom: 16px !important;
+  }
+}
+
+/* ---- Mobile Slider Premium Styles ---- */
+@media (max-width: 767px) {
+  [data-slot="slider"] {
+    height: 48px;
+    padding: 12px 0;
+  }
+  [data-slot="slider-track"] {
+    height: 6px !important;
+  }
+  [data-slot="slider-thumb"] {
+    width: 24px !important;
+    height: 24px !important;
+    border-width: 2.5px;
+    box-shadow: 0 2px 10px oklch(0 0 0 / 0.15), 0 1px 3px oklch(0 0 0 / 0.1);
+    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  [data-slot="slider-thumb"]:active {
+    transform: scale(1.2);
+    box-shadow: 0 4px 16px oklch(0 0 0 / 0.2), 0 2px 6px oklch(0 0 0 / 0.12);
+  }
+}
+
+/* ---- Mobile Select Premium Touch ---- */
+@media (max-width: 767px) {
+  [data-slot="select-trigger"] {
+    min-height: 52px !important;
+    padding-left: 16px !important;
+    padding-right: 40px !important;
+    font-size: 16px !important;
+    border-radius: 12px !important;
+    gap: 10px;
+    transition: border-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  [data-slot="select-trigger"]:active {
+    transform: scale(0.98);
+  }
+  [data-slot="select-content"] {
+    max-height: 55vh !important;
+    border-radius: 16px !important;
+    padding: 8px !important;
+  }
+  [data-slot="select-item"] {
+    min-height: 48px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    font-size: 15px;
+    border-radius: 10px !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    transition: background 120ms ease;
+  }
+}
+
+/* ---- Mobile Button Premium Feel ---- */
+@media (max-width: 767px) {
+  .btn-primary,
+  .btn-next {
+    min-height: 52px !important;
+    font-size: 15px !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+    border-radius: 14px !important;
+    letter-spacing: 0.01em;
+    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1),
+                background-color 200ms ease;
+  }
+  .btn-primary:active:not(:disabled),
+  .btn-next:active:not(:disabled) {
+    transform: scale(0.96) !important;
+  }
+
+  /* Ghost buttons in wizard */
+  .wizard-transition button:not([data-slot="switch"]):active:not(:disabled) {
+    transform: scale(0.96);
+  }
+}
+
+/* ---- Mobile Dialog/Sheet Polish ---- */
+@media (max-width: 767px) {
+  [data-radix-dialog-content] {
+    max-width: calc(100vw - 16px) !important;
+    border-radius: 20px !important;
+    max-height: 85dvh !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 -4px 32px oklch(0 0 0 / 0.12);
+  }
+
+  [data-slot="sheet-content"][data-side="right"] {
+    border-radius: 24px 0 0 24px !important;
+    max-width: 88vw !important;
+    box-shadow: -8px 0 32px oklch(0 0 0 / 0.1);
+  }
+
+  [data-slot="sheet-content"][data-side="bottom"] {
+    border-radius: 24px 24px 0 0 !important;
+    max-height: 92dvh !important;
+    padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+    box-shadow: 0 -8px 32px oklch(0 0 0 / 0.12);
+  }
+
+  /* Sheet overlay — softer, premium feel */
+  [data-radix-dialog-overlay] {
+    background: oklch(0 0 0 / 0.5) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    transition: opacity 250ms ease;
+  }
+}
+
+/* ---- Mobile Form Element Polish ---- */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="reset"]):not([type="button"]):not([type="image"]):not([type="hidden"]),
+  textarea,
+  select {
+    min-height: 52px !important;
+    padding: 14px 16px !important;
+    border-radius: 14px !important;
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+    transition: border-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  textarea {
+    min-height: 140px !important;
+    resize: vertical !important;
+  }
+
+  label {
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  /* Focus ring — visible but subtle on mobile */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+  textarea:focus,
+  select:focus {
+    outline-width: 2px;
+    outline-offset: 1px;
+    box-shadow: 0 0 0 4px oklch(0.50 0.22 264 / 0.1) !important;
+  }
+
+  input[type="date"] {
+    min-width: 100%;
+  }
+}
+
+/* ---- Mobile Navigation & Step Indicator ---- */
+@media (max-width: 767px) {
+  /* Step tabs — smoother transitions */
+  [data-wizard-step-tabs] button {
+    transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 100ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Progress bar spring animation — slower on mobile for smoother feel */
+  [data-mobile-progress-bar] > div {
+    transition: width 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* ---- Mobile Tooltip/Press Feedback ---- */
+@media (pointer: coarse) {
+  /* Premium press feedback for buttons — subtle scale with spring */
+  button:active:not(:disabled):not([data-slot="switch"]):not([data-slot="slider-thumb"]) {
+    transform: scale(0.96);
+    transition: transform 100ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  [data-slot="select-trigger"]:active {
+    transform: scale(0.98);
+    transition: transform 100ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Remove hover tooltips on touch — they stick and confuse */
+  [data-slot="tooltip-content"] {
+    display: none !important;
+  }
+}
+
+/* ---- Mobile Scroll Containment ---- */
+@media (max-width: 767px) {
+  body[data-radix-scroll-locked] {
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  .overscroll-contain,
+  [data-radix-scroll-area-viewport] {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* ---- Mobile Animations — Refined for Performance ---- */
+@media (max-width: 767px) {
+  /* Faster hero animations */
+  .hero-gradient {
+    animation-duration: 6s !important;
+  }
+
+  /* Smoother collapsible */
+  [data-slot="collapsible-content"] {
+    transition: height 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 250ms ease;
+  }
+
+  /* Badge sizing */
+  [data-slot="badge"] {
+    min-height: 26px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  /* Separator spacing */
+  [data-slot="separator"] {
+    margin-top: 14px;
+    margin-bottom: 14px;
+  }
+}
+
+/* ---- Mobile Header & Footer Polish ---- */
+@media (max-width: 767px) {
+  /* Header glass effect — softer on mobile */
+  [data-wizard-header] {
+    backdrop-filter: blur(12px) saturate(1.3);
+    -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  }
+
+  /* Footer glass — consistent with header */
+  [data-wizard-footer] {
+    backdrop-filter: blur(12px) saturate(1.3);
+    -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  }
+
+  /* Mobile footer glass — softer for performance */
+  [data-wizard-footer-mobile] {
+    backdrop-filter: blur(12px) saturate(1.3);
+    -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  }
+}
+
+/* ---- Mobile Dark Mode Input Polish ---- */
+@media (max-width: 767px) {
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .dark textarea,
+  .dark select {
+    background: var(--color-bg-subtle, oklch(0.215 0.018 260));
+    color: var(--color-text-primary, oklch(0.941 0.006 247));
+    border-color: var(--color-border-default, oklch(0.28 0.02 260));
+    border-radius: 14px !important;
+  }
+}
+
+/* ---- Mobile Dropdown Menu Polish ---- */
+@media (max-width: 767px) {
+  [data-slot="dropdown-menu-content"] {
+    border-radius: 16px !important;
+    padding: 6px !important;
+    box-shadow: 0 8px 32px oklch(0 0 0 / 0.12);
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  [data-slot="dropdown-menu-item"] {
+    min-height: 44px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 12px;
+    padding-right: 12px;
+    border-radius: 10px !important;
+    font-size: 15px;
+    transition: background 120ms ease;
+  }
+  [data-slot="dropdown-menu-checkbox-item"] {
+    min-height: 44px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 12px;
+    padding-right: 12px;
+    border-radius: 10px !important;
+    font-size: 15px;
+  }
+  [data-slot="dropdown-menu-separator"] {
+    margin-top: 6px;
+    margin-bottom: 6px;
+  }
+}
+
+/* ---- Mobile Checkbox & Radio ---- */
+@media (max-width: 767px) {
+  [data-slot="checkbox"] {
+    width: 22px !important;
+    height: 22px !important;
+    border-radius: 7px !important;
+    border-width: 2px;
+  }
+  [data-slot="radio-group-item"] {
+    width: 22px !important;
+    height: 22px !important;
+  }
+}
+
+/* ---- Mobile Collapsible Section Headers ---- */
+@media (max-width: 767px) {
+  [data-slot="collapsible-trigger"] {
+    min-height: 48px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+}
+
+/* ---- Mobile Progress Bar ---- */
+@media (max-width: 767px) {
+  [data-slot="progress"] {
+    height: 8px !important;
+    border-radius: 9999px !important;
+  }
+  [data-slot="progress-indicator"] {
+    border-radius: 9999px !important;
+    transition: width 400ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* ---- Mobile Intelligence Float Button ---- */
+@media (max-width: 767px) {
+  /* Softer shadow for the floating brain button */
+  .fixed.z-40.rounded-full.shadow-lg {
+    box-shadow: 0 4px 20px oklch(0 0 0 / 0.12), 0 2px 8px oklch(0 0 0 / 0.08);
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .fixed.z-40.rounded-full.shadow-lg:active {
+    transform: scale(0.92) !important;
+  }
+}
+
+/* ============================================================
+   PHASE 2 — UX GODMODE CSS UPGRADES
+   From Side Project to Complete Product
+   All additive — no existing styles removed.
+   ============================================================ */
+
+/* 2.A — Prose Typography for Reading Surfaces */
+.tf-prose {
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "ss01" 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  hanging-punctuation: first last;
+}
+
+.tf-headline {
+  text-wrap: balance;
+}
+
+.tf-body-text {
+  text-wrap: pretty;
+}
+
+/* 2.B — Skeleton Loading States */
+@keyframes tf-skeleton-sweep {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.tf-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    oklch(from var(--muted) l c h / 0.5) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: tf-skeleton-sweep 1.6s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-skeleton { animation: none; background: var(--muted); }
+}
+
+/* 2.C — Focus Ring System Upgrade */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: inherit;
+  transition: outline-offset 0.1s ease;
+}
+
+:focus-visible:active {
+  outline-offset: 0px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  transition: box-shadow 0.15s ease;
+}
+
+/* 2.D — Interactive State System */
+.tf-interactive {
+  transition: transform 0.1s var(--ease-out-snap, cubic-bezier(0.16, 1, 0.3, 1)),
+              box-shadow 0.15s var(--ease-out-smooth, cubic-bezier(0.25, 1, 0.5, 1)),
+              background-color 0.15s var(--ease-out-smooth, cubic-bezier(0.25, 1, 0.5, 1));
+}
+
+@media (hover: hover) {
+  .tf-interactive:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.tf-interactive:active {
+  transform: translateY(0px) scale(0.99);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Card hover lift — for feature cards, template cards, reference cards */
+.tf-card-lift {
+  transition: transform 0.2s var(--ease-out-smooth, cubic-bezier(0.25, 1, 0.5, 1)),
+              box-shadow 0.2s var(--ease-out-smooth, cubic-bezier(0.25, 1, 0.5, 1));
+}
+
+@media (hover: hover) {
+  .tf-card-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+.tf-card-lift:active {
+  transform: translateY(-1px);
+}
+
+/* 2.E — Surface Depth System */
+.tf-surface-1 {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.tf-surface-2 {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+
+.tf-surface-floating {
+  background: var(--popover);
+  border: 1px solid oklch(from var(--border) l c h / 0.7);
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+@media (max-width: 767px) {
+  .tf-surface-floating {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+}
+
+/* 2.F — Gradient Text for Hero and Section Headers */
+.tf-gradient-text {
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    oklch(from var(--primary) calc(l + 0.1) calc(c - 0.03) calc(h + 20)) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: var(--primary);
+}
+
+/* Subtle gradient underline for section headings */
+.tf-heading-accent {
+  position: relative;
+  display: inline-block;
+}
+
+.tf-heading-accent::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background: var(--primary);
+  border-radius: var(--radius-full, 9999px);
+}
+
+/* 2.G — Status Indicator System */
+.tf-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full, 9999px);
+  flex-shrink: 0;
+}
+
+.tf-status-dot--running {
+  background: var(--color-text-warning, oklch(0.65 0.19 55));
+  animation: tf-pulse-dot 1.2s ease-in-out infinite;
+}
+
+.tf-status-dot--complete {
+  background: var(--color-text-success, oklch(0.60 0.15 145));
+}
+
+.tf-status-dot--error {
+  background: var(--destructive);
+}
+
+.tf-status-dot--idle {
+  background: var(--muted-foreground);
+  opacity: 0.4;
+}
+
+@keyframes tf-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-status-dot--running { animation: none; opacity: 0.8; }
+}
+
+/* 2.H — Empty State System */
+.tf-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-12, 48px) var(--space-6, 24px);
+  gap: var(--space-3, 12px);
+  color: var(--muted-foreground);
+}
+
+.tf-empty-state__icon {
+  width: 48px;
+  height: 48px;
+  opacity: 0.35;
+  color: var(--muted-foreground);
+}
+
+.tf-empty-state__title {
+  font-size: var(--text-base, 15px);
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.tf-empty-state__description {
+  font-size: var(--text-sm, 13px);
+  max-width: 280px;
+  line-height: 1.6;
+}
+
+/* 2.I — Smooth Page Transitions */
+@keyframes tf-page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tf-page-content {
+  animation: tf-page-enter 0.25s var(--ease-out-smooth, cubic-bezier(0.25, 1, 0.5, 1)) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-page-content { animation: none; }
+}
+
+/* 2.J — Scrollbar Polish (upgraded from existing) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(from var(--muted-foreground) l c h / 0.25);
+  border-radius: var(--radius-full, 9999px);
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(from var(--muted-foreground) l c h / 0.5);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 2.K — Selection Colors (upgraded from existing) */
+::selection {
+  background: oklch(from var(--primary) l c h / 0.2);
+  color: var(--foreground);
+}
+
+::-moz-selection {
+  background: oklch(0.50 0.22 264 / 0.2);
+  color: inherit;
+}
+
+/* 2.L — Input Field Upgrade */
+.tf-input-base {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.tf-input-base::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.tf-input-base:focus {
+  border-color: var(--ring);
+}
+
+/* 2.M — Loading Spinner System */
+@keyframes tf-spin {
+  to { transform: rotate(360deg); }
+}
+
+.tf-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid oklch(from var(--primary) l c h / 0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: tf-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+.tf-spinner--sm { width: 12px; height: 12px; border-width: 1.5px; }
+.tf-spinner--lg { width: 24px; height: 24px; border-width: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-spinner {
+    animation: none;
+    border-color: var(--primary);
+    opacity: 0.5;
+  }
+}
+
+/* 2.N — Toast / Notification Upgrade */
+[data-sonner-toast] {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: oklch(from var(--popover) l c h / 0.9) !important;
+  border: 1px solid oklch(from var(--border) l c h / 0.6) !important;
+  box-shadow: var(--shadow-xl) !important;
+  font-size: 13px !important;
+  gap: 8px !important;
+  padding: 12px 14px !important;
+  border-radius: 10px !important;
+}
+
+@media (max-width: 767px) {
+  [data-sonner-toast] {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+}
+
+/* Horizontal overflow guard — prevent any element from causing horizontal scroll */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Decorative shapes must never overflow */
+.hero-background-gradient,
+.decorative-shape,
+.bg-pattern {
+  max-width: 100vw;
+  overflow: hidden;
+}
+
+/* Active press feedback for primary buttons */
+button.btn-primary:active:not(:disabled),
+button.btn-next:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Wizard step line smooth transition */
+.wizard-step-line {
+  transition: width 0.4s var(--ease-out-smooth, cubic-bezier(0.25, 1, 0.5, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-step-line { transition: none; }
+}
+
+/* ============================================================
+   MOBILE POLISH — Issue 5 Enhancements
+   ============================================================ */
+
+/* Smoother mobile section transitions — no forced min-height on all sections.
+   Only hero gets min-h-[100dvh] via Tailwind class. */
+@media (max-width: 767px) {
+  /* min-height removed — sections size naturally by content */
+}
+
+/* Mobile hero gradient background enhancement */
+@media (max-width: 767px) {
+  body::before {
+    opacity: 0.6;
+  }
+}
+
+/* Better mobile card touch feedback */
+@media (pointer: coarse) {
+  .tf-snap-section [class*="rounded-xl"]:active:not(:disabled) {
+    transform: scale(0.985);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Mobile step cards — softer shadow */
+@media (max-width: 767px) {
+  .card-hover {
+    box-shadow: 0 1px 4px oklch(0 0 0 / 0.06);
+  }
+  .card-hover:active {
+    transform: scale(0.98);
+    box-shadow: 0 0px 2px oklch(0 0 0 / 0.08);
+  }
+}
